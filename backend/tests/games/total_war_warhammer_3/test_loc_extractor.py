@@ -153,6 +153,33 @@ def test_extract_parent_pack_strings_skips_extraction_when_cache_fresh(monkeypat
     assert result["x.loc.tsv"]["k"].text == "cached"
 
 
+def test_extract_parent_pack_strings_drops_loc_files_removed_from_pack(monkeypatch, tmp_path: Path):
+    """A re-extract after the pack changes must not keep loc files the pack no longer contains."""
+    pack = tmp_path / "parent.pack"
+    pack.write_bytes(b"PFH5fake")
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "pack_mtime.txt").write_text("0", encoding="utf-8")
+    extracted = cache_dir / "extracted"
+    extracted.mkdir()
+    (extracted / "removed.loc.tsv").write_text("key\ttext\ttooltip\n#Loc;1;text/removed.loc\t\t\nold\tgone\tfalse\n", encoding="utf-8")
+
+    def fake_run(cmd, **kwargs):
+        (extracted / "kept.loc.tsv").write_text("key\ttext\ttooltip\n#Loc;1;text/kept.loc\t\t\nk\tnew\tfalse\n", encoding="utf-8")
+        result = MagicMock()
+        result.returncode = 0
+        result.stdout = b""
+        result.stderr = b""
+        return result
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = extract_parent_pack_strings(pack, Path("/fake/rpfm_cli.exe"), cache_dir)
+
+    assert "removed.loc.tsv" not in result
+    assert result["kept.loc.tsv"]["k"].text == "new"
+
+
 def test_extract_parent_pack_strings_raises_on_rpfm_failure(monkeypatch, tmp_path: Path):
     pack = tmp_path / "parent.pack"
     pack.write_bytes(b"PFH5fake")

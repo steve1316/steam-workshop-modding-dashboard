@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -242,7 +243,9 @@ def extract_parent_pack_strings(
     if cached_mtime == current_mtime and _extracted_dir(cache_dir).exists():
         return _read_all_extracted(cache_dir)
 
+    # Start from an empty folder so loc files removed from the pack do not linger from an earlier extract.
     extracted = _extracted_dir(cache_dir)
+    shutil.rmtree(extracted, ignore_errors=True)
     extracted.mkdir(parents=True, exist_ok=True)
 
     # Locate the schema next to rpfm_cli.exe so .loc tables decode into TSV during extract.
