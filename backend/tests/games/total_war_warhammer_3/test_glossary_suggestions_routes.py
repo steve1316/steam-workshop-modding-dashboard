@@ -90,7 +90,7 @@ BASE = f"/api/games/total_war_warhammer_3/mods/{MOD_ID}"
 
 
 class FakeClaude:
-    """Stands in for `ClaudeProvider` and returns canned suggested terms."""
+    """Stands in for the configured provider and returns canned suggested terms."""
 
     suggestions: list[dict] = []
 
@@ -111,7 +111,7 @@ class FakeClaude:
 
 @pytest.fixture
 def fake_claude(monkeypatch):
-    """Route Claude calls and parent extraction through fakes so no API call is made.
+    """Route provider calls and parent extraction through fakes so no API call is made.
 
     Args:
         monkeypatch: The pytest monkeypatch fixture.
@@ -120,7 +120,11 @@ def fake_claude(monkeypatch):
         The fake provider class, whose `suggestions` each test sets.
     """
     FakeClaude.suggestions = []
-    monkeypatch.setattr(gs_module, "ClaudeProvider", FakeClaude)
+
+    async def fake_provider(name):
+        return FakeClaude()
+
+    monkeypatch.setattr(gs_module, "ready_web_provider", fake_provider)
     monkeypatch.setattr(gs_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"k1": SimpleNamespace(text="震旦凤")}})
     return FakeClaude
 

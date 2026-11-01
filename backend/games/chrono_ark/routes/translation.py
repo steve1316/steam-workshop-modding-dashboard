@@ -24,7 +24,6 @@ from backend.data.suggestion_manager import add_suggestions, load_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
-from backend.providers.factory import get_provider
 from backend.routes.helpers import (
     _active_translations,
     _fill_duplicate_translations,
@@ -34,29 +33,11 @@ from backend.routes.helpers import (
     chrono_ark_adapter,
     resolve_source_language,
 )
-from backend.routes.llamacpp import _ensure_llamacpp_running
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
+from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries, run_batch
 
 router = APIRouter(prefix="/translate")
-
-
-def _web_provider(provider_name: str):
-    """Build a provider for a web request, turning unusable names into a 400.
-
-    Args:
-        provider_name: Provider id from the request or config.
-
-    Returns:
-        Initialized `TranslationProvider`.
-    """
-    # Manual mode blocks on `input()`, which would hang the server.
-    if provider_name == "manual":
-        raise HTTPException(status_code=400, detail="Manual mode only works from the CLI. Pick another provider in Settings.")
-    try:
-        return get_provider(provider_name)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/estimate-all")
@@ -73,7 +54,7 @@ async def estimate_all_translation_costs(request: Request):
     """
     mods = chrono_ark_adapter().scan_mods()
     provider_name = settings.translation_provider
-    provider = _web_provider(provider_name)
+    provider = web_provider(provider_name)
 
     async def event_stream():
         total = len(mods)
@@ -172,7 +153,7 @@ async def preview_translation(req: TranslationRequest):
         return {"total_strings": 0, "message": "All strings already translated" if not req.retranslate else "No translatable strings found", "previews": {}}
 
     provider_name = req.provider or settings.translation_provider
-    provider = _web_provider(provider_name)
+    provider = web_provider(provider_name)
 
     base_glossary = load_glossary(glossary_path(GAME_ID))
     mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
@@ -267,7 +248,7 @@ async def get_system_prompt(source_lang: str = "Korean", target_lang: str = "Eng
         `provider`, `source_lang`, and `system_prompt`.
     """
     provider_name = settings.translation_provider
-    provider = _web_provider(provider_name)
+    provider = web_provider(provider_name)
 
     glossary_prompt = chrono_ark_adapter().get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang)
     game_context = chrono_ark_adapter().get_translation_context()
@@ -325,11 +306,7 @@ async def translate_batch(req: BatchTranslationRequest):
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
 
     provider_name = req.provider or settings.translation_provider
-
-    if provider_name == "llamacpp":
-        await _ensure_llamacpp_running()
-
-    provider = _web_provider(provider_name)
+    provider = await ready_web_provider(provider_name)
 
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
@@ -448,11 +425,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
 
     provider_name = req.provider or settings.translation_provider
-
-    if provider_name == "llamacpp":
-        await _ensure_llamacpp_running()
-
-    provider = _web_provider(provider_name)
+    provider = await ready_web_provider(provider_name)
 
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)

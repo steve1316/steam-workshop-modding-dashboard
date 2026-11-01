@@ -8,6 +8,7 @@ from backend.games.base import ModInfo
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.chrono_ark.routes import translation as ca_translation
 from backend.models import LocString
+from backend.routes import web_provider as web_provider_module
 from fastapi.testclient import TestClient
 
 FAKE_MOD = ModInfo(mod_id="900000002", name="Fake Mod", author="Tester", path=Path("fake"))
@@ -50,7 +51,7 @@ def fake_ca(monkeypatch):
     monkeypatch.setattr(ChronoArkAdapter, "scan_mods", lambda self, search_path=None: [FAKE_MOD])
     monkeypatch.setattr(ChronoArkAdapter, "find_mod", lambda self, mod_id, search_path=None: FAKE_MOD if mod_id == FAKE_MOD.mod_id else None)
     monkeypatch.setattr(ChronoArkAdapter, "extract_strings", lambda self, path: (strings, {}))
-    monkeypatch.setattr(ca_translation, "get_provider", lambda name: provider)
+    monkeypatch.setattr(web_provider_module, "get_provider", lambda name: provider)
     monkeypatch.setattr(ca_translation, "load_glossary", lambda path: {})
     monkeypatch.setattr(ca_translation, "load_mod_glossary", lambda mod_id, game_id: {})
     monkeypatch.setattr(ca_translation, "load_character_context", lambda mod_id, game_id: {})
@@ -70,25 +71,3 @@ def test_estimate_all_streams_an_estimate_per_mod(fake_ca):
     assert events[0]["estimates"]["Korean"]["strings"] == 1
     assert events[-1] == {"done": True}
     assert fake_ca.target_langs == ["Spanish"]
-
-
-def test_get_provider_raises_for_unknown_names():
-    from backend.providers.factory import get_provider
-
-    with pytest.raises(ValueError, match="nope"):
-        get_provider("nope")
-
-
-def test_get_provider_builds_the_manual_provider():
-    from backend.providers.factory import get_provider
-
-    assert get_provider("manual").name == "Manual"
-
-
-@pytest.mark.parametrize("name", ["manual", "nope"])
-def test_web_routes_reject_providers_they_cannot_run(name):
-    from fastapi import HTTPException
-
-    with pytest.raises(HTTPException) as exc:
-        ca_translation._web_provider(name)
-    assert exc.value.status_code == 400

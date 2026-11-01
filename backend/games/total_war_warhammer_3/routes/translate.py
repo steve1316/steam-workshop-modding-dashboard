@@ -26,8 +26,8 @@ from backend.games.total_war_warhammer_3.translation.name_keys import NAME_STAGE
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
 from backend.providers.base import Revision
-from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
+from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries, run_batch
 
 # WH3 colour and icon tags such as `[[col:red]]` and `[[img:ui/x.png]][[/img]]`, left out of name terms.
@@ -174,7 +174,7 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
 async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "English") -> dict:
     """Return the system prompt a WH3 translation run would send, for the Settings preview.
 
-    Mirrors `preview` with Claude, the WH3 game context, format rules, style examples and the base glossary filtered to the prompt categories.
+    Mirrors `preview` with the configured provider, the WH3 game context, format rules, style examples and the base glossary filtered to the prompt categories.
     No mod is involved, so mod glossary terms are not included.
 
     Args:
@@ -184,7 +184,7 @@ async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "En
     Returns:
         Dict with `provider`, `source_lang` and `system_prompt`.
     """
-    provider = ClaudeProvider()
+    provider = web_provider(settings.translation_provider)
     adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = adapter.get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang) or "No glossary available."
     system_prompt, _ = provider.build_prompt(
@@ -252,7 +252,7 @@ async def preview(req: TranslationRequest) -> dict:
     else:
         chunks = chunk_entries(entries, batch_size, max_chars)
 
-    provider = ClaudeProvider()
+    provider = web_provider(req.provider or settings.translation_provider)
     provider.revisions = revisions or None
     adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = _glossary_prompt(req.mod_id, source_lang, target_lang, mod=mod)
@@ -309,7 +309,7 @@ async def preview(req: TranslationRequest) -> dict:
 
 @router.post("/batch")
 async def translate_batch(req: BatchTranslationRequest) -> dict:
-    """Translate one batch of keys via Claude and persist into translations.json.
+    """Translate one batch of keys with the picked provider and persist into translations.json.
 
     Built for the iterative frontend loop, which posts one batch at a time so the user can review glossary suggestions between batches.
     Results are written incrementally and the provider's suggested terms are returned for review.
@@ -342,7 +342,8 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
 
     adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = _glossary_prompt(req.mod_id, source_lang, target_lang, mod=mod)
-    provider = ClaudeProvider()
+    provider_name = req.provider or settings.translation_provider
+    provider = await ready_web_provider(provider_name)
     provider.revisions = revisions or None
     provider.last_raw_responses = []
     keys = [k for k, _ in entries]
@@ -360,10 +361,10 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
             target_lang=target_lang,
         )
     except Exception as e:
-        api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider="claude", keys=keys, raw_responses=provider.last_raw_responses, error=str(e))
+        api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=keys, raw_responses=provider.last_raw_responses, error=str(e))
         raise HTTPException(status_code=502, detail=str(e)) from e
 
-    # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps Claude's raw output.
+    # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps the raw output.
     # Words the mod glossary spells joined ("Fu Yuanshan") are kept.
     existing_glossary = glossary_store.load_glossary(req.mod_id)
     keep = glossary_words(existing_glossary)
@@ -380,12 +381,12 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     now = datetime.now(UTC).isoformat()
     for key, text in spaced.items():
         existing = raw.get(key, {})
-        raw[key] = {"text": text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": "claude"}
+        raw[key] = {"text": text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": provider_name}
     translation_store.save_translations_raw(req.mod_id, raw, game_id=GAME_ID)
     # Each saved row was translated from the current source, so that source becomes its baseline. It shows as pending until Sync.
     save_parent_snapshot(req.mod_id, accept_keys(load_parent_snapshot(req.mod_id), parent, set(spaced)))
 
-    api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider="claude", keys=keys, raw_responses=provider.last_raw_responses)
+    api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=keys, raw_responses=provider.last_raw_responses)
 
     return {"status": "success", "translated": len(spaced), "translations": spaced, "suggestions": suggestions}
 
@@ -416,7 +417,7 @@ async def name_suggestions(req: NameSuggestionsRequest) -> dict:
 async def cancel(mod_id: str = "") -> dict:
     """Signal cancellation of an in-progress translation run.
 
-    WH3 uses non-streaming Claude, so an in-flight batch cannot be aborted and cancellation is driven client-side by stopping the batch loop.
+    WH3 batches are not streamed, so an in-flight batch cannot be aborted and cancellation is driven client-side by stopping the batch loop.
     This exists for parity with Chrono Ark and is a safe no-op.
 
     Args:

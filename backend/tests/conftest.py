@@ -11,7 +11,7 @@ from backend.models import LocString
 
 @pytest.fixture(autouse=True)
 def isolated_storage(tmp_path, monkeypatch):
-    """Point storage, the models dir and the .env file at a temp folder so no test touches the real ones.
+    """Point storage, the models dir and the .env file at a temp folder so no test touches the real ones, and pin the provider to Claude.
 
     Args:
         tmp_path: Per-test temp directory.
@@ -24,6 +24,8 @@ def isolated_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "storage_path", storage)
     monkeypatch.setattr(settings, "llamacpp_models_dir", storage / "models")
     monkeypatch.setattr(env_file, "ENV_PATH", tmp_path / ".env")
+    # A local .env may pick another provider, which would send route tests to a real server.
+    monkeypatch.setattr(settings, "translation_provider", "claude")
     # The .env writer also sets os.environ, which would leak into later tests.
     saved_env = dict(os.environ)
     yield storage

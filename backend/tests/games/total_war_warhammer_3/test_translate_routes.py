@@ -105,6 +105,39 @@ def test_batch_translates_keys_and_persists(client: TestClient, monkeypatch, tmp
     assert raw["k2"]["provider"] == "claude"
 
 
+def test_batch_uses_the_requested_provider_instead_of_claude(client: TestClient, monkeypatch, tmp_path: Path):
+    """A batch runs through the provider the request picked and records it on the saved row and in the API log."""
+
+    def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
+        return ({"k2": "Local Translation"}, [])
+
+    monkeypatch.setattr("backend.providers.ollama_provider.OllamaProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda *a, **k: pytest.fail("Claude was called"))
+
+    resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "provider": "ollama", "keys": ["k2"], "source_lang": "Chinese"})
+    assert resp.status_code == 200
+
+    mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / "3315737452"
+    assert json.loads((mod_dir / "translations.json").read_text(encoding="utf-8"))["k2"]["provider"] == "ollama"
+    assert json.loads((mod_dir / "api_responses.json").read_text(encoding="utf-8"))[-1]["provider"] == "ollama"
+
+
+def test_preview_uses_the_configured_provider(client: TestClient, monkeypatch):
+    """With no provider in the request, the preview builds and estimates with the one picked in Settings."""
+    from backend.core.settings import settings
+
+    monkeypatch.setattr(settings, "translation_provider", "ollama")
+    resp = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452"})
+    assert resp.status_code == 200
+    assert resp.json()["provider"].startswith("Ollama")
+
+
+def test_preview_rejects_manual_mode(client: TestClient):
+    """Manual mode blocks on `input()`, so the web preview refuses it."""
+    resp = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452", "provider": "manual"})
+    assert resp.status_code == 400
+
+
 def test_batch_persists_and_returns_new_glossary_suggestions(client: TestClient, monkeypatch, tmp_path: Path):
     """The provider's glossary suggestions are returned and persisted for the review modal; terms already in the glossary are filtered out."""
     from backend.data import suggestion_manager
@@ -518,8 +551,8 @@ def test_preview_prompt_includes_translated_names_when_enabled(client: TestClien
 # GET /translate/system-prompt
 
 
-def test_system_prompt_is_built_from_the_wh3_context_rules_and_claude(client):
-    """The Settings preview shows the prompt a WH3 run would send: WH3 context and format rules, built by Claude, with no Chrono Ark text."""
+def test_system_prompt_is_built_from_the_wh3_context_rules_and_the_configured_provider(client):
+    """The Settings preview shows the prompt a WH3 run would send: WH3 context and format rules, built by the configured provider, with no Chrono Ark text."""
     res = client.get("/api/games/total_war_warhammer_3/translate/system-prompt", params={"source_lang": "Chinese"})
     assert res.status_code == 200
     body = res.json()

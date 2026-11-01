@@ -87,6 +87,17 @@ function stageStep(run: NamesRun): StageStep {
     return { index: run.index, total: run.stages.length, label: run.stages[run.index].label, nextLabel: run.stages[run.index + 1]?.label ?? null }
 }
 
+/** Providers the web app can run, for the Translate menu. Manual is CLI-only. */
+const WEB_PROVIDERS = ["claude", "openai", "deepl", "ollama", "llamacpp"]
+
+/**
+ * Capitalize a provider id for a button label.
+ *
+ * @param id Provider id.
+ * @returns The label.
+ */
+const providerLabel = (id: string) => id.charAt(0).toUpperCase() + id.slice(1)
+
 type SortField = "status" | "provider" | "source_filename" | "key" | "parent_text" | "translation_text"
 
 /**
@@ -154,7 +165,7 @@ const TranslationDetailsPage: React.FC = () => {
         target_language_override: null,
     })
     const [glossaryCount, setGlossaryCount] = useState<number>(0)
-    const [activeProvider, setActiveProvider] = useState<string>("claude")
+    const [activeProvider, setActiveProvider] = useState<string>("")
     const [preview, setPreview] = useState<WH3TranslationPreview | null>(null)
     const [pendingProvider, setPendingProvider] = useState<string>("")
     const [sortConfig, setSortConfig] = useState<{ key: SortField; direction: "asc" | "desc" | null }>({ key: "key", direction: null })
@@ -199,6 +210,13 @@ const TranslationDetailsPage: React.FC = () => {
             /* keep the current table */
         }
     }, [workshopId, loadStrings])
+
+    useEffect(() => {
+        fetch(`${API_BASE}/settings`)
+            .then((r) => r.json())
+            .then((data) => setActiveProvider(data.provider ?? ""))
+            .catch(() => {})
+    }, [])
 
     useEffect(() => {
         let cancelled = false
@@ -256,11 +274,14 @@ const TranslationDetailsPage: React.FC = () => {
     )
 
     // Show each completed batch's translations in the table while the run continues.
-    const onBatchTranslated = useCallback((translations: Record<string, string>) => {
-        setStrings((prev) =>
-            prev.map((r) => (translations[r.key] !== undefined ? { ...r, translation_text: translations[r.key], provider: "claude", status: "translated", canonical_status: "pending" } : r))
-        )
-    }, [])
+    const onBatchTranslated = useCallback(
+        (translations: Record<string, string>) => {
+            setStrings((prev) =>
+                prev.map((r) => (translations[r.key] !== undefined ? { ...r, translation_text: translations[r.key], provider: activeProvider, status: "translated", canonical_status: "pending" } : r))
+            )
+        },
+        [activeProvider]
+    )
 
     const { state: batchState, startTranslation, continueAfterReview, cancel: cancelTranslation } = useIterativeTranslation("total_war_warhammer_3", workshopId, onBatchTranslated)
     const isTranslating = batchState.phase === "translating"
@@ -672,12 +693,12 @@ const TranslationDetailsPage: React.FC = () => {
             }
             translate={
                 <SplitButton
-                    label={`Translate (${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)})`}
+                    label={`Translate${activeProvider ? ` (${providerLabel(activeProvider)})` : ""}`}
                     onClick={() => handleTranslateClick()}
                     disabled={isTranslating || translateCount === 0}
                     menuDisabled={isTranslating}
                     menuLabel="Translate provider menu"
-                    items={["claude"].map((p) => ({ label: p.charAt(0).toUpperCase() + p.slice(1), onSelect: () => setActiveProvider(p) }))}
+                    items={WEB_PROVIDERS.map((p) => ({ label: providerLabel(p), onSelect: () => setActiveProvider(p) }))}
                 />
             }
             sync={<SyncButton state={syncState} confirmMessage={wh3SyncMessage} onSync={onSyncChanges} />}

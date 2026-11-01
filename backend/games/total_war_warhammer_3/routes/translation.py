@@ -458,7 +458,7 @@ def _drift_and_overlay(mod_id: str, mod: WH3TranslationMod) -> tuple[list[DriftR
 def get_strings(mod_id: str, status: Literal["translated", "untranslated", "stale", "orphan"] | None = None) -> list[dict]:
     """Return drift rows for a mod, optionally filtered by status.
 
-    Overlays `translations.json` so in-flight edits (user PUTs, Claude batches) show immediately, taking `translation_text` and `provider` from it when present.
+    Overlays `translations.json` so in-flight edits (user PUTs, provider batches) show immediately, taking `translation_text` and `provider` from it when present.
     Otherwise they come from the `.loc.tsv` with `provider` defaulting to `"manual"`.
     An empty-string override is an explicit clear, shown as empty and `untranslated`.
 

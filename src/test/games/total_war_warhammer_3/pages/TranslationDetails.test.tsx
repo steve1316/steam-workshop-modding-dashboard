@@ -82,6 +82,7 @@ function mockRouteFlow() {
         if (url.endsWith("/api-responses")) return mockJson([])
         if (url.endsWith("/snapshots")) return mockJson([])
         if (url.endsWith("/glossary")) return mockJson({})
+        if (url.endsWith("/settings")) return mockJson({ provider: "claude" })
         return mockJson({ status: "ok" })
     })
     return spy
@@ -233,7 +234,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/rescan")) return mockJson({ ...SUMMARY, has_unsynced_changes: true })
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
         render(wrap())
         await waitFor(() => expect(screen.getByText(/Changes pending sync/i)).toBeInTheDocument())
@@ -294,7 +295,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/rescan")) return mockJson(SUMMARY)
             if (url.endsWith("/strings")) return mockJson(rows)
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
 
         render(wrap())
@@ -327,7 +328,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
             if (url.endsWith("/glossary")) return mockJson({ Phoenix: { source: "x", category: "factions" }, Sky: { source: "y", category: "lore" } })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
         render(wrap())
         await waitFor(() => expect(screen.getByRole("button", { name: /Mod Glossary \(2\)/i })).toBeInTheDocument())
@@ -341,7 +342,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/rescan")) return mockJson({ ...SUMMARY, has_mod_context: true })
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "Zerooz", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
         const { container } = render(wrap())
         await waitFor(() => expect(container.querySelector(".btn-dot")).not.toBeNull())
@@ -354,6 +355,14 @@ describe("TranslationDetails (Plan 3 layout)", () => {
         // Chevron sibling exists.
         const chevron = screen.getByRole("button", { name: /Translate provider menu/i })
         expect(chevron).toBeInTheDocument()
+    })
+
+    it("labels Translate with the provider picked in Settings", async () => {
+        const spy = mockRouteFlow()
+        const base = spy.getMockImplementation()!
+        spy.mockImplementation(async (input, init) => (String(input).endsWith("/settings") ? mockJson({ provider: "ollama" }) : base(input, init)))
+        render(wrap())
+        expect(await screen.findByRole("button", { name: /^Translate \(Ollama\)/i })).toBeInTheDocument()
     })
 
     it("opens the provider dropdown when the chevron is clicked", async () => {
@@ -447,7 +456,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/rescan")) return mockJson(SUMMARY)
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
 
         render(wrap())
@@ -564,7 +573,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/rescan")) return mockJson(SUMMARY)
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
 
         render(wrap())
@@ -585,7 +594,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/sync")) return mockJson({ per_file: { "/abs/units.loc.tsv": 3 }, removed_orphans: 0, pack_built: true, pack_error: null })
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
 
         render(wrap())
@@ -603,7 +612,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/strings")) return mockJson(STRINGS)
             if (url.endsWith("/sync")) return mockJson({ per_file: { "/abs/units.loc.tsv": 3 }, removed_orphans: 0, pack_built: false, pack_error: "no .pack found in X" })
             if (url.endsWith("/mod-context")) return mockJson({ source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null })
-            return mockJson({ status: "ok" })
+            return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
         })
 
         render(wrap())
@@ -710,7 +719,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
             if (url.endsWith("/snapshots")) return mockJson([{ id: "01J", created_at: "2026-09-27T01:00:00Z", reason: "Before deleting all glossary terms", kind: "auto", files: [] }])
             if (url.endsWith("/snapshots/01J/restore")) {
                 glossary = { Phoenix: { source: "x", category: "factions" }, Sky: { source: "y", category: "lore" } }
-                return mockJson({ status: "ok" })
+                return mockJson(url.endsWith("/settings") ? { provider: "claude" } : { status: "ok" })
             }
             return base(input, init)
         })
