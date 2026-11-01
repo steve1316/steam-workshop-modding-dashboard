@@ -1,9 +1,4 @@
-"""
-CSV extractor for Chrono Ark localization files.
-
-Parses the base game's Lang*.csv files and mod Localization/*.csv files
-into a standardized LocString format.
-"""
+"""CSV extractor: parses the base game's Lang*.csv and mod Localization/*.csv files into `LocString`."""
 
 import csv
 import re
@@ -12,13 +7,12 @@ from typing import Optional
 from backend.models import LocString
 
 
-# Canonical CSV filenames for Chrono Ark.
 _CANONICAL_NAMES = {"LangDataDB.csv", "LangSystemDB.csv", "LangDialogueDB.csv", "LangRecordsDB.csv"}
 
-# Directory names that indicate backups.
+# Directory names that indicate backups. The Chinese entries mean "backup".
 _BACKUP_DIR_PATTERNS = {"langbackup", "备份", "备份2", "备份3", "备份4", "备份5"}
 
-# Regex to strip variant suffixes from filenames.
+# Strips variant suffixes from filenames.
 _VARIANT_SUFFIX_RE = re.compile(
     r"( - 副本"  # Chinese "copy"
     r"| \(\d+\)"  # " (1)", " (2)"
@@ -32,19 +26,17 @@ _VARIANT_SUFFIX_RE = re.compile(
 
 
 def _fix_oversized_row(row: list[str], expected_cols: int, col_indices: dict[str, int]) -> list[str]:
-    """Fix a row that has more columns than expected due to unquoted commas.
+    """Re-merge the excess columns of a row split by unquoted commas.
 
-    Tries merging excess columns at each language-column position and picks
-    the merge that best aligns columns with their expected scripts.
+    Tries the merge at each language-column position and keeps the one whose cells best match their column's script.
 
     Args:
-        row: The parsed CSV row with too many columns.
-        expected_cols: The expected number of columns (from the header).
-        col_indices: Mapping of column name to index position.
+        row: Parsed row with too many columns.
+        expected_cols: Column count from the header.
+        col_indices: `{column name: index}`.
 
     Returns:
-        A corrected row with the expected number of columns, or the
-        original row if no valid merge candidate is found.
+        Corrected row, or the original if no merge candidate is valid.
     """
     excess = len(row) - expected_cols
     if excess <= 0:
@@ -101,34 +93,28 @@ def _fix_oversized_row(row: list[str], expected_cols: int, col_indices: dict[str
 
 
 def _is_valid_key(key: str) -> bool:
-    """Check if a string looks like a valid localization key.
+    """Check whether a string looks like a localization key.
 
     Args:
-        key: The string to validate.
+        key: String to validate.
 
     Returns:
-        True if the string matches the expected key pattern (alphanumeric
-        characters, underscores, hyphens, dots, and forward slashes).
+        True if it only has alphanumerics, `_`, `-`, `.` and `/`.
     """
     if not key or " " in key:
         return False
-    # Keys typically use A-Z, a-z, 0-9, _, /, ., -
-    # If it contains multi-byte characters or spaces, it's probably text.
+    # Multi-byte characters or spaces mean it's probably text, not a key.
     return bool(re.match(r"^[A-Za-z0-9_\-\./]+$", key))
 
 
 def _drop_redundant_desc_keys(strings: dict[str, LocString]) -> dict[str, LocString]:
-    """Remove redundant description keys when both variants exist in the CSV.
-
-    When the CSV contains both `xxx_Desc` and `xxx_Description`, or both
-    `xxx_PassiveDes` and `xxx_PassiveDesc`, this drops the shorter form
-    since they carry identical values.
+    """Drop the shorter of `_Desc`/`_Description` and `_PassiveDes`/`_PassiveDesc` pairs, which carry identical values.
 
     Args:
-        strings: Dictionary of localization strings.
+        strings: Localization strings, modified in place.
 
     Returns:
-        Filtered dictionary with redundant keys removed.
+        The same dict with redundant keys removed.
     """
     to_remove = []
     for key in strings:
@@ -144,23 +130,18 @@ def _drop_redundant_desc_keys(strings: dict[str, LocString]) -> dict[str, LocStr
 
 
 def _parse_csv_content(file_path: Path) -> list[LocString]:
-    """Parse a localization CSV with heuristic row stitching.
+    """Parse a localization CSV, stitching unquoted multiline strings.
 
-    Handles unquoted multiline strings by detecting rows that don't start
-    with a valid key and merging their columns into the previous entry.
+    Rows that don't start with a valid key are merged into the previous entry.
 
     Args:
-        file_path: Path to the CSV file to parse.
+        file_path: CSV to parse.
 
     Returns:
-        List of LocString objects extracted from the file.
+        Parsed entries.
     """
-    # regex for a valid key: alphanumeric characters (including accented
-    # Latin letters like pinyin diacritics), underscores, hyphens, dots,
-    # forward slashes.  A slash is NOT required — some mods use flat keys
-    # like `B_Poca_Level_State_0`.  Spaces are allowed only after a slash
-    # (e.g. `Character/Suzakuin Momiji_name`).  The range U+00C0–U+024F
-    # covers Latin-1 Supplement through Latin Extended-B (á, ē, ǐ, etc.).
+    # Keys may include accented Latin letters (pinyin diacritics, U+00C0-U+024F). A slash is not required because some mods use flat keys
+    # like `B_Poca_Level_State_0`. Spaces are only allowed after a slash (e.g. `Character/Suzakuin Momiji_name`).
     _LATIN = r"A-Za-z0-9\u00C0-\u024F"
     key_pattern = re.compile(rf"^[{_LATIN}_\-\.][{_LATIN}_\-\./]*(?:/[{_LATIN}_\-\./ ]+)?$")
 
@@ -185,22 +166,19 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
     active_langs = [l for l in language_columns if l in col_indices]
 
     last_entry: Optional[LocString] = None
-    # Track which column we were last populating (for zombie rows)
+    # Column the last entry was populating, for continuation ("zombie") rows.
     current_col_offset = 0
 
     for row in reader:
         if not row:
             continue
 
-        # Fix rows with excess columns caused by unquoted commas in fields.
         if len(row) > len(header):
             row = _fix_oversized_row(row, len(header), col_indices)
 
         first_cell = row[0].strip()
 
-        # Check if this row is a continuation.
-        # A continuation has a key that is invalid OR it's a short row that
-        # clearly belongs to the description of the previous entry.
+        # A continuation has an invalid key, or is a short row belonging to the previous entry's description.
         is_continuation = last_entry is not None and (
             not first_cell
             or not key_pattern.match(first_cell)
@@ -210,13 +188,10 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
         )
 
         if is_continuation:
-            # Shifted column logic:
-            # Iterate through the columns of this zombie row and append them.
-            # We start appending from the 'current_col_offset' or 3 (Korean).
+            # Append from `current_col_offset` (or 3 = Korean) onward.
             for i, val in enumerate(row):
                 target_idx = current_col_offset + i
 
-                # Find matching language for this target index
                 target_lang = None
                 for lang, idx in col_indices.items():
                     if idx == target_idx and lang in language_columns:
@@ -231,14 +206,11 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
             current_col_offset = min(current_col_offset + len(row) - 1, len(header) - 1)
             continue
 
-        # New valid record
         key = first_cell
         if not key:
             continue
 
-        # Skip DLL orphan keys that were erroneously written to CSV by a
-        # prior export.  These are untranslatable and must only appear via
-        # the DLL orphan extraction pass (which sets untranslatable_reason).
+        # DLL orphan keys from a prior export are untranslatable and must only come from the DLL orphan pass (which sets untranslatable_reason).
         if key.startswith("DLL/"):
             continue
 
@@ -246,7 +218,6 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
         desc = row[col_indices["Desc"]].strip() if "Desc" in col_indices and col_indices["Desc"] < len(row) else ""
 
         translations = {}
-        # We also track the last populated column to help the stitcher
         max_idx = 0
         for lang in active_langs:
             idx = col_indices[lang]
@@ -265,7 +236,7 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
         )
         results.append(loc_string)
         last_entry = loc_string
-        # If the row was short, subsequent lines might continue from the last column filled
+        # A short row's continuation lines resume at the last filled column.
         current_col_offset = max_idx if len(row) < len(header) else 3  # Default to Korean
 
     return results
@@ -275,15 +246,14 @@ def extract_base_game_strings(
     base_game_path: Path,
     csv_files: list[str],
 ) -> dict[str, LocString]:
-    """
-    Extract all localization strings from the base game's CSV files.
+    """Extract all localization strings from the base game's CSV files.
 
     Args:
-        base_game_path: Path to the StreamingAssets directory.
-        csv_files: List of CSV filenames to parse.
+        base_game_path: StreamingAssets directory.
+        csv_files: CSV filenames to parse.
 
     Returns:
-        Dictionary mapping localization key to LocString object.
+        `{key: LocString}`.
     """
     all_strings: dict[str, LocString] = {}
 
@@ -305,31 +275,26 @@ def extract_base_game_strings(
 
 
 def find_all_csv_files(mod_path: Path) -> list[Path]:
-    """Recursively find all CSV files in a mod directory.
-
-    Searches Localization/ subdirectory, top-level Lang*.csv, and any
-    variant/backup files in subdirectories.
+    """Find a mod's CSVs: Localization/, top-level Lang*.csv, and backup-directory variants.
 
     Args:
-        mod_path: Path to the mod's root directory.
+        mod_path: Mod root directory.
 
     Returns:
-        List of paths to all discovered CSV files.
+        All discovered CSV paths.
     """
     found = []
     loc_dir = mod_path / "Localization"
 
-    # Localization/ directory (top-level only, skip nested folders).
+    # Localization/ top level only, nested folders are skipped.
     if loc_dir.exists():
         for csv_file in loc_dir.glob("*.csv"):
             found.append(csv_file)
 
-    # Top-level Lang*.csv files.
     for csv_file in mod_path.glob("Lang*.csv"):
         if csv_file not in found:
             found.append(csv_file)
 
-    # Check known backup directory patterns at top level.
     for subdir in mod_path.iterdir():
         if subdir.is_dir() and subdir.name != "Localization":
             dir_lower = subdir.name.lower()
@@ -343,19 +308,17 @@ def find_all_csv_files(mod_path: Path) -> list[Path]:
 
 
 def classify_csv_file(csv_path: Path, loc_dir: Path) -> tuple[str, bool]:
-    """
-    Classify a CSV file as canonical or variant, and determine its canonical name.
+    """Classify a CSV as canonical or variant and find its canonical name.
 
     Args:
-        csv_path: Path to the CSV file.
-        loc_dir: Path to the Localization/ directory (or mod root).
+        csv_path: CSV file.
+        loc_dir: Localization/ directory (or mod root).
 
     Returns:
-        Tuple of (canonical_filename, is_canonical).
+        `(canonical_filename, is_canonical)`.
     """
     filename = csv_path.name
 
-    # Check if in a backup directory.
     in_backup = False
     for part in csv_path.parts:
         part_lower = part.lower()
@@ -363,10 +326,8 @@ def classify_csv_file(csv_path: Path, loc_dir: Path) -> tuple[str, bool]:
             in_backup = True
             break
 
-    # Strip variant suffixes to find canonical name.
     canonical = _VARIANT_SUFFIX_RE.sub("", filename)
 
-    # If the file is a direct canonical name in the expected dir, it's canonical.
     is_canonical = canonical == filename and not in_backup and canonical in _CANONICAL_NAMES
 
     # Top-level file when Localization/ version exists is a variant.
@@ -379,17 +340,13 @@ def classify_csv_file(csv_path: Path, loc_dir: Path) -> tuple[str, bool]:
 
 
 def extract_mod_strings(mod_path: Path) -> tuple[dict[str, LocString], list[str]]:
-    """
-    Extract localization strings from a mod directory.
-
-    Scans for all CSV files (including variants/duplicates), deduplicates
-    by key (canonical files win), and reports variant files.
+    """Extract strings from all of a mod's CSVs, deduplicated by key with canonical files winning.
 
     Args:
-        mod_path: Path to the mod's root directory.
+        mod_path: Mod root directory.
 
     Returns:
-        Tuple of (strings dict, list of variant file relative paths).
+        `(strings, variant file relative paths)`.
     """
     all_csv_files = find_all_csv_files(mod_path)
     if not all_csv_files:
@@ -399,7 +356,6 @@ def extract_mod_strings(mod_path: Path) -> tuple[dict[str, LocString], list[str]
     if not loc_dir.exists():
         loc_dir = mod_path
 
-    # Classify files and separate canonical from variants.
     canonical_files: list[Path] = []
     variant_files: list[Path] = []
 
@@ -439,17 +395,14 @@ def detect_source_language(
     loc_string: LocString,
     source_languages: list[str],
 ) -> Optional[str]:
-    """
-    Determine which non-English language column has content for translation.
-
-    Checks source languages in priority order.
+    """Return the first source language with text.
 
     Args:
-        loc_string: The localization string to check.
-        source_languages: Source languages to check, in priority order.
+        loc_string: String to check.
+        source_languages: Languages in priority order.
 
     Returns:
-        The source language name, or None if no source text is found.
+        Language name, or None.
     """
     for lang in source_languages:
         if lang in loc_string.translations and loc_string.translations[lang]:
@@ -461,18 +414,14 @@ def get_untranslated_strings(
     strings: dict[str, LocString],
     source_languages: list[str],
 ) -> dict[str, LocString]:
-    """
-    Filter strings that need English translation.
-
-    Returns entries where the English column is empty but at least one
-    source language column has content.
+    """Keep entries with an empty English column but some source-language text.
 
     Args:
-        strings: Dictionary of all localization strings.
-        source_languages: Source languages to check, in priority order.
+        strings: All localization strings.
+        source_languages: Languages in priority order.
 
     Returns:
-        Dictionary of strings that need translation.
+        Strings needing translation.
     """
     untranslated = {}
     for key, loc_str in strings.items():

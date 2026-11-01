@@ -1,9 +1,4 @@
-"""
-Mod scanner for discovering and classifying Chrono Ark workshop mods.
-
-Scans the Steam Workshop directory to find all installed mods, reads
-their metadata, and determines what localization resources are available.
-"""
+"""Mod scanner: discovers Chrono Ark workshop mods and what localization resources each has."""
 
 import json
 from pathlib import Path
@@ -12,15 +7,14 @@ from backend.games.chrono_ark.csv_extractor import extract_mod_strings
 
 
 def _read_mod_metadata(mod_path: Path, metadata_filename: str) -> dict:
-    """
-    Read mod metadata from the metadata JSON file.
+    """Read the mod's metadata JSON.
 
     Args:
-        mod_path: Path to the mod's root directory.
-        metadata_filename: Name of the metadata JSON file.
+        mod_path: Mod root directory.
+        metadata_filename: Metadata JSON filename.
 
     Returns:
-        Dictionary of metadata fields, or empty dict if not found.
+        Metadata fields, or `{}` if missing or unreadable.
     """
     json_path = mod_path / metadata_filename
     if not json_path.exists():
@@ -38,20 +32,15 @@ def classify_mod(
     metadata_filename: str,
     skip_dlls: set[str],
 ) -> ModInfo:
-    """
-    Analyze a mod directory to determine its localization resources.
-
-    Reads the metadata JSON for metadata, checks for Localization/*.csv
-    and Assemblies/*.dll files, and samples CSV content to check if
-    English is already populated.
+    """Determine a mod's localization resources (CSVs, DLLs) and whether English is already populated.
 
     Args:
-        mod_path: Path to the mod's root directory.
-        metadata_filename: Name of the metadata JSON file.
-        skip_dlls: Set of DLL filenames to skip.
+        mod_path: Mod root directory.
+        metadata_filename: Metadata JSON filename.
+        skip_dlls: DLL filenames to skip.
 
     Returns:
-        ModInfo with all discovered information.
+        Discovered `ModInfo`.
     """
     mod_id = mod_path.name
     metadata = _read_mod_metadata(mod_path, metadata_filename)
@@ -63,20 +52,17 @@ def classify_mod(
         path=mod_path,
     )
 
-    # Find CSV localization files.
     loc_dir = mod_path / "Localization"
     if loc_dir.exists():
         for csv_file in loc_dir.glob("*.csv"):
             info.loc_file_paths.append(csv_file)
 
-    # Also check for top-level Lang*.csv files.
     for csv_file in mod_path.glob("Lang*.csv"):
         if csv_file not in info.loc_file_paths:
             info.loc_file_paths.append(csv_file)
 
     info.has_loc_files = len(info.loc_file_paths) > 0
 
-    # Find mod DLLs (excluding known dependencies).
     assemblies_dir = mod_path / "Assemblies"
     if assemblies_dir.exists():
         for dll_file in assemblies_dir.glob("*.dll"):
@@ -85,12 +71,10 @@ def classify_mod(
 
     info.has_dll = len(info.dll_paths) > 0
 
-    # Sample CSV content to check English population and count entries.
     if info.has_loc_files:
         strings, _ = extract_mod_strings(mod_path)
         info.entry_count = len(strings)
 
-        # Check if any entries have English text.
         english_count = sum(1 for s in strings.values() if s.translations.get("English", "").strip())
         info.target_lang_populated = english_count > 0
 
@@ -103,17 +87,16 @@ def scan_workshop(
     skip_dlls: set[str],
     ignored_ids: set[str] | None = None,
 ) -> list[ModInfo]:
-    """
-    Scan the Steam Workshop directory to discover all installed mods.
+    """Scan the workshop directory for installed mods.
 
     Args:
-        workshop_path: Path to the workshop content directory.
-        metadata_filename: Name of the metadata JSON file.
-        skip_dlls: Set of DLL filenames to skip.
-        ignored_ids: Optional set of mod IDs to skip entirely.
+        workshop_path: Workshop content directory.
+        metadata_filename: Metadata JSON filename.
+        skip_dlls: DLL filenames to skip.
+        ignored_ids: Mod ids to skip entirely.
 
     Returns:
-        List of ModInfo for all discovered mods, sorted by mod_id.
+        `ModInfo` per mod, sorted by mod_id.
     """
     if not workshop_path.exists():
         print(f"Workshop path not found: {workshop_path}")

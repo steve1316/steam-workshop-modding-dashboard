@@ -6,13 +6,10 @@ from backend.games.chrono_ark.routes import mods, translation, glossary
 
 
 def build_chrono_ark_router() -> APIRouter:
-    """Return a composed router for the Chrono Ark adapter.
-
-    Mounts the mods/translation/glossary sub-routers at
-    `/api/games/chrono_ark/...`.
+    """Compose the mods/translation/glossary sub-routers under `/api/games/chrono_ark`.
 
     Returns:
-        Composed `APIRouter` with the per-game prefix applied.
+        Composed `APIRouter`.
     """
     composed = APIRouter(prefix="/api/games/chrono_ark")
     composed.include_router(mods.router)

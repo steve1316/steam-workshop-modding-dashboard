@@ -47,12 +47,10 @@ router = APIRouter()
 
 @router.get("/mods")
 async def get_mods():
-    """List all workshop mods with their current translation status.
+    """List all workshop mods with their translation status.
 
     Returns:
-        A list of dicts, one per mod, each containing the mod's id, name,
-        author, CSV/DLL flags, translation progress counters, workshop URL,
-        and preview image path.
+        One dict per mod: id, name, author, CSV/DLL flags, progress counters, workshop URL, preview image path.
     """
     mods = chrono_ark_adapter().scan_mods()
     tracker = ProgressTracker()
@@ -62,7 +60,6 @@ async def get_mods():
         status = tracker.get_status(mod.mod_id)
         preview_img = _find_mod_preview_image(mod.path)
 
-        # Check whether this mod has unsynced translation changes.
         saved = load_translations(mod.mod_id)
         if saved:
             current_hash = _compute_export_snapshot(mod.mod_id, mod.path, mod.name)
@@ -98,17 +95,12 @@ async def get_mods():
 
 @router.post("/mods/refresh")
 async def refresh_mods(request: Request):
-    """Rescan all mods and recalculate translation progress from disk.
+    """Rescan all mods and recalculate progress from disk, streaming a `progress` event (`current`/`total`/mod name) per mod.
 
-    Streams SSE events so the frontend can display a progress indicator.
-    Each mod emits a `progress` event with `current`/`total` counts
-    and the mod name.  The final event carries the complete results list.
-
-    The generator checks `request.is_disconnected` between mods so that
-    navigating away or refreshing the page aborts the work early.
+    The final event carries the complete results list. The generator checks `request.is_disconnected` between mods so navigating away aborts early.
 
     Returns:
-        A `StreamingResponse` of `text/event-stream` SSE events.
+        `StreamingResponse` of `text/event-stream` events.
     """
     mods = chrono_ark_adapter().scan_mods()
 
@@ -118,7 +110,6 @@ async def refresh_mods(request: Request):
         total = len(mods)
 
         for i, mod in enumerate(mods):
-            # Abort early if the client disconnected.
             if await request.is_disconnected():
                 return
 
@@ -167,34 +158,25 @@ async def refresh_mods(request: Request):
 
 @router.get("/mods/{mod_id}")
 async def get_mod_detail(mod_id: str):
-    """Get detailed string data for a specific mod.
+    """Get a mod's metadata and every localization entry.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with the mod's metadata and a `strings` list containing every
-        localization entry (key, source text, English text, translation
-        status).
-
-    Raises:
-        HTTPException: 404 if no mod with the given id is found.
+        Mod metadata plus a `strings` list (key, source text, English text, translation status).
     """
     mod = _find_mod(mod_id)
     mod_path = mod.path
 
-    # Extract current strings
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
 
-    # For gdata-sourced mods whose JSONs have already been exported,
-    # restore the original source text from backup.
+    # Exported gdata JSONs hold English now, so restore the original source text from backup.
     target_lang = load_target_language_override(mod_id) or "English"
     _merge_gdata_originals(mod_id, strings, target_lang=target_lang)
 
-    # Load existing translations if any
     translations = load_translations(mod_id)
 
-    # Load translation provider info per key.
     providers_path = GameStorage("chrono_ark").mod_file(mod_id, "translation_providers.json")
     translation_providers: dict[str, str] = {}
     if providers_path.exists():
@@ -204,10 +186,9 @@ async def get_mod_detail(mod_id: str):
         except Exception:
             pass
 
-    # Capture original target-language values before applying overrides.
+    # Must be captured before saved translations are applied below.
     original_english_map = {key: loc_str.translations.get(target_lang, "") for key, loc_str in strings.items()}
 
-    # Load synced keys to identify rows that have been exported to CSV.
     synced_keys_path = GameStorage("chrono_ark").mod_file(mod_id, "synced_keys.json")
     synced_keys: set[str] = set()
     if synced_keys_path.exists():
@@ -217,10 +198,8 @@ async def get_mod_detail(mod_id: str):
         except Exception:
             pass
 
-    # If the mod's CSV files changed since the last export (mod author
-    # update), the synced status is stale — clear it.  We intentionally
-    # ignore translation changes here so that adding new translations
-    # does not invalidate previously synced rows.
+    # If the mod author changed the CSVs since the last export, synced status is stale. Translation changes are intentionally ignored so
+    # new translations don't invalidate synced rows.
     if synced_keys:
         csv_hash_path = GameStorage("chrono_ark").mod_file(mod_id, "last_csv_hash.json")
         if csv_hash_path.exists():
@@ -232,15 +211,13 @@ async def get_mod_detail(mod_id: str):
             if _compute_csv_snapshot(mod_path) != last_csv_hash:
                 synced_keys = set()
         else:
-            # No CSV hash saved yet — fall back to full snapshot check.
+            # No CSV hash saved yet, so fall back to the full snapshot check.
             current_hash = _compute_export_snapshot(mod_id, mod_path, mod.name)
             last_hash = _load_last_export_hash(mod_id)
             if current_hash != last_hash:
                 synced_keys = set()
 
-    # Load pre-export English values saved at export time so the UI can
-    # show a diff for synced rows (the CSV now contains the translated
-    # values, so we need the snapshot from before the export).
+    # The CSV now holds the translated values, so the pre-export snapshot is needed to diff synced rows.
     pre_export_english: dict[str, str] = {}
     if synced_keys:
         pre_export_path = GameStorage("chrono_ark").mod_file(mod_id, "pre_export_english.json")
@@ -251,21 +228,18 @@ async def get_mod_detail(mod_id: str):
             except Exception:
                 pass
 
-    # Apply saved translations so user edits (including clears) are respected.
+    # Saved translations win so user edits (including clears) are respected.
     for key, translated_text in translations.items():
         if key in strings:
             strings[key].translations[target_lang] = translated_text
 
-    # When the Harmony injection mod is installed, DLL strings become
-    # translatable — clear their untranslatable_reason so the progress
-    # tracker includes them in total_keys.
+    # With the Harmony injection mod, DLL strings become translatable, so clear their untranslatable_reason to count them in total_keys.
     has_harmony_mod = chrono_ark_adapter().get_translation_overrides_dir() is not None
     if has_harmony_mod:
         for key, loc_str in strings.items():
             if key.startswith("DLL/") and loc_str.untranslatable_reason:
                 loc_str.untranslatable_reason = ""
 
-    # Update progress tracker so dashboard stats reflect this mod's strings.
     tracker = ProgressTracker()
     tracker.update(mod_id, strings, chrono_ark_adapter().source_languages, target_lang=target_lang)
     lang_override = load_source_language_override(mod_id)
@@ -276,9 +250,7 @@ async def get_mod_detail(mod_id: str):
         source_text = loc_str.translations.get(source_lang, "") if source_lang else ""
         target_text = loc_str.translations.get(target_lang, "")
 
-        # When no CJK source exists but the string has content in the
-        # target language (e.g. English-only gdata mods), treat the target
-        # language as the source so the string is visible in the UI.
+        # No CJK source but target-language content (e.g. English-only gdata mods): treat the target as the source so the row shows in the UI.
         if not source_text and target_text:
             source_lang = target_lang
             source_text = target_text
@@ -310,7 +282,7 @@ async def get_mod_detail(mod_id: str):
             }
         )
 
-    # Replace (not just add) the translated list so clears are reflected.
+    # Replace rather than add, so clears are reflected.
     tracker.set_translated(mod_id, translated_keys)
 
     preview_img = _find_mod_preview_image(mod_path)
@@ -331,17 +303,15 @@ async def update_string(mod_id: str, update: TranslationUpdate):
     """Save a manual translation for a specific key.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        update: The translation update containing the localization key and the
-            new English text.
+        mod_id: Mod's Workshop id.
+        update: Localization key and new English text.
 
     Returns:
-        A dict with `{"status": "success"}` on success.
+        `{"status": "success"}`.
     """
     create_backup(mod_id, f"Before manual edit of '{update.key}'")
     update_single_translation(mod_id, update.key, update.english)
 
-    # Track that this key was manually edited.
     providers_path = GameStorage("chrono_ark").mod_file(mod_id, "translation_providers.json")
     providers: dict[str, str] = {}
     if providers_path.exists():
@@ -353,10 +323,9 @@ async def update_string(mod_id: str, update: TranslationUpdate):
     providers[update.key] = "manual"
     write_json(providers_path, providers)
 
-    # Update progress tracker
     tracker = ProgressTracker()
 
-    # We need to know if the source is empty to decide if it stays "translated"
+    # An empty source keeps the key "translated" even with empty English.
     mods = chrono_ark_adapter().scan_mods()
     matching = [m for m in mods if m.mod_id == mod_id]
     if matching:
@@ -381,14 +350,10 @@ async def sync_mod(mod_id: str):
     """Re-scan and extract strings for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `status` and counts of `new`, `modified`,
-        `removed`, and `unchanged` keys detected during the sync.
-
-    Raises:
-        HTTPException: 404 if no mod with the given id is found.
+        `status` and the `new`, `modified`, `removed`, `unchanged` key counts.
     """
     mod_path = _find_mod_path(mod_id)
 
@@ -407,36 +372,27 @@ async def sync_mod(mod_id: str):
 
 @router.post("/mods/{mod_id}/clear-translations")
 async def clear_translations(mod_id: str):
-    """Clear all English translations so every row is sent to the AI provider.
-
-    Writes empty-string overrides for every key that had an English value,
-    effectively resetting the mod to an untranslated state.
+    """Reset the mod to untranslated by writing empty-string overrides for every key that had English.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `{"status": "success"}` on success.
-
-    Raises:
-        HTTPException: 404 if no mod with the given id is found.
+        `{"status": "success"}`.
     """
     mod_path = _find_mod_path(mod_id)
     target_lang = load_target_language_override(mod_id) or "English"
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
 
-    # Back up before clearing.
     create_backup(mod_id, "Before clearing translations")
 
-    # Write empty overrides for every key that has a target-language value
-    # in the CSV so the original CSV values don't show through.
+    # Empty overrides stop the original CSV values showing through.
     keys_to_clear: list[str] = []
     for key, loc_str in strings.items():
         if loc_str.translations.get(target_lang, ""):
             keys_to_clear.append(key)
 
-    # Also clear any previously saved translations.
     existing = load_translations(mod_id)
     for key in existing:
         if key not in keys_to_clear:
@@ -444,17 +400,15 @@ async def clear_translations(mod_id: str):
 
     clear_all_translations(mod_id, keys_to_clear)
 
-    # Clear synced state since all translations have been wiped.
     for filename in ("synced_keys.json", "pre_export_english.json", "last_csv_hash.json"):
         path = GameStorage("chrono_ark").mod_file(mod_id, filename)
         if path.exists():
             path.unlink()
 
-    # Re-run update so total_keys / hashes stay correct for the dashboard.
     tracker = ProgressTracker()
     tracker.update(mod_id, strings, chrono_ark_adapter().source_languages, target_lang=target_lang)
 
-    # Mark untranslated everything EXCEPT keys with empty sources.
+    # Only keys with empty sources stay marked translated.
     lang_override = load_source_language_override(mod_id)
     done_keys = []
     for key, loc_str in strings.items():
@@ -473,30 +427,20 @@ async def clear_translations(mod_id: str):
 
 @router.post("/mods/{mod_id}/reset")
 async def reset_mod(mod_id: str):
-    """Reset a mod by clearing all translation data and restoring original CSV files.
-
-    If original CSV backups exist (created before the first export), they are
-    copied back to the mod directory. Then the entire storage directory for
-    the mod is deleted.
+    """Restore the pre-export CSV/gdata backups (if any), clean the Harmony overrides, and delete the mod's translation data.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `status`, and `csv_restored` indicating whether
-        original CSV files were restored.
-
-    Raises:
-        HTTPException: 500 if the operation fails.
+        `status`, `csv_restored`, `gdata_restored`, and `overrides_cleared`.
     """
     mod_storage = GameStorage("chrono_ark").mod_dir(mod_id)
     if not mod_storage.exists():
         return {"status": "success", "csv_restored": False, "message": "No data to clear"}
 
-    # Back up before resetting.
     create_backup(mod_id, "Before reset")
 
-    # Restore original CSV files if we have them.
     csv_restored = False
     original_csv_dir = mod_storage / "original_csvs"
     if original_csv_dir.exists():
@@ -509,7 +453,6 @@ async def reset_mod(mod_id: str):
                 shutil.copy2(src, dest)
                 csv_restored = True
 
-    # Restore original gdata JSON files if we have them.
     gdata_restored = False
     original_gdata_dir = mod_storage / "original_gdata"
     if original_gdata_dir.exists():
@@ -521,7 +464,6 @@ async def reset_mod(mod_id: str):
                 shutil.copy2(src, gdata_dest / src.name)
                 gdata_restored = True
 
-    # Remove this mod's entries from the Harmony injector override JSONs.
     overrides_cleared = False
     overrides_dir = chrono_ark_adapter().get_translation_overrides_dir()
     if overrides_dir:
@@ -541,8 +483,7 @@ async def reset_mod(mod_id: str):
                 write_json(json_path, data)
                 overrides_cleared = True
 
-    # Selectively delete only translation-related files and directories,
-    # preserving user-configured data (character context, glossary, etc.).
+    # Only translation data is deleted so user-configured data (character context, glossary) survives.
     files_to_delete = [
         "translations.json",
         "progress.json",
@@ -578,21 +519,16 @@ async def open_mod_folder(mod_id: str):
     """Open the mod's directory in the system file explorer.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `{"status": "success"}` on success.
-
-    Raises:
-        HTTPException: 404 if the mod or its directory is not found.
-        HTTPException: 500 if the OS fails to open the folder.
+        `{"status": "success"}`.
     """
     mod_path = _find_mod_path(mod_id)
     if not mod_path.exists():
         raise HTTPException(status_code=404, detail="Mod directory not found")
 
     try:
-        # Use os.startfile on Windows for the most native experience.
         os.startfile(mod_path)
         return {"status": "success"}
     except Exception as e:
@@ -601,25 +537,20 @@ async def open_mod_folder(mod_id: str):
 
 @router.get("/mods/{mod_id}/export-status")
 async def get_export_status(mod_id: str):
-    """Check whether there are changes to sync to the mod's CSV files.
-
-    Compares the current translation and CSV state against the last
-    successful export snapshot to determine if a re-export is needed.
+    """Check whether translation/CSV state differs from the last export snapshot.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with a single `has_changes` boolean.
+        `has_changes` and `has_previous_sync` flags.
     """
     mod = _find_mod(mod_id)
 
-    # No translations at all — nothing to sync.
     translations = load_translations(mod_id)
     if not translations:
         return {"has_changes": False}
 
-    # Compare current snapshot against last export.
     current_hash = _compute_export_snapshot(mod_id, mod.path, mod.name)
     last_hash = _load_last_export_hash(mod_id)
 
@@ -631,28 +562,14 @@ async def get_export_status(mod_id: str):
 
 @router.post("/mods/{mod_id}/export")
 async def export_mod(mod_id: str, resync: bool = False):
-    """Write saved translations back into the mod's original CSV files.
-
-    Applies all stored English translations to the mod's localization CSVs
-    and records an export snapshot so subsequent `get_export_status` calls
-    can detect new changes.
-
-    When `resync` is True, the original CSV and gdata files are restored
-    from backups first so that translations are applied on top of a clean
-    base.  This is useful when no new changes exist but the user wants to
-    re-apply translations from scratch.
+    """Write saved translations into the mod's CSV/gdata files (or the Harmony override JSONs) and record an export snapshot.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        resync: If True, restore original files before re-exporting.
+        mod_id: Mod's Workshop id.
+        resync: Restore the original files from backup first, to re-apply on a clean base.
 
     Returns:
-        A dict with `status`, the number of `applied` translations,
-        and `files_written` (list of CSV filenames updated).
-
-    Raises:
-        HTTPException: 400 if no translations exist for the mod.
-        HTTPException: 404 if the mod is not found.
+        `status`, `applied` count, and the files and overrides written.
     """
     mod = _find_mod(mod_id)
     mod_path = mod.path
@@ -664,8 +581,6 @@ async def export_mod(mod_id: str, resync: bool = False):
     original_gdata_dir = GameStorage("chrono_ark").mod_dir(mod_id) / "original_gdata"
 
     if resync:
-        # Restore original CSV files from backups so we re-apply on a
-        # clean base.
         if original_csv_dir.exists():
             for src in original_csv_dir.rglob("*"):
                 if src.is_file():
@@ -674,7 +589,6 @@ async def export_mod(mod_id: str, resync: bool = False):
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(src, dest)
 
-        # Restore original gdata JSON files from backups.
         if original_gdata_dir.exists():
             gdata_dest = mod_path / "gdata" / "Add"
             gdata_dest.mkdir(parents=True, exist_ok=True)
@@ -682,54 +596,46 @@ async def export_mod(mod_id: str, resync: bool = False):
                 if src.is_file():
                     shutil.copy2(src, gdata_dest / src.name)
     else:
-        # Save a backup of the original CSV files before the first export so
-        # "Reset" can restore them later.
+        # Back up the originals before the first export so "Reset" can restore them.
         if not original_csv_dir.exists():
             original_csv_dir.mkdir(parents=True, exist_ok=True)
             for csv_path in _get_mod_csv_paths(mod_path):
-                # Preserve relative path structure (Localization/file.csv vs file.csv)
+                # Keeps the relative layout (Localization/file.csv vs file.csv).
                 rel = csv_path.relative_to(mod_path)
                 dest = original_csv_dir / rel
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(csv_path, dest)
 
-        # Save a backup of the original gdata JSON files before the first export.
         gdata_src = mod_path / "gdata" / "Add"
         if not original_gdata_dir.exists() and gdata_src.exists():
             original_gdata_dir.mkdir(parents=True, exist_ok=True)
             for json_path in gdata_src.glob("*.json"):
                 shutil.copy2(json_path, original_gdata_dir / json_path.name)
 
-    # Load saved translations.
     translations = load_translations(mod_id)
     if not translations:
         raise HTTPException(status_code=400, detail="No translations found for this mod")
 
     target_lang = load_target_language_override(mod_id) or "English"
 
-    # Extract current strings from the mod.
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
 
-    # Capture pre-export target-language values so we can show a diff in the UI.
+    # For the UI diff.
     pre_export_english = {key: loc_str.translations.get(target_lang, "") for key, loc_str in strings.items() if key in translations}
 
-    # Apply translations to the target language column.
     applied = 0
     for key, translated_text in translations.items():
         if key in strings:
             strings[key].translations[target_lang] = translated_text
             applied += 1
 
-    # Check if the Harmony injection mod is installed. When present,
-    # translations are written to override JSONs instead of modifying the
-    # original mod CSV/gdata files.
+    # With the Harmony injection mod, translations go to override JSONs instead of the original CSV/gdata files.
     overrides_dir = chrono_ark_adapter().get_translation_overrides_dir()
 
     files_written = []
     gdata_files_written = []
 
     if not overrides_dir:
-        # No Harmony mod — write translations into the original mod files.
         gdata_translations: dict[str, str] = {}
         by_source: dict[str, list] = {}
         for key, loc_str in strings.items():
@@ -766,8 +672,7 @@ async def export_mod(mod_id: str, resync: bool = False):
             chrono_ark_adapter().export_strings(output_path, entries)
             files_written.append(csv_filename)
 
-    # Write translation overrides for the Harmony injection mod.
-    # JSON is grouped by mod name: { "ModName": { "key": "English", ... } }
+    # Override JSONs are grouped by mod name: { "ModName": { "key": "English", ... } }
     keyed_overrides_written = 0
     text_overrides_written = 0
     if overrides_dir:
@@ -790,8 +695,7 @@ async def export_mod(mod_id: str, resync: bool = False):
                 if source:
                     text_overrides[source] = target_text
             else:
-                # The game expects Character names with lowercase "_name"
-                # but gdata extraction produces "_Name". Normalize here.
+                # The game expects Character names as lowercase "_name" but gdata extraction produces "_Name".
                 override_key = key
                 if key.startswith("Character/") and key.endswith("_Name"):
                     override_key = key[:-5] + "_name"
@@ -823,21 +727,17 @@ async def export_mod(mod_id: str, resync: bool = False):
             write_json(text_path, existing)
             text_overrides_written = len(text_overrides)
 
-    # Save snapshot hash so export-status knows we're in sync.
     snapshot_hash = _compute_export_snapshot(mod_id, mod_path, mod.name)
     _save_last_export_hash(mod_id, snapshot_hash)
 
-    # Save CSV-only hash so synced-key invalidation only triggers on
-    # mod-author CSV changes, not on new user translations.
+    # CSV-only hash, so synced-key invalidation triggers on mod-author CSV changes but not new user translations.
     csv_hash_path = GameStorage("chrono_ark").mod_file(mod_id, "last_csv_hash.json")
     write_json(csv_hash_path, {"hash": _compute_csv_snapshot(mod_path)}, indent=None)
 
-    # Save the set of synced keys so the UI can highlight them.
     synced_keys_path = GameStorage("chrono_ark").mod_file(mod_id, "synced_keys.json")
     synced_keys_path.parent.mkdir(parents=True, exist_ok=True)
     write_json(synced_keys_path, [k for k, v in translations.items() if v], indent=None)
 
-    # Save pre-export English values so the UI can show a diff for synced rows.
     pre_export_path = GameStorage("chrono_ark").mod_file(mod_id, "pre_export_english.json")
     write_json(pre_export_path, pre_export_english, indent=None)
 
@@ -853,20 +753,14 @@ async def export_mod(mod_id: str, resync: bool = False):
 
 @router.post("/mods/{mod_id}/open-source-file/{filename}")
 async def open_source_file(mod_id: str, filename: str):
-    """Open a mod's source file in the OS default application.
-
-    Looks for the file in the mod's Localization directory (for CSVs) or
-    gdata/Add directory (for JSONs), then opens it with `os.startfile`.
+    """Open a mod's source file (searched in Localization/, gdata/Add/, then the mod root) in the OS default application.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        filename: The source filename (e.g. `LangDataDB.csv` or `B_Roland_Rare_S.json`).
+        mod_id: Mod's Workshop id.
+        filename: Source filename (e.g. `LangDataDB.csv`, `B_Roland_Rare_S.json`).
 
     Returns:
-        A dict with the resolved file path.
-
-    Raises:
-        HTTPException: 404 if the file is not found in the mod directory.
+        `{"path": resolved file path}`.
     """
     mod_path = _find_mod_path(mod_id)
 
@@ -886,17 +780,13 @@ async def open_source_file(mod_id: str, filename: str):
 
 @router.post("/open-base-game-file/{filename}")
 async def open_base_game_file(filename: str):
-    """Open Explorer to the base game source file's location with it selected.
+    """Open Explorer on the base game source file with it selected.
 
     Args:
-        filename: The source filename (e.g. `LangDataDB.csv`).
+        filename: Source filename (e.g. `LangDataDB.csv`).
 
     Returns:
-        A dict with the resolved file path.
-
-    Raises:
-        HTTPException: 400 if base game path is not configured, 404 if
-            the file is not found.
+        `{"path": resolved file path}`.
     """
     base_path = chrono_ark_adapter().base_game_path
     if base_path is None:
@@ -918,11 +808,10 @@ async def get_character_context(mod_id: str):
     """Return saved character context for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `source_game`, `character_name`, and `background`
-        fields (all strings, possibly empty).
+        `source_game`, `character_name`, and `background` strings (possibly empty).
     """
     return load_character_context(mod_id)
 
@@ -932,11 +821,11 @@ async def set_character_context(mod_id: str, ctx: CharacterContext):
     """Save character context for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        ctx: The character context data to persist.
+        mod_id: Mod's Workshop id.
+        ctx: Character context to persist.
 
     Returns:
-        A dict with `{"status": "saved"}`.
+        `{"status": "saved"}`.
     """
     create_backup(mod_id, "Before updating character context")
     save_character_context(mod_id, ctx.model_dump())
@@ -948,11 +837,10 @@ async def get_source_language(mod_id: str):
     """Return the source language override for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `source_language` set to the override language name,
-        or None if auto-detect is active.
+        `source_language` override name, or None when auto-detecting.
     """
     return {"source_language": load_source_language_override(mod_id)}
 
@@ -962,11 +850,11 @@ async def set_source_language(mod_id: str, body: SourceLanguageOverride):
     """Save a source language override for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        body: The override payload with `source_language`.
+        mod_id: Mod's Workshop id.
+        body: Payload with `source_language`.
 
     Returns:
-        A dict with `{"status": "saved"}`.
+        `{"status": "saved"}`.
     """
     save_source_language_override(mod_id, body.source_language)
     return {"status": "saved"}
@@ -977,11 +865,10 @@ async def get_target_language(mod_id: str):
     """Return the target language override for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `target_language` set to the override language name,
-        or None if the default (English) is active.
+        `target_language` override name, or None for the English default.
     """
     return {"target_language": load_target_language_override(mod_id)}
 
@@ -991,11 +878,11 @@ async def set_target_language(mod_id: str, body: TargetLanguageOverride):
     """Save a target language override for a mod.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        body: The override payload with `target_language`.
+        mod_id: Mod's Workshop id.
+        body: Payload with `target_language`.
 
     Returns:
-        A dict with `{"status": "saved"}`.
+        `{"status": "saved"}`.
     """
     save_target_language_override(mod_id, body.target_language)
     return {"status": "saved"}
@@ -1003,13 +890,13 @@ async def set_target_language(mod_id: str, body: TargetLanguageOverride):
 
 @router.get("/mods/{mod_id}/history")
 async def get_history(mod_id: str):
-    """List all available backup snapshots for a mod, newest first.
+    """List a mod's backup snapshots, newest first.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A list of backup metadata dicts with id, reason, created_at, and files.
+        Backup dicts with id, reason, created_at, and files.
     """
     return list_backups(mod_id)
 
@@ -1019,11 +906,11 @@ async def create_history_snapshot(mod_id: str, body: HistorySnapshotRequest):
     """Create a manual save-snapshot of the mod's current state.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        body: The snapshot request carrying an optional user-provided label.
+        mod_id: Mod's Workshop id.
+        body: Snapshot request with an optional label.
 
     Returns:
-        A dict with `{"status": "saved", "id": backup_id}` on success, or `{"status": "empty"}` when there was nothing to back up.
+        `{"status": "saved", "id": backup_id}`, or `{"status": "empty"}` when there was nothing to back up.
     """
     backup_id = create_backup(mod_id, body.label.strip() or "Manual snapshot", kind="manual")
     if backup_id is None:
@@ -1033,20 +920,14 @@ async def create_history_snapshot(mod_id: str, body: HistorySnapshotRequest):
 
 @router.post("/mods/{mod_id}/history/{backup_id}/restore")
 async def restore_history(mod_id: str, backup_id: str):
-    """Restore a mod's state from a backup snapshot.
-
-    Creates a backup of the current state first, then restores the
-    selected snapshot.
+    """Restore a mod's state from a backup snapshot, backing up the current state first.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        backup_id: The timestamp ID of the backup to restore.
+        mod_id: Mod's Workshop id.
+        backup_id: Timestamp id of the backup.
 
     Returns:
-        A dict with `{"status": "success"}` on success.
-
-    Raises:
-        HTTPException: 404 if the backup was not found.
+        `{"status": "success"}`.
     """
     if not restore_backup(mod_id, backup_id):
         raise HTTPException(status_code=404, detail="Backup not found")
@@ -1058,11 +939,11 @@ async def delete_history(mod_id: str, backup_id: str):
     """Delete a specific backup snapshot.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        backup_id: The timestamp ID of the backup to delete.
+        mod_id: Mod's Workshop id.
+        backup_id: Timestamp id of the backup.
 
     Returns:
-        A dict with `{"status": "success"}` on success.
+        `{"status": "success"}`.
     """
     delete_backup(mod_id, backup_id)
     return {"status": "success"}
@@ -1073,11 +954,10 @@ async def get_api_responses(mod_id: str):
     """Get the raw API responses from the last translation run.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A list of response dicts, each containing batch_index, model,
-        input_tokens, output_tokens, and raw_text.
+        Response dicts with batch_index, model, input_tokens, output_tokens, and raw_text.
     """
     responses_path = GameStorage("chrono_ark").mod_file(mod_id, "last_api_responses.json")
     if not responses_path.exists():

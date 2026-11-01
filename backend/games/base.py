@@ -1,10 +1,4 @@
-"""
-Abstract base class for game adapters.
-
-Defines the chassis interface that all game-specific adapters must implement.
-Translation, pack assembly, and other domain operations are added via
-capability mixins from `backend.games.capabilities`.
-"""
+"""Abstract base class for game adapters, plus the game-agnostic `ModInfo`."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -17,20 +11,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class ModInfo:
-    """Game-agnostic mod/project metadata.
-
-    Attributes:
-        mod_id: Unique identifier for the mod (e.g. Steam Workshop ID).
-        name: Human-readable mod name.
-        author: Mod author or uploader name.
-        has_loc_files: Whether the mod contains localization CSV files.
-        has_dll: Whether the mod contains .NET DLL assemblies.
-        loc_file_paths: Paths to discovered localization CSV files.
-        dll_paths: Paths to discovered mod DLL files.
-        entry_count: Total number of localization entries found.
-        target_lang_populated: Whether any entries already have target language text.
-        path: Filesystem path to the mod's root directory.
-    """
+    """Game-agnostic mod/project metadata."""
 
     mod_id: str
     name: str = ""
@@ -45,12 +26,9 @@ class ModInfo:
 
 
 class GameAdapter(ABC):
-    """Base interface for game adapters in the workbench chassis.
+    """Base interface for game adapters.
 
-    Concrete adapters declare identity, icon, capabilities, an `APIRouter`
-    that owns the adapter's HTTP routes, and a settings schema. Translation,
-    pack assembly, and other domain operations are added via capability
-    mixins from `backend.games.capabilities` (e.g. `TranslationCapability`).
+    Domain operations come from capability mixins in `backend.games.capabilities` (e.g. `TranslationCapability`).
     """
 
     @property
@@ -80,7 +58,7 @@ class GameAdapter(ABC):
 
     @property
     def settings_schema(self) -> dict[str, dict]:
-        """Return per-game settings schema. Override in adapters that need it.
+        """Return the per-game settings schema.
 
         Returns:
             Mapping of setting key to `{"type": <python type name>, "default": <value>}`.

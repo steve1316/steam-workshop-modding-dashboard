@@ -35,12 +35,10 @@ router = APIRouter()
 
 @router.get("/glossary")
 async def get_glossary():
-    """Get all terminology glossary entries.
+    """Get the global glossary.
 
     Returns:
-        The full global glossary dict as stored on disk, containing a
-        `terms` mapping of English terms to their source-language
-        mappings.
+        Glossary dict as stored on disk, with a `terms` mapping.
     """
     glossary = load_glossary()
     return glossary
@@ -51,11 +49,10 @@ async def update_glossary(term: GlossaryTerm):
     """Add or update a glossary term.
 
     Args:
-        term: The glossary term to add, containing the source text and its
-            English translation.
+        term: Source text and its English.
 
     Returns:
-        A dict with `{"status": "success"}`.
+        `{"status": "success"}`.
     """
     glossary = load_glossary()
     add_glossary_term(glossary, term.english, {"custom": term.source})
@@ -65,13 +62,13 @@ async def update_glossary(term: GlossaryTerm):
 
 @router.get("/mods/{mod_id}/glossary")
 async def get_mod_glossary(mod_id: str):
-    """Get a mod's glossary terms.
+    """Get a mod's glossary.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        The mod-specific glossary dict containing a `terms` mapping.
+        Glossary dict with a `terms` mapping.
     """
     return load_mod_glossary(mod_id)
 
@@ -81,12 +78,11 @@ async def update_mod_glossary(mod_id: str, term: ModGlossaryTerm):
     """Add or update a term in a mod's glossary.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        term: The glossary term containing the English text, per-language
-            source mappings, and category.
+        mod_id: Mod's Workshop id.
+        term: English, per-language source mappings, and category.
 
     Returns:
-        A dict with `{"status": "success"}`.
+        `{"status": "success"}`.
     """
     create_backup(mod_id, f"Before adding glossary term '{term.english}'")
     glossary = load_mod_glossary(mod_id)
@@ -101,11 +97,11 @@ def _find_term_key(terms: dict, term: str) -> str | None:
     Terms with source text are keyed by that text, while the frontend refers to terms by their English.
 
     Args:
-        terms: The glossary's `terms` dict.
-        term: The entry's key or English.
+        terms: Glossary `terms` dict.
+        term: Entry's key or English.
 
     Returns:
-        The matching key, or None when no entry matches.
+        Matching key, or None.
     """
     if term in terms:
         return term
@@ -119,12 +115,12 @@ async def edit_mod_glossary_term(mod_id: str, term: str, entry: ModGlossaryTerm)
     A new English also replaces the old English in every translation whose source contains one of the term's old source texts.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        term: The existing term's key or English.
-        entry: The edited English, per-language source mappings, and category.
+        mod_id: Mod's Workshop id.
+        term: Existing term's key or English.
+        entry: Edited English, source mappings, and category.
 
     Returns:
-        A dict with `status` and the count of translations the rename `replaced`.
+        `status` and the `replaced` translation count.
     """
     glossary = load_mod_glossary(mod_id)
     terms = glossary.setdefault("terms", {})
@@ -144,16 +140,14 @@ async def edit_mod_glossary_term(mod_id: str, term: str, entry: ModGlossaryTerm)
 
 @router.delete("/mods/{mod_id}/glossary/{term:path}")
 async def delete_mod_glossary_term(mod_id: str, term: str):
-    """Remove a term from a mod's glossary.
-
-    If the term does not exist, the operation is a no-op.
+    """Remove a term from a mod's glossary (no-op if it doesn't exist).
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        term: The term's key or English.
+        mod_id: Mod's Workshop id.
+        term: Term's key or English.
 
     Returns:
-        A dict with `{"status": "success"}`.
+        `{"status": "success"}`.
     """
     glossary = load_mod_glossary(mod_id)
     key = _find_term_key(glossary.get("terms", {}), term)
@@ -169,12 +163,11 @@ async def delete_mod_glossary_terms(mod_id: str, action: SuggestionAction):
     """Remove specific terms or all terms from a mod's glossary.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        action: Specifies which terms to delete, either by listing
-            specific terms or setting `all` to True.
+        mod_id: Mod's Workshop id.
+        action: Terms to delete, or `all`.
 
     Returns:
-        A dict with `status` and the count of `deleted` terms.
+        `status` and the `deleted` count.
     """
     glossary = load_mod_glossary(mod_id)
     terms = glossary.get("terms", {})
@@ -201,10 +194,10 @@ async def delete_all_mod_glossary_terms(mod_id: str):
     """Remove all terms from a mod's glossary.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `status` and the count of `deleted` terms.
+        `status` and the `deleted` count.
     """
     glossary = load_mod_glossary(mod_id)
     count = len(glossary.get("terms", {}))
@@ -217,14 +210,14 @@ async def delete_all_mod_glossary_terms(mod_id: str):
 
 @router.post("/mods/{mod_id}/glossary/replace-preview")
 async def glossary_replace_preview(mod_id: str, req: GlossaryReplacePreview):
-    """Preview which translations would be affected by a glossary term replacement.
+    """Preview which translations a glossary term replacement would change.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        req: The old and new English terms.
+        mod_id: Mod's Workshop id.
+        req: Old and new English terms.
 
     Returns:
-        A dict with `affected` (list of dicts with key, old_text, new_text).
+        `affected`: list of `{key, old_text, new_text}`.
     """
     translations = load_translations(mod_id)
     if not translations:
@@ -245,13 +238,12 @@ async def glossary_replace_apply(mod_id: str, req: GlossaryReplacePreview):
     """Apply a glossary term replacement across all translations.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        req: The old and new English terms.
+        mod_id: Mod's Workshop id.
+        req: Old and new English terms.
 
     Returns:
-        A dict with `status` and the count of `replaced` translations.
+        `status` and the `replaced` count.
     """
-    # Back up before applying replacements.
     create_backup(mod_id, f"Before replacing '{req.old_english}' with '{req.new_english}'")
 
     replaced = replace_in_translations(mod_id, req.old_english, req.new_english)
@@ -261,16 +253,13 @@ async def glossary_replace_apply(mod_id: str, req: GlossaryReplacePreview):
 
 @router.get("/mods/{mod_id}/glossary/merged")
 async def get_merged_glossary(mod_id: str):
-    """Get the merged base + mod glossary.
-
-    Combines the global glossary with the mod-specific glossary, with
-    mod-level terms taking precedence on conflicts.
+    """Get the global glossary merged with the mod's, mod terms winning on conflicts.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        The merged glossary dict ready for use in translation prompts.
+        Merged glossary for translation prompts.
     """
     base = load_glossary()
     mod = load_mod_glossary(mod_id)
@@ -282,11 +271,10 @@ async def get_suggestions(mod_id: str):
     """Get pending glossary term suggestions.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A list of suggestion dicts, each containing `english`,
-        `source`, `source_lang`, and `category` fields.
+        Suggestion dicts with `english`, `source`, `source_lang`, `category`.
     """
     return load_suggestions(mod_id)
 
@@ -295,10 +283,10 @@ def _source_and_csv_english(mod_id: str) -> dict[str, tuple[str, str]]:
     """Read each string's source text and the English in the mod's own files, the same way the Details page does.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        Key -> (source text, English from the mod's files).
+        `{key: (source text, English from the mod's files)}`.
     """
     strings, _ = chrono_ark_adapter().extract_strings(_find_mod_path(mod_id))
     target_lang = load_target_language_override(mod_id) or "English"
@@ -317,13 +305,13 @@ def _rename_in_translations(mod_id: str, source: str, old_english: str, new_engl
     A row with no saved translation uses the English in the mod's files, so it is renamed too and saved as an edit.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        source: The term's source text. Nothing is renamed when it is empty.
-        old_english: The English to replace, matched as a whole term.
-        new_english: The English to put in its place.
+        mod_id: Mod's Workshop id.
+        source: Term's source text (nothing is renamed when empty).
+        old_english: English to replace, matched as a whole term.
+        new_english: Replacement English.
 
     Returns:
-        The number of translations that changed.
+        Count of changed translations.
     """
     if not source or old_english == new_english:
         return 0
@@ -344,17 +332,15 @@ def _rename_in_translations(mod_id: str, source: str, old_english: str, new_engl
 async def accept_suggestions(mod_id: str, action: SuggestionAction):
     """Accept suggestions into the mod glossary.
 
-    Moves the specified (or all) pending suggestions into the mod's
-    glossary and removes them from the suggestions list. A suggestion with an entry in `action.renames` is saved under the edited English, which also
-    replaces the suggested English in every translation whose source contains the term's source.
+    A suggestion with an entry in `action.renames` is saved under the edited English, which also replaces the suggested English in every translation
+    whose source contains the term's source.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        action: Specifies which suggestions to accept, either by listing
-            specific terms or setting `all` to `True`, plus any edited English in `renames`.
+        mod_id: Mod's Workshop id.
+        action: Suggestions to accept (or `all`), plus any edited English in `renames`.
 
     Returns:
-        A dict with `status`, the count of `accepted` terms, and the count of translations the renames `replaced`.
+        `status`, the `accepted` count, and the `replaced` translation count.
     """
     suggestions = load_suggestions(mod_id)
     glossary = load_mod_glossary(mod_id)
@@ -367,7 +353,7 @@ async def accept_suggestions(mod_id: str, action: SuggestionAction):
     replaced = 0
     for suggestion in suggestions:
         if suggestion.get("english") in terms_to_accept:
-            # If this is an edit suggestion, remove the old term first.
+            # An edit suggestion replaces its old term.
             edit_of = suggestion.get("edit_of")
             if edit_of and edit_of in glossary.get("terms", {}):
                 del glossary["terms"][edit_of]
@@ -388,15 +374,14 @@ async def accept_suggestions(mod_id: str, action: SuggestionAction):
 
 @router.post("/mods/{mod_id}/glossary/suggestions/dismiss")
 async def dismiss_suggestions(mod_id: str, action: SuggestionAction):
-    """Dismiss (remove) suggestions without adding to glossary.
+    """Remove suggestions without adding them to the glossary.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        action: Specifies which suggestions to dismiss, either by listing
-            specific terms or setting `all` to `True`.
+        mod_id: Mod's Workshop id.
+        action: Suggestions to dismiss, or `all`.
 
     Returns:
-        A dict with `{"status": "success"}`.
+        `{"status": "success"}`.
     """
     if action.all:
         save_suggestions(mod_id, [])
@@ -407,17 +392,13 @@ async def dismiss_suggestions(mod_id: str, action: SuggestionAction):
 
 @router.post("/mods/{mod_id}/glossary/suggestions/scan")
 async def scan_for_suggestions(mod_id: str):
-    """Scan translated strings for glossary-worthy terms using name-key detection.
-
-    Runs the same `extract_name_key_suggestions` logic that normally fires
-    after AI translation, but against all already-translated strings. This
-    lets the user discover terms without triggering a translation run.
+    """Run `extract_name_key_suggestions` over all already-translated strings, without triggering a translation run.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `status` and the count of `new` suggestions found.
+        `status` and the `new` suggestion count.
     """
     mod_path = _find_mod_path(mod_id)
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
@@ -432,7 +413,6 @@ async def scan_for_suggestions(mod_id: str):
     mod_glossary = load_mod_glossary(mod_id)
     existing_suggestions = load_suggestions(mod_id)
 
-    # Build a translations dict and group translated keys by source language.
     translations: dict[str, str] = {}
     by_lang: dict[str, list[str]] = {}
     for key, loc_str in strings.items():
@@ -468,16 +448,13 @@ async def scan_for_suggestions(mod_id: str):
 
 @router.post("/mods/{mod_id}/glossary/suggest-edits")
 async def suggest_edits(mod_id: str):
-    """Suggest edits to existing glossary terms, such as title-casing names.
-
-    Scans the mod's glossary for terms in name-related categories that
-    aren't properly title-cased and adds them as edit suggestions.
+    """Suggest edits for name-category glossary terms that aren't title-cased.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        A dict with `status` and the count of `new` edit suggestions.
+        `status` and the `new` edit suggestion count.
     """
     mod_glossary = load_mod_glossary(mod_id)
     existing_suggestions = load_suggestions(mod_id)

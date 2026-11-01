@@ -1,12 +1,4 @@
-"""
-DLL string extractor for Chrono Ark mod assemblies.
-
-Uses the dotnetfile library to extract strings from the .NET #US
-(User Strings) metadata heap without requiring the .NET runtime.
-
-Includes IL-level analysis to find consecutive `ldstr` pairs, which
-represent key/value arguments to localization registration calls.
-"""
+"""DLL string extractor: reads the .NET #US (User Strings) heap via dotnetfile, and finds `ldstr` key/value pairs in IL."""
 
 import hashlib
 import re
@@ -18,14 +10,10 @@ from backend.text_utils import has_cjk as _has_cjk
 
 
 def _detect_cjk_language(text: str) -> str:
-    """Detect the source language of a CJK string by script.
-
-    Uses the presence of script-specific characters to distinguish
-    Japanese (hiragana/katakana), Korean (hangul), and Chinese (CJK
-    ideographs only).
+    """Detect a CJK string's language by script: kana is Japanese, hangul is Korean, ideographs only is Chinese.
 
     Args:
-        text: The CJK string to classify.
+        text: CJK string to classify.
 
     Returns:
         `"Japanese"`, `"Korean"`, or `"Chinese"`.
@@ -39,14 +27,13 @@ def _detect_cjk_language(text: str) -> str:
 
 
 def _load_dotnet_pe(dll_path: Path):
-    """Load a .NET PE file, returning the DotNetPE object or None.
+    """Load a .NET PE file.
 
     Args:
-        dll_path: Path to the .NET DLL file.
+        dll_path: .NET DLL.
 
     Returns:
-        A `DotNetPE` object if successful, or None if the dotnetfile
-        library is not installed or the file cannot be parsed.
+        `DotNetPE`, or None if dotnetfile is missing or the file can't be parsed.
     """
     try:
         from dotnetfile import DotNetPE
@@ -62,14 +49,13 @@ def _load_dotnet_pe(dll_path: Path):
 
 
 def _build_us_heap_map(dotnet_file) -> dict[int, str]:
-    """Build a mapping of #US heap offset to decoded string.
+    """Map each #US heap offset to its decoded, stripped string.
 
     Args:
-        dotnet_file: A `DotNetPE` object with user string lookup support.
+        dotnet_file: `DotNetPE` with user string lookup support.
 
     Returns:
-        Dictionary mapping each #US heap byte offset to its decoded,
-        stripped string value. Empty or whitespace-only strings are excluded.
+        `{offset: string}`, excluding blank strings.
     """
     us_map: dict[int, str] = {}
     lookup = getattr(dotnet_file, "dotnet_user_string_lookup", None)
@@ -86,14 +72,13 @@ def _build_us_heap_map(dotnet_file) -> dict[int, str]:
 
 
 def _is_loc_key(s: str) -> bool:
-    """Check if a string looks like a Chrono Ark localization key.
+    """Check whether a string looks like a localization key.
 
     Args:
-        s: The string to check.
+        s: String to check.
 
     Returns:
-        True if the string matches the localization key pattern
-        (no spaces, alphanumeric with underscores/hyphens/dots/slashes).
+        True if it has no spaces and only alphanumerics, `_`, `-`, `.` and `/`.
     """
     if not s or " " in s:
         return False
@@ -101,14 +86,13 @@ def _is_loc_key(s: str) -> bool:
 
 
 def extract_dll_strings(dll_path: Path) -> list[str]:
-    """
-    Extract all user strings from a .NET assembly's #US metadata heap.
+    """Extract all user strings from a .NET assembly's #US heap.
 
     Args:
-        dll_path: Path to the .NET DLL file.
+        dll_path: .NET DLL.
 
     Returns:
-        List of extracted strings.
+        Extracted strings.
     """
     dotnet_file = _load_dotnet_pe(dll_path)
     if not dotnet_file:
@@ -122,21 +106,16 @@ def extract_dll_loc_strings(
     dll_path: Path,
     source_file_label: str = "",
 ) -> dict[str, LocString]:
-    """
-    Extract structured localization key-value pairs from a .NET assembly
-    by analysing IL `ldstr` instruction pairs.
+    """Extract localization key/value pairs from consecutive `ldstr` opcodes (0x72) in the raw DLL bytes.
 
-    Scans the raw DLL bytes for consecutive `ldstr` opcodes (0x72) that
-    reference the #US heap.  When a pair consists of one ASCII key and one
-    CJK-text value, it is treated as a localization registration call
-    (e.g. `AddText(key, value)` or `AddText(value, key)`).
+    An ASCII key next to a CJK value is treated as a registration call like `AddText(key, value)` or `AddText(value, key)`.
 
     Args:
-        dll_path: Path to the .NET DLL file.
-        source_file_label: Value to set on `LocString.source_file`.
+        dll_path: .NET DLL.
+        source_file_label: Value for `LocString.source_file`.
 
     Returns:
-        Dictionary mapping localization key to LocString.
+        `{key: LocString}`.
     """
     dotnet_file = _load_dotnet_pe(dll_path)
     if not dotnet_file:
@@ -146,7 +125,7 @@ def extract_dll_loc_strings(
     if not us_map:
         return {}
 
-    # Scan raw bytes for ldstr (0x72) instructions referencing #US tokens.
+    # A 0x70 table byte in the token marks a #US heap reference.
     data = dll_path.read_bytes()
     ldstr_hits: list[tuple[int, int, str]] = []  # (byte_pos, us_offset, text)
 
@@ -158,7 +137,7 @@ def extract_dll_loc_strings(
                 if us_offset in us_map:
                     ldstr_hits.append((i, us_offset, us_map[us_offset]))
 
-    # Find consecutive ldstr pairs (gap == 5 means back-to-back instructions).
+    # A gap of 5 bytes means back-to-back ldstr instructions.
     results: dict[str, LocString] = {}
     MAX_GAP = 10  # Allow small gap for optional opcodes between two ldstr.
 
@@ -168,7 +147,6 @@ def extract_dll_loc_strings(
         if pos2 - pos1 > MAX_GAP:
             continue
 
-        # Determine which is the key and which is the value.
         key: Optional[str] = None
         value: Optional[str] = None
 
@@ -179,8 +157,7 @@ def extract_dll_loc_strings(
         else:
             continue
 
-        # Skip keys that are clearly not localization text
-        # (asset paths, prefab names, image references, etc.).
+        # Skip asset paths, prefab names and image references.
         if key.endswith((".prefab", ".asset", ".png", ".jpg")):
             continue
         if "/" in key and not key.startswith("Text"):
@@ -204,23 +181,19 @@ def extract_dll_orphan_strings(
     source_file_label: str = "",
     min_string_length: int = 4,
 ) -> dict[str, LocString]:
-    """Extract CJK strings from a .NET assembly that lack localization keys.
+    """Extract CJK strings that have no localization key and give them deterministic hash-based keys.
 
-    Some mods (e.g. mod 2959784510 / Amethyst) set translatable text via
-    property assignments in C# rather than localization registration calls,
-    producing CJK strings in the #US heap with no accompanying ASCII key.
-    This function captures those "orphan" strings and assigns deterministic
-    hash-based keys so they can be included in the translation pipeline.
+    Some mods (e.g. 2959784510 / Amethyst) set text via C# property assignments instead of registration calls, leaving CJK strings in the #US heap
+    with no ASCII key.
 
     Args:
-        dll_path: Path to the .NET DLL file.
-        paired_values: Set of CJK string values already captured by
-            `extract_dll_loc_strings` (excluded from results).
-        source_file_label: Value to set on `LocString.source_file`.
-        min_string_length: Minimum length for a string to be considered.
+        dll_path: .NET DLL.
+        paired_values: CJK values already captured by `extract_dll_loc_strings`, excluded here.
+        source_file_label: Value for `LocString.source_file`.
+        min_string_length: Minimum string length to consider.
 
     Returns:
-        Dictionary mapping synthetic key (`DLL/{stem}/{hash8}`) to LocString.
+        `{DLL/{stem}/{hash8}: LocString}`.
     """
     dotnet_file = _load_dotnet_pe(dll_path)
     if not dotnet_file:
@@ -262,18 +235,15 @@ def extract_dll_orphan_strings(
 
 
 def _is_noise_string(s: str, min_string_length: int) -> bool:
-    """
-    Determine if a string is likely .NET metadata noise rather than
-    user-facing localizable text.
+    """Check whether a string is likely .NET metadata noise rather than user-facing text.
 
     Args:
-        s: The string to check.
-        min_string_length: Minimum length for a string to be considered meaningful.
+        s: String to check.
+        min_string_length: Minimum meaningful length.
 
     Returns:
-        True if the string should be filtered out.
+        True if it should be filtered out.
     """
-    # Too short to be meaningful text.
     if len(s) < min_string_length:
         return True
 
@@ -285,23 +255,20 @@ def _is_noise_string(s: str, min_string_length: int) -> bool:
     if "\\" in s and "." in s:
         return True
 
-    # .NET namespaces and type references (dot-separated PascalCase).
+    # Namespaces and type references (dot-separated PascalCase).
     if re.match(r"^[A-Z][a-zA-Z0-9]+(\.[A-Z][a-zA-Z0-9]+)+$", s):
         return True
 
-    # Pure PascalCase identifiers without spaces (likely class/method names).
+    # Likely class/method names.
     if re.match(r"^[A-Z][a-zA-Z0-9]+$", s) and " " not in s:
         return True
 
-    # Version strings.
     if re.match(r"^\d+\.\d+(\.\d+)*$", s):
         return True
 
-    # Single characters or repeated characters.
     if len(set(s)) <= 1:
         return True
 
-    # Known .NET format strings.
     if s in ("{0}", "{1}", "{0} {1}", "null", "true", "false"):
         return True
 
@@ -312,31 +279,27 @@ def filter_localizable_strings(
     strings: list[str],
     min_string_length: int,
 ) -> list[str]:
-    """
-    Filter extracted DLL strings to keep only likely user-facing text.
-
-    Removes .NET noise like type names, file paths, format strings, etc.
+    """Drop .NET noise (type names, paths, format strings) from extracted DLL strings.
 
     Args:
-        strings: Raw list of extracted strings.
-        min_string_length: Minimum length for a string to be considered meaningful.
+        strings: Raw extracted strings.
+        min_string_length: Minimum meaningful length.
 
     Returns:
-        Filtered list of potentially localizable strings.
+        Potentially localizable strings.
     """
     return [s for s in strings if not _is_noise_string(s, min_string_length)]
 
 
 def _is_mod_dll(dll_name: str, skip_dlls: set[str]) -> bool:
-    """
-    Determine if a DLL is the mod's own assembly vs a known dependency.
+    """Check whether a DLL is the mod's own assembly rather than a known dependency.
 
     Args:
-        dll_name: Filename of the DLL.
-        skip_dlls: Set of DLL filenames to skip.
+        dll_name: DLL filename.
+        skip_dlls: DLL filenames to skip.
 
     Returns:
-        True if this appears to be the mod's own DLL.
+        True if it is the mod's own DLL.
     """
     return dll_name not in skip_dlls
 
@@ -346,19 +309,15 @@ def extract_mod_dll_strings(
     skip_dlls: set[str],
     min_string_length: int,
 ) -> list[str]:
-    """
-    Extract localizable strings from a mod's DLL assemblies (flat list).
-
-    Identifies the mod's own DLL (skipping known dependencies like
-    0Harmony.dll, Mono.Cecil.dll, etc.) and extracts user strings.
+    """Extract a flat list of localizable strings from the mod's own DLLs (known dependencies are skipped).
 
     Args:
-        mod_path: Path to the mod's root directory.
-        skip_dlls: Set of DLL filenames to skip.
-        min_string_length: Minimum length for a string to be considered meaningful.
+        mod_path: Mod root directory.
+        skip_dlls: DLL filenames to skip.
+        min_string_length: Minimum meaningful length.
 
     Returns:
-        Filtered list of potentially localizable strings.
+        Potentially localizable strings.
     """
     assemblies_dir = mod_path / "Assemblies"
     if not assemblies_dir.exists():
@@ -383,19 +342,14 @@ def extract_mod_dll_loc_strings(
     mod_path: Path,
     skip_dlls: set[str],
 ) -> dict[str, LocString]:
-    """
-    Extract structured localization key-value pairs from a mod's DLL assemblies.
-
-    Uses IL-level analysis to find `ldstr` pairs that represent
-    localization registration calls. Returns LocString objects compatible
-    with the CSV extraction pipeline.
+    """Extract `ldstr`-pair localization strings from the mod's DLLs, in the same shape as the CSV pipeline.
 
     Args:
-        mod_path: Path to the mod's root directory.
-        skip_dlls: Set of DLL filenames to skip.
+        mod_path: Mod root directory.
+        skip_dlls: DLL filenames to skip.
 
     Returns:
-        Dictionary mapping localization key to LocString.
+        `{key: LocString}`.
     """
     assemblies_dir = mod_path / "Assemblies"
     if not assemblies_dir.exists():
@@ -421,21 +375,16 @@ def extract_mod_dll_orphan_strings(
     paired_strings: dict[str, LocString],
     min_string_length: int = 4,
 ) -> dict[str, LocString]:
-    """Extract orphan CJK strings from a mod's DLL assemblies.
-
-    Captures CJK strings that were not found as key-value `ldstr` pairs
-    by `extract_mod_dll_loc_strings`. See `extract_dll_orphan_strings`
-    for background on why these strings exist.
+    """Extract CJK strings from the mod's DLLs that `extract_mod_dll_loc_strings` did not pair (see `extract_dll_orphan_strings`).
 
     Args:
-        mod_path: Path to the mod's root directory.
-        skip_dlls: Set of DLL filenames to skip.
-        paired_strings: LocStrings already captured by the paired extraction
-            pass. Their source text values are excluded from orphan results.
-        min_string_length: Minimum length for a string to be considered.
+        mod_path: Mod root directory.
+        skip_dlls: DLL filenames to skip.
+        paired_strings: Strings from the paired pass, whose values are excluded.
+        min_string_length: Minimum string length to consider.
 
     Returns:
-        Dictionary mapping synthetic key to LocString.
+        `{synthetic key: LocString}`.
     """
     assemblies_dir = mod_path / "Assemblies"
     if not assemblies_dir.exists():

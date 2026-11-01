@@ -1,9 +1,4 @@
-"""
-Chrono Ark game adapter implementation.
-
-Handles extraction from Chrono Ark's CSV localization files,
-.NET DLL string extraction, and Steam Workshop mod discovery.
-"""
+"""Chrono Ark game adapter: CSV/gdata/DLL string extraction and Steam Workshop mod discovery."""
 
 import csv
 import os
@@ -18,16 +13,14 @@ from backend.data import glossary_manager as gm
 from backend.games.chrono_ark import csv_extractor, dll_extractor, gdata_extractor, mod_scanner
 
 
-# Suffix pairs where both forms may coexist across CSV and gdata sources.
-# Each tuple is (short_suffix, long_suffix).
+# (short_suffix, long_suffix) pairs that may coexist across CSV and gdata sources.
 _DESC_SUFFIX_PAIRS = [
     ("_Des", "_Description"),
     ("_Desc", "_Description"),
     ("_PassiveDes", "_PassiveDesc"),
 ]
 
-# All known field suffixes in localization keys (longest first so that
-# e.g. `_PassiveName` matches before `_Name`).
+# Known key field suffixes, longest first so `_PassiveName` matches before `_Name`.
 _KNOWN_SUFFIXES = (
     "_Text_MasterTarget",
     "_CampSelectWord",
@@ -44,16 +37,13 @@ _KNOWN_SUFFIXES = (
 
 
 def _item_base(key: str) -> str | None:
-    """Extract the item base (prefix/item_id) from a localization key.
-
-    Strips known field suffixes to find the common base for duplicate
-    detection across sources that use different suffix conventions.
+    """Strip the known field suffix from a localization key to get the item base.
 
     Args:
         key: Localization key like `SkillExtended/Roland_Rare_Icon_Description`.
 
     Returns:
-        The base without the field suffix, or None if no known suffix matches.
+        Base without the suffix, or None if no suffix matches.
     """
     for suffix in _KNOWN_SUFFIXES:
         if key.endswith(suffix):
@@ -62,15 +52,12 @@ def _item_base(key: str) -> str | None:
 
 
 def _drop_cross_source_duplicates(strings: dict[str, LocString]) -> None:
-    """Remove duplicate description keys, preferring CSV-sourced entries.
+    """Remove duplicate description keys (e.g. `_Des` vs `_Description`), preferring CSV-sourced entries.
 
-    When both suffix variants exist (e.g. `_Des`/`_Desc` and `_Description`,
-    or `_PassiveDes` and `_PassiveDesc`), the CSV-sourced key is kept and
-    the other is dropped. If both come from the same source type, the
-    longer (more canonical) form is kept.
+    If both come from the same source type, the longer (more canonical) form is kept.
 
     Args:
-        strings: Dictionary of localization strings, modified in place.
+        strings: Localization strings, modified in place.
     """
     to_remove: list[str] = []
     for key in list(strings.keys()):
@@ -93,7 +80,7 @@ def _drop_cross_source_duplicates(strings: dict[str, LocString]) -> None:
             elif other_is_csv and not this_is_csv:
                 to_remove.append(key)
             elif key.endswith(short_suffix):
-                # Same source type — prefer the longer form.
+                # Same source type, so prefer the longer form.
                 to_remove.append(key)
             else:
                 to_remove.append(other_key)
@@ -106,28 +93,10 @@ def _drop_cross_source_duplicates(strings: dict[str, LocString]) -> None:
 class ChronoArkAdapter(GameAdapter, TranslationCapability):
     """Game adapter for Chrono Ark.
 
-    Handles extraction from Chrono Ark's CSV localization files,
-    .NET DLL string extraction, GDE JSON data files, and Steam
-    Workshop mod discovery.
-
-    Attributes:
-        _BASE_GAME_PATH: Default path to the base game's StreamingAssets
-            directory. Overridable via the `SWMT_BASE_GAME_PATH` env var.
-        _WORKSHOP_PATH: Default path to the Steam Workshop content directory.
-            Overridable via the `SWMT_WORKSHOP_PATH` env var.
-        _CSV_FILES: Canonical CSV filenames for Chrono Ark localization.
-        _CSV_COLUMNS: Ordered column names for the localization CSV format.
-        _SOURCE_LANGUAGES: Source languages to check, in priority order.
-        _SKIP_DLLS: Set of known dependency DLL filenames to skip during
-            extraction.
-        _DLL_MIN_STRING_LENGTH: Minimum string length to keep when filtering
-            DLL-extracted strings.
-        _METADATA_FILENAME: Name of the mod metadata JSON file.
-        _GLOSSARY_CATEGORIES: Mapping of glossary category names to their
-            localization key prefixes.
+    Path constants are overridable via the `SWMT_BASE_GAME_PATH` and `SWMT_WORKSHOP_PATH` env vars.
+    `_SOURCE_LANGUAGES` is in detection-priority order and `_SKIP_DLLS` lists dependency DLLs to skip during extraction.
     """
 
-    # Game-specific constants (moved from config.py).
     _BASE_GAME_PATH = Path(os.environ.get("SWMT_BASE_GAME_PATH", r"F:\SteamLibrary\steamapps\common\Chrono Ark\ChronoArk_Data\StreamingAssets"))
     _WORKSHOP_PATH = Path(os.environ.get("SWMT_WORKSHOP_PATH", r"F:\SteamLibrary\steamapps\workshop\content\1188930"))
     _CSV_FILES = [
@@ -136,8 +105,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         "LangRecordsDB.csv",
         "LangSystemDB.csv",
     ]
-    # Key prefixes → CSV file mapping based on base game conventions.
-    # Everything not listed here defaults to LangDataDB.csv.
+    # Key prefix to CSV file, following base game conventions.
     _KEY_PREFIX_TO_CSV: dict[str, str] = {
         "Dialogue": "LangDialogueDB.csv",
         "Record": "LangRecordsDB.csv",
@@ -234,13 +202,12 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
 
     @staticmethod
     def csv_for_key(key: str) -> str:
-        """Return the canonical CSV filename for a localization key based on its prefix."""
+        """Return the canonical CSV filename for a localization key's prefix."""
         prefix = key.split("/", 1)[0] if "/" in key else ""
         csv = ChronoArkAdapter._KEY_PREFIX_TO_CSV.get(prefix)
         if csv:
             return csv
-        # Keys with a known LangDataDB prefix go there; everything else
-        # (custom mod keys without a slash, unknown prefixes) → LangSystemDB.
+        # Only these prefixes go to LangDataDB. Slashless custom mod keys and unknown prefixes fall back to LangSystemDB.
         _DATA_PREFIXES = {
             "ArkUpgrade",
             "Buff",
@@ -272,13 +239,10 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return "LangSystemDB.csv"
 
     def get_translation_overrides_dir(self) -> Optional[Path]:
-        """Return the path to the ModTranslationInjector mod directory.
-
-        Derives the game's local Mod directory from `_BASE_GAME_PATH`
-        (which points to `ChronoArk_Data/StreamingAssets`).
+        """Return the ModTranslationInjector mod directory, derived from `_BASE_GAME_PATH` (`ChronoArk_Data/StreamingAssets`).
 
         Returns:
-            Path to the mod directory, or None if it does not exist.
+            Mod directory, or None if it does not exist.
         """
         game_root = self._BASE_GAME_PATH.parent.parent
         overrides_dir = game_root / "Mod" / "ModTranslationInjector"
@@ -314,12 +278,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
 
     @property
     def router(self) -> APIRouter:
-        """Return the composed adapter router for Chrono Ark.
-
-        Cached at class level: the composed router has no instance
-        dependencies, so a single shared router is correct across all
-        instances and survives `set_active_game` rebinds.
-        """
+        """Return the composed Chrono Ark router, cached at class level so it survives `set_active_game` rebinds."""
         if ChronoArkAdapter._ROUTER is None:
             from backend.games.chrono_ark.routes import build_chrono_ark_router
 
@@ -356,18 +315,13 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return examples
 
     def scan_mods(self, search_path: Optional[Path] = None) -> list[ModInfo]:
-        """Discover all installed Chrono Ark workshop mods.
-
-        Scans the Steam Workshop directory for mod folders containing
-        `ChronoArkMod.json` metadata files.
+        """Discover installed workshop mods by their `ChronoArkMod.json` files.
 
         Args:
-            search_path: Optional override for the workshop directory.
-                Defaults to `_WORKSHOP_PATH`.
+            search_path: Workshop directory override (defaults to `_WORKSHOP_PATH`).
 
         Returns:
-            List of ModInfo objects for each discovered mod, sorted by
-            mod_id.
+            `ModInfo` per mod, sorted by mod_id.
         """
         workshop_path = search_path or self._WORKSHOP_PATH
         return mod_scanner.scan_workshop(
@@ -378,35 +332,23 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         )
 
     def extract_strings(self, mod_path: Path) -> tuple[dict[str, LocString], list[str]]:
-        """Extract all localization strings from a Chrono Ark mod.
-
-        Attempts CSV extraction first. If no CSV localization files are
-        found, falls back to GDE JSON (`gdata/Add/`) and DLL IL-level
-        extraction.
+        """Extract localization strings from CSVs, then merge in gdata JSON (`gdata/Add/`) and DLL strings not already covered.
 
         Args:
-            mod_path: Path to the mod's root directory.
+            mod_path: Mod root directory.
 
         Returns:
-            Tuple of (strings dict mapping localization key to LocString,
-            list of variant/duplicate file relative paths). The variant
-            list is empty when falling back to non-CSV extraction.
+            `({key: LocString}, variant/duplicate file relative paths)`.
         """
         strings, variants = csv_extractor.extract_mod_strings(mod_path)
 
-        # Always try gdata JSON and DLL extraction, merging any entries
-        # that aren't already covered by the CSVs.
         gdata_strings = gdata_extractor.extract_mod_gdata_strings(mod_path)
 
-        # Build lookup structures from CSV keys for duplicate detection.
-        # JSON keys are duplicates when the CSV already has the same key
-        # (case-insensitive) or a prefixed form like
+        # A JSON key duplicates a CSV key if equal (case-insensitive) or if the CSV has a prefixed form like
         # "Character/xxx_Text_Battle_Cri_0" for JSON "Text_Battle_Cri_0".
         csv_keys_lower: set[str] = set()
         csv_suffixes_lower: set[str] = set()
-        # Map item base → set of source texts for cross-suffix dedup.
-        # Catches cases like CSV `_Name` vs JSON `_Description` for the
-        # same item when the source text is identical.
+        # Item base to source texts, to catch CSV `_Name` vs JSON `_Description` with identical text.
         csv_base_texts: dict[str, set[str]] = {}
         for csv_key, csv_loc in strings.items():
             csv_keys_lower.add(csv_key.lower())
@@ -420,13 +362,10 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         for key, loc_str in gdata_strings.items():
             if key in strings or key.lower() in csv_keys_lower:
                 continue
-            # Skip if this key appears as a suffix of any CSV key
-            # (with a `_` boundary to avoid false matches).
+            # The `_` boundary avoids false suffix matches.
             needle = "_" + key.lower()
             if any(suffix.endswith(needle) for suffix in csv_suffixes_lower):
                 continue
-            # Skip if the same item already has a CSV entry with matching
-            # source text under a different suffix.
             base = _item_base(key)
             if base is not None:
                 csv_texts = csv_base_texts.get(base)
@@ -442,15 +381,13 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             if key not in strings:
                 strings[key] = loc_str
 
-        # Extract orphan CJK strings from DLLs that lack localization keys
-        # (e.g. property assignments like `this.PassiveDes = "中文"`).
+        # Orphan CJK strings in DLLs have no localization key (e.g. `this.PassiveDes = "中文"`).
         orphan_strings = dll_extractor.extract_mod_dll_orphan_strings(
             mod_path,
             self._SKIP_DLLS,
             dll_strings,
             self._DLL_MIN_STRING_LENGTH,
         )
-        # Deduplicate against all existing source texts.
         existing_values: set[str] = set()
         for loc_str in strings.values():
             for val in loc_str.translations.values():
@@ -467,82 +404,65 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return strings, variants
 
     def extract_base_game_strings(self, game_path: Optional[Path] = None) -> dict[str, LocString]:
-        """Extract localization strings from the base Chrono Ark game.
-
-        Parses the canonical `Lang*.csv` files from the game's
-        StreamingAssets directory for use in glossary building.
+        """Parse the base game's `Lang*.csv` files for glossary building.
 
         Args:
-            game_path: Optional override for the StreamingAssets directory.
-                Defaults to `_BASE_GAME_PATH`.
+            game_path: StreamingAssets override (defaults to `_BASE_GAME_PATH`).
 
         Returns:
-            Dictionary mapping localization key to LocString.
+            `{key: LocString}`.
         """
         path = game_path or self._BASE_GAME_PATH
         return csv_extractor.extract_base_game_strings(path, self._CSV_FILES)
 
     def detect_source_language(self, loc_string: LocString) -> Optional[str]:
-        """Determine which source language column has content.
-
-        Checks Chinese, Korean, Japanese, and Chinese-TW in priority order.
+        """Return the first source language (in `_SOURCE_LANGUAGES` order) with non-empty text.
 
         Args:
-            loc_string: The localization string to inspect.
+            loc_string: String to inspect.
 
         Returns:
-            Name of the first source language with non-empty text, or None.
+            Language name, or None.
         """
         return csv_extractor.detect_source_language(loc_string, self._SOURCE_LANGUAGES)
 
     def get_untranslated(self, strings: dict[str, LocString]) -> dict[str, LocString]:
-        """Filter strings that need English translation.
-
-        Returns entries where the English column is empty but at least one
-        source language column has content.
+        """Keep entries with an empty English column but some source-language text.
 
         Args:
-            strings: Dictionary of all localization strings to filter.
+            strings: All localization strings.
 
         Returns:
-            Dictionary containing only the strings needing translation.
+            Only the strings needing translation.
         """
         return csv_extractor.get_untranslated_strings(strings, self._SOURCE_LANGUAGES)
 
     def get_glossary_categories(self) -> dict[str, str | list[str]]:
-        """Return Chrono Ark glossary category-to-key-prefix mappings.
+        """Return glossary category to key-prefix mappings.
 
         Returns:
-            Dictionary mapping category names (e.g. `"characters"`,
-            `"skills"`) to their localization key prefixes
-            (e.g. `"Character/"`, `["Skill/", "SkillExtended/"]`).
+            E.g. `{"characters": "Character/", "skills": ["Skill/", "SkillExtended/"]}`.
         """
         return self._GLOSSARY_CATEGORIES
 
     def get_base_glossary_prompt(self, source_lang: str, target_lang: str = "English") -> str:
-        """Build the base-game glossary section from the Chrono Ark glossary.
-
-        Filters the base glossary to config.GLOSSARY_CATEGORIES, matching what the
-        Chrono Ark translation pipeline sends.
+        """Build the base-game glossary section, filtered to `config.GLOSSARY_CATEGORIES`.
 
         Args:
-            source_lang: Source language whose mappings to include (e.g. `"Chinese"`).
-            target_lang: Language being translated into. Defaults to `"English"`.
+            source_lang: Source language to include (e.g. `"Chinese"`).
+            target_lang: Language translated into.
 
         Returns:
-            Formatted glossary section string, or an empty string when no terms match.
+            Glossary section, or `""` when no terms match.
         """
         return gm.get_glossary_prompt(gm.load_glossary(), allowed_categories=config.GLOSSARY_CATEGORIES, source_lang=source_lang, target_lang=target_lang)
 
     def export_strings(self, output_path: Path, entries: list[LocString]) -> None:
-        """Write localization entries to a Chrono Ark CSV file.
-
-        Outputs a CSV with the standard column order: Key, Type, Desc,
-        followed by each language column.
+        """Write entries to a Chrono Ark CSV (Key, Type, Desc, then language columns).
 
         Args:
-            output_path: Destination file path for the CSV.
-            entries: List of LocString objects to write.
+            output_path: Destination CSV.
+            entries: Strings to write.
         """
         columns = self._CSV_COLUMNS
         with open(output_path, "w", encoding="utf-8", newline="") as f:
@@ -558,10 +478,10 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         """Return the Steam Workshop URL for a mod.
 
         Args:
-            mod_id: Steam Workshop item ID.
+            mod_id: Workshop item id.
 
         Returns:
-            Steam Workshop URL for the given mod.
+            Workshop URL.
         """
         return f"https://steamcommunity.com/sharedfiles/filedetails/?id={mod_id}"
 
@@ -569,10 +489,10 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         """Write translations back into a mod's gdata JSON files.
 
         Args:
-            mod_path: Root directory of the mod.
-            translations: Mapping of localization key to English text.
+            mod_path: Mod root directory.
+            translations: `{key: English text}`.
 
         Returns:
-            List of JSON filenames that were modified.
+            Modified JSON filenames.
         """
         return gdata_extractor.export_gdata_translations(mod_path, translations)

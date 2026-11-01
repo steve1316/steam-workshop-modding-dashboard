@@ -1,9 +1,6 @@
-"""Per-game storage path resolution.
+"""Per-game storage path resolution under `<STORAGE_PATH>/games/<game_id>`.
 
-`game_storage_path(game_id)` returns `<STORAGE_PATH>/games/<game_id>`. The
-companion helpers (`mods_path`, `glossary_path`, `translation_memory_path`)
-compose paths under that root. Migration of legacy flat storage into this
-layout is handled by `backend.scripts.migrate_storage_v1_to_v2` at startup.
+Legacy flat storage is migrated into this layout by `backend.scripts.migrate_storage_v1_to_v2` at startup.
 """
 
 from __future__ import annotations
@@ -21,9 +18,6 @@ def game_storage_path(game_id: str) -> Path:
 
     Returns:
         `<STORAGE_PATH>/games/<game_id>`.
-
-    Raises:
-        ValueError: If `game_id` is empty.
     """
     if not game_id:
         raise ValueError("game_id must not be empty")

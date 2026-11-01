@@ -1,9 +1,4 @@
-"""Translation capability mixin.
-
-Game adapters that support string extraction and translation inherit from
-`TranslationCapability` in addition to `GameAdapter`. This decouples
-translation-specific behavior from the chassis interface.
-"""
+"""Translation capability mixin for adapters that extract and translate strings."""
 
 from __future__ import annotations
 
@@ -17,12 +12,9 @@ if TYPE_CHECKING:
 
 
 class TranslationCapability(ABC):
-    """Mixin declaring translation-related operations.
+    """Mixin declaring translation-related operations, inherited alongside `GameAdapter`.
 
-    Adapters that translate localizable text inherit this alongside
-    `GameAdapter`. The base `GameAdapter` no longer contains these methods;
-    code that needs them should runtime-check via `isinstance(adapter,
-    TranslationCapability)` or the adapter's `capabilities` list.
+    Callers should check `isinstance(adapter, TranslationCapability)` or the adapter's `capabilities` list.
     """
 
     @property
@@ -51,15 +43,14 @@ class TranslationCapability(ABC):
     def get_base_glossary_prompt(self, source_lang: str, target_lang: str = "English") -> str:
         """Return the base-game glossary section for translation prompts.
 
-        Each adapter loads its own base glossary and filters to its own prompt categories.
-        This keeps the system-prompt preview faithful to what the game actually sends.
+        Each adapter filters to its own prompt categories so the system-prompt preview matches what is actually sent.
 
         Args:
-            source_lang: Source language whose mappings to include (e.g. `"Chinese"`).
-            target_lang: Language being translated into. Defaults to `"English"`.
+            source_lang: Source language to include (e.g. `"Chinese"`).
+            target_lang: Language translated into.
 
         Returns:
-            Formatted glossary section string, or an empty string when no terms match.
+            Glossary section, or `""` when no terms match.
         """
 
     @abstractmethod
@@ -71,10 +62,10 @@ class TranslationCapability(ABC):
         """Extract localizable strings from `mod_path`.
 
         Args:
-            mod_path: On-disk path to the mod directory.
+            mod_path: Mod directory.
 
         Returns:
-            Tuple of (strings dict keyed by stable id, warning messages).
+            `(strings keyed by stable id, warnings)`.
         """
 
     @property
@@ -107,8 +98,5 @@ class TranslationCapability(ABC):
         """Return a public URL for `mod_id` (e.g. Steam Workshop link)."""
 
     def get_translation_overrides_dir(self) -> Optional[Path]:
-        """Return the directory where the translation injector writes overrides.
-
-        Default: `None` (no injector). Override in adapters that ship one.
-        """
+        """Return the injector's overrides directory, or `None` when the adapter has no injector."""
         return None

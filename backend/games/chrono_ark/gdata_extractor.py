@@ -1,10 +1,4 @@
-"""
-GDE (Game Data Editor) JSON extractor for Chrono Ark mods.
-
-Parses the `gdata/Add/*.json` files that mods ship alongside their DLLs.
-These files define skills, buffs, equipment, characters, etc. and contain
-localizable text fields such as Name, Description, and dialogue arrays.
-"""
+"""GDE (Game Data Editor) JSON extractor for the `gdata/Add/*.json` files mods ship alongside their DLLs."""
 
 import json
 from pathlib import Path
@@ -13,8 +7,7 @@ from backend.text_utils import has_cjk as _has_cjk
 from backend.core.json_store import write_json
 
 
-# Maps (schema, field_name) to a canonical suffix used in the localization key.
-# For example Skill with field "Name" → key suffix "_Name".
+# Maps a JSON field name to its localization key suffix (e.g. "Name" -> "_Name").
 _FIELD_SUFFIXES: dict[str, str] = {
     "Name": "_Name",
     "name": "_Name",
@@ -32,7 +25,7 @@ _FIELD_SUFFIXES: dict[str, str] = {
     "Text_MasterTarget": "_Text_MasterTarget",
 }
 
-# Schema names used as key prefixes (matches base-game CSV convention).
+# Schema names used as key prefixes, matching the base-game CSV convention.
 _SCHEMA_PREFIX: dict[str, str] = {
     "Skill": "Skill",
     "Buff": "Buff",
@@ -81,19 +74,13 @@ _DIALOGUE_ARRAY_FIELDS = {
 
 
 def _extract_gdata_file(file_path: Path) -> dict[str, LocString]:
-    """Extract localization entries from a single gdata JSON file.
-
-    Parses the JSON structure for known schemas (Skill, Buff, Item, etc.)
-    and extracts scalar text fields and dialogue string arrays that
-    contain CJK text.
+    """Extract scalar text fields and dialogue arrays from one gdata JSON file.
 
     Args:
-        file_path: Path to the gdata JSON file.
+        file_path: gdata JSON file.
 
     Returns:
-        Dictionary mapping localization key to LocString. Returns an
-        empty dict if the file cannot be read or contains no localizable
-        entries.
+        `{key: LocString}`, empty if the file is unreadable or has nothing localizable.
     """
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -111,7 +98,6 @@ def _extract_gdata_file(file_path: Path) -> dict[str, LocString]:
         schema = obj.get("_gdeSchema", "")
         prefix = _SCHEMA_PREFIX.get(schema, schema)
 
-        # Extract scalar text fields (Name, Description, etc.).
         for field_name, suffix in _FIELD_SUFFIXES.items():
             value = obj.get(field_name)
             if not value or not isinstance(value, str):
@@ -127,7 +113,6 @@ def _extract_gdata_file(file_path: Path) -> dict[str, LocString]:
                 source_file=file_path.name,
             )
 
-        # Extract dialogue string arrays (Text_Battle_Idle, etc.).
         for field_name in _DIALOGUE_ARRAY_FIELDS:
             arr = obj.get(field_name)
             if not arr:
@@ -169,18 +154,14 @@ def export_gdata_translations(
     mod_path: Path,
     translations: dict[str, str],
 ) -> list[str]:
-    """Write English translations back into a mod's gdata JSON files.
-
-    Iterates over each JSON object in `gdata/Add/*.json`, mirrors the
-    extraction key logic, and overwrites the source-language field with
-    the English translation when one exists.
+    """Overwrite source-language fields in `gdata/Add/*.json` with English translations, using the same key logic as extraction.
 
     Args:
-        mod_path: Root directory of the mod.
-        translations: Mapping of localization key to English text.
+        mod_path: Mod root directory.
+        translations: `{key: English text}`.
 
     Returns:
-        List of JSON filenames that were modified.
+        Modified JSON filenames.
     """
     gdata_dir = mod_path / "gdata" / "Add"
     if not gdata_dir.exists():
@@ -208,7 +189,6 @@ def export_gdata_translations(
             schema = obj.get("_gdeSchema", "")
             prefix = _SCHEMA_PREFIX.get(schema, schema)
 
-            # Update scalar text fields.
             for field_name, suffix in _FIELD_SUFFIXES.items():
                 if field_name not in obj:
                     continue
@@ -217,7 +197,6 @@ def export_gdata_translations(
                     obj[field_name] = translations[loc_key]
                     modified = True
 
-            # Update dialogue string arrays.
             for field_name in _DIALOGUE_ARRAY_FIELDS:
                 arr = obj.get(field_name)
                 if not arr:
@@ -243,14 +222,13 @@ def export_gdata_translations(
 
 
 def extract_mod_gdata_strings(mod_path: Path) -> dict[str, LocString]:
-    """
-    Extract all localization strings from a mod's `gdata/Add/` directory.
+    """Extract all localization strings from a mod's `gdata/Add/` directory.
 
     Args:
-        mod_path: Root directory of the mod.
+        mod_path: Mod root directory.
 
     Returns:
-        Dictionary mapping localization key to LocString.
+        `{key: LocString}`.
     """
     gdata_dir = mod_path / "gdata" / "Add"
     if not gdata_dir.exists():
