@@ -25,7 +25,7 @@ async def post_steamcmd_install():
     try:
         steamcmd_exe = await install_steamcmd(target_dir)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"SteamCMD install failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"SteamCMD install failed: {exc}") from exc
 
     path_str = str(steamcmd_exe)
     config.STEAMCMD_PATH = path_str

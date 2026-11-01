@@ -52,9 +52,9 @@ def _run_cli(args: list[str], timeout: int) -> str:
             creationflags=creationflags,
         )
     except subprocess.TimeoutExpired:
-        raise ChangeNoteError(f"change note script timed out after {timeout}s")
+        raise ChangeNoteError(f"change note script timed out after {timeout}s") from None
     except OSError as exc:
-        raise ChangeNoteError(f"could not run the change note script: {exc}")
+        raise ChangeNoteError(f"could not run the change note script: {exc}") from exc
     if proc.returncode != 0:
         lines = [line for line in (proc.stderr or "").splitlines() if line.strip()]
         raise ChangeNoteError(lines[-1] if lines else f"change note script exited with code {proc.returncode}")

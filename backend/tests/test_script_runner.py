@@ -134,8 +134,8 @@ def test_start_run_executes_fixture_and_streams_lines():
     assert h.exit_code == 0
     # Buffer captured all 5 lines.
     lines = [line.line for line in list(_log)]
-    assert any("line 0" in l for l in lines)
-    assert any("line 4" in l for l in lines)
+    assert any("line 0" in text for text in lines)
+    assert any("line 4" in text for text in lines)
 
 
 def test_start_run_runs_a_module_that_imports_a_sibling_package():

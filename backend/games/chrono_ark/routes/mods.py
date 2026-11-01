@@ -511,7 +511,7 @@ async def reset_mod(mod_id: str):
             "overrides_cleared": overrides_cleared,
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to reset: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset: {str(e)}") from e
 
 
 @router.post("/mods/{mod_id}/open")
@@ -532,7 +532,7 @@ async def open_mod_folder(mod_id: str):
         os.startfile(mod_path)
         return {"status": "success"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}") from e
 
 
 @router.get("/mods/{mod_id}/export-status")
@@ -795,7 +795,7 @@ async def open_base_game_file(filename: str):
     try:
         candidate = safe_child(base_path, filename)
     except ValueError:
-        raise HTTPException(status_code=404, detail=f"Base game file not found: {filename}")
+        raise HTTPException(status_code=404, detail=f"Base game file not found: {filename}") from None
     if not candidate.is_file():
         raise HTTPException(status_code=404, detail=f"Base game file not found: {filename}")
 

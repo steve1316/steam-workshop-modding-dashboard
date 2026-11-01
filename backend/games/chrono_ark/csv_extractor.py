@@ -162,7 +162,7 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
     col_indices = {col_name: i for i, col_name in enumerate(header)}
 
     language_columns = ["Korean", "English", "Japanese", "Chinese", "Chinese-TW [zh-tw]"]
-    active_langs = [l for l in language_columns if l in col_indices]
+    active_langs = [lang for lang in language_columns if lang in col_indices]
 
     last_entry: LocString | None = None
     # Column the last entry was populating, for continuation ("zombie") rows.

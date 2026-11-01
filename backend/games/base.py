@@ -65,7 +65,7 @@ class GameAdapter(ABC):
         """
         return {}
 
-    def on_register(self) -> None:
+    def on_register(self) -> None:  # noqa: B027 - optional hook, not abstract
         """Hook called once when the adapter is registered. Default: no-op."""
 
     @property

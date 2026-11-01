@@ -74,7 +74,7 @@ async def get_ollama_models():
             return {"models": data.get("models", [])}
         raise HTTPException(502, "Ollama returned non-200 status")
     except httpx.ConnectError:
-        raise HTTPException(503, "Cannot connect to Ollama. Is it running?")
+        raise HTTPException(503, "Cannot connect to Ollama. Is it running?") from None
 
 
 @router.post("/pull")
@@ -124,7 +124,7 @@ async def install_ollama():
 
         return {"success": True, "message": "Installer launched. Complete the installation wizard, then check status again."}
     except Exception as e:
-        raise HTTPException(500, f"Failed to download/launch installer: {e}")
+        raise HTTPException(500, f"Failed to download/launch installer: {e}") from e
 
 
 @router.post("/start")

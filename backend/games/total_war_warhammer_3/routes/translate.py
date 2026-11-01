@@ -378,7 +378,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
         )
     except Exception as e:
         _log_batch_call(req.mod_id, keys, provider.last_raw_responses, error=str(e))
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
     # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps Claude's raw output.
     # Words the mod glossary spells joined ("Fu Yuanshan") are kept.

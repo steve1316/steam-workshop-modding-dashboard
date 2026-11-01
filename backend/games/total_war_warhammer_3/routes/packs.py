@@ -109,7 +109,7 @@ def open_pack_folder(workshop_id: str):
         os.startfile(folder)
         return {"status": "success"}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to open folder: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to open folder: {exc}") from exc
 
 
 class ChangeNotesBody(BaseModel):
@@ -176,9 +176,9 @@ def post_pack_publish(workshop_id: str, body: PublishBody):
             on_exit=on_exit,
         )
     except wp.PublisherPreflightError as exc:
-        raise HTTPException(status_code=400, detail={"missing": exc.missing})
+        raise HTTPException(status_code=400, detail={"missing": exc.missing}) from exc
     except wp.PublishInProgressError:
-        raise HTTPException(status_code=409, detail="a publish is already in progress")
+        raise HTTPException(status_code=409, detail="a publish is already in progress") from None
 
     return {
         "publish_id": handle.publish_id,
@@ -283,7 +283,7 @@ async def post_publish_all(body: PublishAllBody):
             steam_username=config.STEAM_USERNAME,
         )
     except wbp.BatchInProgressError:
-        raise HTTPException(status_code=409, detail="a batch or single-mod publish is already in progress")
+        raise HTTPException(status_code=409, detail="a batch or single-mod publish is already in progress") from None
 
     return {
         "batch_id": handle.batch_id,

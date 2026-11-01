@@ -38,9 +38,9 @@ def get_supported_mods():
     try:
         mods = load_supported_mods(helper_scripts_path())
     except (HelperScriptsNotConfiguredError, RegistryFileMissingError) as exc:
-        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
     except HelperScriptsLoaderError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return {"mods": mods}
 
 
@@ -69,7 +69,7 @@ def _write_and_reload(new_source: str) -> list[dict]:
         return load_supported_mods(helper_scripts_path())
     except HelperScriptsLoaderError as exc:
         shutil.copyfile(backup, source_path)
-        raise HTTPException(status_code=500, detail=f"Write reloaded with error, restored from .bak: {exc}")
+        raise HTTPException(status_code=500, detail=f"Write reloaded with error, restored from .bak: {exc}") from exc
 
 
 @router.post("/supported-mods")
@@ -88,9 +88,9 @@ def post_supported_mods(body: SupportedModBody):
             raise HTTPException(status_code=503, detail="data/supported_mods.py not found")
         new_source = add_entry(source_path.read_text(encoding="utf-8"), body.entry)
     except HelperScriptsNotConfiguredError as exc:
-        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
     except DuplicatePackageError as exc:
-        raise HTTPException(status_code=409, detail=f"Package already exists: {exc}")
+        raise HTTPException(status_code=409, detail=f"Package already exists: {exc}") from exc
     return {"mods": _write_and_reload(new_source)}
 
 
@@ -111,9 +111,9 @@ def put_supported_mods(package_name: str, body: SupportedModBody):
             raise HTTPException(status_code=503, detail="data/supported_mods.py not found")
         new_source = update_entry(source_path.read_text(encoding="utf-8"), package_name, body.entry)
     except HelperScriptsNotConfiguredError as exc:
-        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
     except EntryNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Mod not found: {package_name}")
+        raise HTTPException(status_code=404, detail=f"Mod not found: {package_name}") from None
     return {"mods": _write_and_reload(new_source)}
 
 
@@ -133,9 +133,9 @@ def delete_supported_mods(package_name: str):
             raise HTTPException(status_code=503, detail="data/supported_mods.py not found")
         new_source = remove_entry(source_path.read_text(encoding="utf-8"), package_name)
     except HelperScriptsNotConfiguredError as exc:
-        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
     except EntryNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Mod not found: {package_name}")
+        raise HTTPException(status_code=404, detail=f"Mod not found: {package_name}") from None
     return {"mods": _write_and_reload(new_source)}
 
 
@@ -149,7 +149,7 @@ def get_supported_effects():
     try:
         categories = load_supported_effects_categories(helper_scripts_path())
     except (HelperScriptsNotConfiguredError, RegistryFileMissingError) as exc:
-        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
     except HelperScriptsLoaderError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return {"categories": categories}

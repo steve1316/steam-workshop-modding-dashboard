@@ -1,9 +1,18 @@
 """Tests for the WH3 `.loc.tsv` parser."""
 
+import subprocess
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow, escape_loc_text, read_translation_loc_tsv, unescape_loc_text
+from backend.games.total_war_warhammer_3.loc_extractor import (
+    LocRow,
+    escape_loc_text,
+    extract_parent_pack_strings,
+    normalize_loc_filename,
+    read_translation_loc_tsv,
+    unescape_loc_text,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_translation.loc.tsv"
 
@@ -78,15 +87,6 @@ def test_loc_row_is_a_dataclass():
 def test_read_translation_loc_tsv_raises_on_missing_file(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         read_translation_loc_tsv(tmp_path / "does_not_exist.loc.tsv")
-
-
-import subprocess
-from unittest.mock import MagicMock
-
-from backend.games.total_war_warhammer_3.loc_extractor import (
-    extract_parent_pack_strings,
-    normalize_loc_filename,
-)
 
 
 def test_normalize_loc_filename_strips_prefix_and_lowercases():

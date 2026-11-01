@@ -4,7 +4,10 @@ from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.translation_drift import (
     DriftRow,
     compute_drift,
+    entry_hash,
+    entry_text,
     hash_text,
+    make_entry,
 )
 
 
@@ -123,9 +126,6 @@ def test_drift_row_default_provider_is_none():
         status="untranslated",
     )
     assert row.provider is None
-
-
-from backend.games.total_war_warhammer_3.translation_drift import entry_hash, entry_text, make_entry
 
 
 def test_make_entry_holds_hash_and_text():

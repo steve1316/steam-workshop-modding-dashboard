@@ -122,7 +122,7 @@ class LlamaCppProvider(TranslationProvider):
                 return translations, suggestions
 
             except requests.ConnectionError:
-                raise RuntimeError(f"Cannot connect to llama-server at {self._base_url}. Is llama-server running?")
+                raise RuntimeError(f"Cannot connect to llama-server at {self._base_url}. Is llama-server running?") from None
             except requests.HTTPError as e:
                 if attempt == max_retries - 1:
                     print(f"  llama-server API error after {max_retries} retries: {e}")

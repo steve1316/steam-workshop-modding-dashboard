@@ -59,11 +59,11 @@ def post_run(script_id: str):
     try:
         handle = sr.start_run(script_id, _settings())
     except sr.UnknownScriptError:
-        raise HTTPException(status_code=404, detail=f"unknown script_id: {script_id}")
+        raise HTTPException(status_code=404, detail=f"unknown script_id: {script_id}") from None
     except sr.PreflightError as exc:
-        raise HTTPException(status_code=400, detail={"missing": exc.missing})
+        raise HTTPException(status_code=400, detail={"missing": exc.missing}) from exc
     except sr.RunInProgressError:
-        raise HTTPException(status_code=409, detail="a run is already in progress")
+        raise HTTPException(status_code=409, detail="a run is already in progress") from None
     return {
         "run_id": handle.run_id,
         "script_id": handle.script_id,

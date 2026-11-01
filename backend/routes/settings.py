@@ -163,7 +163,7 @@ async def update_settings(payload: SettingsUpdate):
         try:
             set_active_game(payload.active_game)
         except ValueError as exc:
-            raise HTTPException(400, str(exc))
+            raise HTTPException(400, str(exc)) from exc
         env_updates["SWMT_ACTIVE_GAME"] = payload.active_game
 
     if payload.tw3_helper_path is not None:

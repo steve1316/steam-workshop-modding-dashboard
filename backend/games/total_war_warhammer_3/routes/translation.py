@@ -861,7 +861,7 @@ def post_restore_snapshot(mod_id: str, sid: str) -> dict:
     try:
         snapshot_store.restore_snapshot(mod_id, sid, local_source_dir=mod.local_source_dir)
     except FileNotFoundError:
-        raise HTTPException(404, f"snapshot {sid} not found")
+        raise HTTPException(404, f"snapshot {sid} not found") from None
     return {"status": "ok"}
 
 

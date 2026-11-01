@@ -82,7 +82,7 @@ def provider_call_fields(raw_responses: list[dict], error: str | None = None) ->
 
     texts = [r.get("raw_text") or "" for r in raw_responses]
     if len(texts) > 1:
-        texts = [f"--- Response {i + 1} (stop_reason: {r.get('stop_reason')}) ---\n{t}" for i, (r, t) in enumerate(zip(raw_responses, texts))]
+        texts = [f"--- Response {i + 1} (stop_reason: {r.get('stop_reason')}) ---\n{t}" for i, (r, t) in enumerate(zip(raw_responses, texts, strict=True))]
     if error:
         texts.insert(0, f"ERROR: {error}")
     return {

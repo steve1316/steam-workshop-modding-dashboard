@@ -116,7 +116,7 @@ def apply_term_rename(mod_id: str, old_english: str, new_english: str) -> int:
 
     pattern = re.compile(r"\b" + re.escape(old_english) + r"\b")
     total = 0
-    for key, entry in raw.items():
+    for entry in raw.values():
         if not isinstance(entry, dict):
             continue
         text = entry.get("text") or ""

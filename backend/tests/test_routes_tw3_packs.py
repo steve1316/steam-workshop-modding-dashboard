@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,8 @@ from fastapi.testclient import TestClient
 
 from backend import config
 from backend.games.total_war_warhammer_3 import publish_notes
+from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
+from backend.games.total_war_warhammer_3 import workshop_publisher as wp
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
 from backend.web_server import app
 
@@ -220,10 +223,6 @@ def test_open_pack_folder_returns_404_when_drive_unset(monkeypatch):
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # POST /packs/{workshop_id}/publish
 
-from datetime import UTC, datetime
-
-from backend.games.total_war_warhammer_3 import workshop_publisher as wp
-
 
 def _make_handle(workshop_id: str = "999") -> wp.PublishHandle:
     return wp.PublishHandle(
@@ -366,7 +365,6 @@ def test_publish_does_not_call_make_recorder_when_a_publish_is_already_active(mo
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # POST /packs/publish-all
 
-from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 
 _PUBLISH_ALL = "/api/games/total_war_warhammer_3/packs/publish-all"
 

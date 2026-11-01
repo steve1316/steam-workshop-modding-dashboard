@@ -28,7 +28,7 @@ def get_validation():
         mods = load_supported_mods(helper_scripts_path())
         effects = load_supported_effects(helper_scripts_path())
     except (HelperScriptsNotConfiguredError, RegistryFileMissingError) as exc:
-        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}")
+        raise HTTPException(status_code=503, detail=f"Registry unavailable: {exc}") from exc
     except HelperScriptsLoaderError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return {"issues": validate_registries(mods, effects)}

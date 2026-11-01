@@ -36,7 +36,7 @@ async def install_steamcmd(target_dir: Path) -> Path:
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
             zf.extractall(target_dir)
     except zipfile.BadZipFile as exc:
-        raise RuntimeError(f"downloaded archive is not a valid zip: {exc}")
+        raise RuntimeError(f"downloaded archive is not a valid zip: {exc}") from exc
 
     steamcmd_exe = target_dir / "steamcmd.exe"
     if not steamcmd_exe.is_file():

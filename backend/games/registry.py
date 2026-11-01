@@ -47,7 +47,7 @@ def list_games_metadata() -> list[dict]:
         Dicts with `game_id`, `display_name`, `icon`, `capabilities`.
     """
     result = []
-    for game_id, adapter_class in _ADAPTERS.items():
+    for adapter_class in _ADAPTERS.values():
         instance = adapter_class()
         result.append(
             {

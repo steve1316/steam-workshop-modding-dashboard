@@ -56,7 +56,7 @@ def _web_provider(provider_name: str):
     try:
         return get_provider(provider_name)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/estimate")
@@ -407,7 +407,7 @@ async def translate_mod(req: TranslationRequest):
             for batch in chunk_entries(entries, batch_size, config.BATCH_MAX_CHARS):
                 translations, suggestions = await loop.run_in_executor(
                     None,
-                    lambda batch=batch, lang=lang, glossary_prompt=glossary_prompt: provider.translate_batch(
+                    lambda batch=batch, lang=lang, glossary_prompt=glossary_prompt, style_examples=style_examples: provider.translate_batch(
                         batch,
                         lang,
                         glossary_prompt,
@@ -427,7 +427,7 @@ async def translate_mod(req: TranslationRequest):
                     if source_text and english:
                         tm.store(source_text, english, lang)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
     raw_responses = getattr(provider, "last_raw_responses", [])
     if raw_responses:
@@ -548,7 +548,7 @@ async def translate_batch(req: BatchTranslationRequest):
             target_lang=target_lang,
         )
     except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
     for key, english in translations.items():
         source_text = next((t for k, t in entries if k == key), "")

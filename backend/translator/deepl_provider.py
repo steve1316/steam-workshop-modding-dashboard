@@ -82,7 +82,7 @@ class DeepLProvider(TranslationProvider):
                 preserve_formatting=True,
             )
 
-            for key, translation in zip(keys, translations):
+            for key, translation in zip(keys, translations, strict=False):
                 results[key] = translation.text
 
         except deepl.DeepLException as e:

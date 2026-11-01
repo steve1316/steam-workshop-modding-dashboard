@@ -18,7 +18,7 @@ from collections import deque
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 
@@ -70,14 +70,14 @@ PIPELINE_UNIT_SCRIPTS: dict[str, str] = {
 }
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     """Lifecycle state of the runner."""
 
     IDLE = "idle"
     RUNNING = "running"
 
 
-class StepStatus(str, Enum):
+class StepStatus(StrEnum):
     """Progress of one script inside a pipeline run."""
 
     QUEUED = "queued"

@@ -433,7 +433,7 @@ def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
     export_dir.mkdir(parents=True, exist_ok=True)
 
     by_source: dict[str, list] = {}
-    for key, loc_str in strings.items():
+    for loc_str in strings.values():
         source = loc_str.source_file or adapter.csv_for_key(loc_str.key)
         if source not in by_source:
             by_source[source] = []

@@ -96,7 +96,7 @@ async def _ensure_llamacpp_running() -> None:
                 return
         except Exception:
             if not is_managed("llamacpp"):
-                raise HTTPException(500, "llama-server exited unexpectedly. Check logs in storage/logs/.")
+                raise HTTPException(500, "llama-server exited unexpectedly. Check logs in storage/logs/.") from None
 
     raise HTTPException(500, "llama-server did not become healthy within 60 seconds.")
 

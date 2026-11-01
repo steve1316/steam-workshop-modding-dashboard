@@ -530,7 +530,7 @@ def test_mod_dll_strings_skips_deps(mock_extract, tmp_path):
 
     mock_extract.return_value = ["some string"]
 
-    result = extract_mod_dll_strings(tmp_path, skip_dlls={"Mono.Cecil.dll"}, min_string_length=4)
+    extract_mod_dll_strings(tmp_path, skip_dlls={"Mono.Cecil.dll"}, min_string_length=4)
 
     assert mock_extract.call_count == 1
     assert mock_extract.call_args[0][0].name == "mymod.dll"
