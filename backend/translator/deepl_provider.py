@@ -108,7 +108,5 @@ class DeepLProvider(TranslationProvider):
         return {
             "estimated_characters": total_chars,
             "estimated_cost_usd": round(estimated_cost, 4),
-            "note": f"Estimated for {len(entries)} strings ({total_chars} chars). "
-            f"DeepL does not support custom glossary prompts — consider "
-            f"creating a DeepL glossary separately for term consistency.",
+            "note": f"Estimated for {len(entries)} strings ({total_chars} chars). DeepL does not support custom glossary prompts — consider creating a DeepL glossary separately for term consistency.",
         }

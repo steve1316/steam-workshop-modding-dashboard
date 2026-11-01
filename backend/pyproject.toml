@@ -1,5 +1,16 @@
-[tool.black]
+[tool.ruff]
 line-length = 200
-target-version = ["py312"]
-# Intentionally-unparseable fixture used to test the loader's SyntaxError handling. Black cannot format it.
-extend-exclude = '/_test_syntax_error\.py'
+target-version = "py312"
+# Intentionally-unparseable fixture used to test the loader's SyntaxError handling.
+extend-exclude = ["tests/fixtures/helper_scripts/_test_syntax_error.py", "storage"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# The formatter owns code line length. Comment width is a soft ceiling checked in review.
+ignore = ["E501"]
+
+[tool.pyright]
+include = ["."]
+exclude = ["storage", "tests/fixtures", "**/__pycache__"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"

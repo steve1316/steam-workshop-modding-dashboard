@@ -286,7 +286,7 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
     tm.save()
     tm_stats = tm.get_stats()
-    print(f"\n  Translation memory: {tm_stats['total_entries']} entries " f"({tm_stats['hit_rate_percent']}% hit rate this session)")
+    print(f"\n  Translation memory: {tm_stats['total_entries']} entries ({tm_stats['hit_rate_percent']}% hit rate this session)")
 
     _apply_translations(mod_id, all_translations, tm)
 
@@ -351,7 +351,7 @@ def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
             if mod_dir.is_dir():
                 status = tracker.get_status(mod_dir.name)
                 if status["total"] > 0:
-                    print(f"{mod_dir.name:<15} " f"{status['total']:<8} " f"{status['translated']:<8} " f"{status['untranslated']:<8} " f"{status['percentage']:<10}%")
+                    print(f"{mod_dir.name:<15} {status['total']:<8} {status['translated']:<8} {status['untranslated']:<8} {status['percentage']:<10}%")
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -459,7 +459,7 @@ def main() -> None:
         "--game",
         type=str,
         default=config.ACTIVE_GAME,
-        help=f"Game adapter to use (default: {config.ACTIVE_GAME}). " f"Available: {', '.join(list_games()) or '(loading...)'}",
+        help=f"Game adapter to use (default: {config.ACTIVE_GAME}). Available: {', '.join(list_games()) or '(loading...)'}",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 

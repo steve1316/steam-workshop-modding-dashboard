@@ -9,7 +9,8 @@
         "build": "tsc -b && vite build",
         "lint": "eslint .",
         "preview": "vite preview",
-        "format": "prettier --write \"**/*.tsx\" && python -m black backend",
+        "format": "prettier --write \"**/*.tsx\" && python -m ruff check --select I --fix --quiet backend && python -m ruff format backend",
+        "lint:backend": "python -m ruff check backend && python -m pyright -p backend",
         "test": "vitest run",
         "test:watch": "vitest"
     },

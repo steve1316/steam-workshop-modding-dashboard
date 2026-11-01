@@ -147,12 +147,12 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
         import io
 
         try:
-            yield f'data: {json.dumps({"status": "fetching_release"})}\n\n'
+            yield f"data: {json.dumps({'status': 'fetching_release'})}\n\n"
 
             async with httpx.AsyncClient(follow_redirects=True, timeout=httpx.Timeout(30.0, read=None), headers={"User-Agent": "curl/8.0"}) as client:
                 r = await client.get("https://api.github.com/repos/ggerganov/llama.cpp/releases/latest")
                 if r.status_code != 200:
-                    yield f'data: {json.dumps({"status": "error", "message": f"GitHub API error: HTTP {r.status_code}"})}\n\n'
+                    yield f"data: {json.dumps({'status': 'error', 'message': f'GitHub API error: HTTP {r.status_code}'})}\n\n"
                     return
                 release = r.json()
                 tag = release["tag_name"]
@@ -161,20 +161,20 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                 # Exclude cudart zips, which are a separate download.
                 zip_asset = next((a for a in assets if backend_info["zip_pattern"] in a["name"] and a["name"].endswith(".zip") and not a["name"].startswith("cudart")), None)
                 if not zip_asset:
-                    yield f'data: {json.dumps({"status": "error", "message": f"No {backend_info['label']} build found in release {tag}"})}\n\n'
+                    yield f"data: {json.dumps({'status': 'error', 'message': f'No {backend_info["label"]} build found in release {tag}'})}\n\n"
                     return
 
                 zip_url = zip_asset["browser_download_url"]
                 zip_total = zip_asset["size"]
-                yield f'data: {json.dumps({"status": "downloading", "file": zip_asset["name"], "completed": 0, "total": zip_total})}\n\n'
+                yield f"data: {json.dumps({'status': 'downloading', 'file': zip_asset['name'], 'completed': 0, 'total': zip_total})}\n\n"
 
                 zip_data = bytearray()
                 async with client.stream("GET", zip_url) as resp:
                     async for chunk in resp.aiter_bytes(1024 * 1024):
                         zip_data.extend(chunk)
                         if len(zip_data) % (5 * 1024 * 1024) < 1024 * 1024:
-                            yield f'data: {json.dumps({"status": "downloading", "file": zip_asset["name"], "completed": len(zip_data), "total": zip_total})}\n\n'
-                yield f'data: {json.dumps({"status": "downloading", "file": zip_asset["name"], "completed": len(zip_data), "total": zip_total})}\n\n'
+                            yield f"data: {json.dumps({'status': 'downloading', 'file': zip_asset['name'], 'completed': len(zip_data), 'total': zip_total})}\n\n"
+                yield f"data: {json.dumps({'status': 'downloading', 'file': zip_asset['name'], 'completed': len(zip_data), 'total': zip_total})}\n\n"
 
                 cudart_data = None
                 if backend_info["cudart_pattern"]:
@@ -182,16 +182,16 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                     if cudart_asset:
                         cudart_url = cudart_asset["browser_download_url"]
                         cudart_total = cudart_asset["size"]
-                        yield f'data: {json.dumps({"status": "downloading", "file": cudart_asset["name"], "completed": 0, "total": cudart_total})}\n\n'
+                        yield f"data: {json.dumps({'status': 'downloading', 'file': cudart_asset['name'], 'completed': 0, 'total': cudart_total})}\n\n"
                         cudart_data = bytearray()
                         async with client.stream("GET", cudart_url) as resp:
                             async for chunk in resp.aiter_bytes(1024 * 1024):
                                 cudart_data.extend(chunk)
                                 if len(cudart_data) % (10 * 1024 * 1024) < 1024 * 1024:
-                                    yield f'data: {json.dumps({"status": "downloading", "file": cudart_asset["name"], "completed": len(cudart_data), "total": cudart_total})}\n\n'
-                        yield f'data: {json.dumps({"status": "downloading", "file": cudart_asset["name"], "completed": len(cudart_data), "total": cudart_total})}\n\n'
+                                    yield f"data: {json.dumps({'status': 'downloading', 'file': cudart_asset['name'], 'completed': len(cudart_data), 'total': cudart_total})}\n\n"
+                        yield f"data: {json.dumps({'status': 'downloading', 'file': cudart_asset['name'], 'completed': len(cudart_data), 'total': cudart_total})}\n\n"
 
-            yield f'data: {json.dumps({"status": "extracting"})}\n\n'
+            yield f"data: {json.dumps({'status': 'extracting'})}\n\n"
             bin_dir.mkdir(parents=True, exist_ok=True)
 
             with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
@@ -215,11 +215,11 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
             _update_env_file({"SWMT_LLAMACPP_BINARY_PATH": binary_path})
 
             print(f"[llamacpp] Installed {tag} ({backend_info['label']}) to {bin_dir}")
-            yield f'data: {json.dumps({"status": "done", "tag": tag, "binary_path": binary_path})}\n\n'
+            yield f"data: {json.dumps({'status': 'done', 'tag': tag, 'binary_path': binary_path})}\n\n"
 
         except Exception as e:
             print(f"[llamacpp] Install error: {e}")
-            yield f'data: {json.dumps({"status": "error", "message": str(e)})}\n\n'
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -287,30 +287,30 @@ async def download_gguf_model(req: GGUFDownloadRequest):
         try:
             if dest.is_file():
                 print(f"[gguf] Already exists: {dest}")
-                yield f'data: {json.dumps({"status": "done", "path": str(dest), "completed": 0, "total": 0})}\n\n'
+                yield f"data: {json.dumps({'status': 'done', 'path': str(dest), 'completed': 0, 'total': 0})}\n\n"
                 return
 
             print(f"[gguf] Starting download: {req.url}")
             print(f"[gguf] Destination: {dest}")
-            yield f'data: {json.dumps({"status": "connecting"})}\n\n'
+            yield f"data: {json.dumps({'status': 'connecting'})}\n\n"
 
             async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, read=None), follow_redirects=True) as client:
                 async with client.stream("GET", req.url) as response:
                     print(f"[gguf] Connected: HTTP {response.status_code}, Content-Length: {response.headers.get('content-length', 'unknown')}")
                     if response.status_code != 200:
-                        yield f'data: {json.dumps({"status": "error", "message": f"HTTP {response.status_code}"})}\n\n'
+                        yield f"data: {json.dumps({'status': 'error', 'message': f'HTTP {response.status_code}'})}\n\n"
                         return
 
                     total = int(response.headers.get("content-length", 0))
                     completed = 0
                     last_report = 0
-                    yield f'data: {json.dumps({"status": "downloading", "completed": 0, "total": total})}\n\n'
+                    yield f"data: {json.dumps({'status': 'downloading', 'completed': 0, 'total': total})}\n\n"
 
                     partial = dest.parent / (dest.name + ".part")
                     with open(partial, "wb") as f:
                         async for chunk in response.aiter_bytes(chunk_size=1024 * 1024):
                             if cancel_event.is_set():
-                                yield f'data: {json.dumps({"status": "cancelled"})}\n\n'
+                                yield f"data: {json.dumps({'status': 'cancelled'})}\n\n"
                                 partial.unlink(missing_ok=True)
                                 return
 
@@ -318,16 +318,16 @@ async def download_gguf_model(req: GGUFDownloadRequest):
                             completed += len(chunk)
 
                             if completed - last_report >= 2 * 1024 * 1024 or completed == total:
-                                yield f'data: {json.dumps({"status": "downloading", "completed": completed, "total": total})}\n\n'
+                                yield f"data: {json.dumps({'status': 'downloading', 'completed': completed, 'total': total})}\n\n"
                                 last_report = completed
 
                     partial.rename(dest)
                     print(f"[gguf] Download complete: {dest} ({completed} bytes)")
-                    yield f'data: {json.dumps({"status": "done", "path": str(dest), "completed": completed, "total": total})}\n\n'
+                    yield f"data: {json.dumps({'status': 'done', 'path': str(dest), 'completed': completed, 'total': total})}\n\n"
         except Exception as e:
             print(f"[gguf] Error: {e}")
             (dest.parent / (dest.name + ".part")).unlink(missing_ok=True)
-            yield f'data: {json.dumps({"status": "error", "message": str(e)})}\n\n'
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
         finally:
             _gguf_download_cancels.pop(req.filename, None)
 

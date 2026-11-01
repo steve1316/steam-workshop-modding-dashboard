@@ -179,7 +179,7 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
 
     def export_strings(self, output_path: Path, entries: list[LocString]) -> None:
         """Not implemented: export is handled by the pack rebuild + publish workflow."""
-        raise NotImplementedError("WH3 translation export uses the existing pack rebuild flow; " "see backend/games/total_war_warhammer_3/routes/packs.py.")
+        raise NotImplementedError("WH3 translation export uses the existing pack rebuild flow; see backend/games/total_war_warhammer_3/routes/packs.py.")
 
     def get_mod_url(self, mod_id: str) -> Optional[str]:
         if get_translation_mod(mod_id) is None:

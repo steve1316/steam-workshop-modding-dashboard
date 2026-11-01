@@ -116,5 +116,5 @@ class ManualProvider(TranslationProvider):
 
         return {
             "estimated_cost_usd": 0.0,
-            "note": f"Manual translation — no API cost. " f"{len(entries)} strings ({total_chars} chars) to translate.",
+            "note": f"Manual translation — no API cost. {len(entries)} strings ({total_chars} chars) to translate.",
         }

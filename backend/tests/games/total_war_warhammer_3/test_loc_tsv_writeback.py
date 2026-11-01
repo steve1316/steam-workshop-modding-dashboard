@@ -18,7 +18,7 @@ def _write_loc_tsv(path: Path, body: str) -> None:
     path.write_text(body, encoding="utf-8", newline="")
 
 
-SAMPLE = "key\ttext\ttooltip\n" "#Loc;1;text/sample.loc\t\t\n" "key_a\tOld A\ttrue\n" "key_b\tOld B\tfalse\n"
+SAMPLE = "key\ttext\ttooltip\n#Loc;1;text/sample.loc\t\t\nkey_a\tOld A\ttrue\nkey_b\tOld B\tfalse\n"
 
 
 def test_read_loc_tsv_lines_preserves_header_and_metadata(tmp_path: Path):

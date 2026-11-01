@@ -364,7 +364,7 @@ Game-specific settings, such as game install paths and toolkit locations, are li
 
 3. Install backend dependencies:
    ```bash
-   pip install -r backend/requirements.txt
+   pip install -r backend/requirements-dev.txt
    ```
 
 4. Create `backend/.env` with your provider key and the paths for the games you use:
@@ -394,7 +394,8 @@ The backend also has a CLI (`python -m backend.main`) for headless Chrono Ark wo
 yarn test                    # Frontend tests (Vitest + Testing Library, jsdom)
 python -m pytest backend     # Backend tests (pytest)
 yarn lint                    # ESLint
-yarn format                  # Prettier for the frontend, Black for the backend
+yarn lint:backend            # Ruff and Pyright
+yarn format                  # Prettier for the frontend, Ruff for the backend
 yarn build                   # Type-check and production build
 ```
 

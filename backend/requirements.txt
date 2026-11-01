@@ -2,7 +2,6 @@ anthropic>=0.49.0
 openai>=1.70.0
 deepl>=1.22.0
 dotnetfile>=0.2.10
-pytest>=8.3.5
 fastapi>=0.115.7
 uvicorn>=0.34.0
 python-dotenv>=1.1.0

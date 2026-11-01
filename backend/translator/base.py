@@ -241,7 +241,7 @@ class TranslationProvider(ABC):
         revisions = self.revisions
         update_section = UPDATE_RULES_SECTION.format(source_lang=source_lang, target_lang=target_lang) if revisions else ""
         rules = format_rules or []
-        format_rules_section = "\n".join(f"{i+1}. **{rule}**" for i, rule in enumerate(rules)) if rules else ""
+        format_rules_section = "\n".join(f"{i + 1}. **{rule}**" for i, rule in enumerate(rules)) if rules else ""
         style_examples_section = build_style_examples_section(style_examples or {})
         character_context_section = build_character_context_section(character_context)
 

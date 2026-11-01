@@ -111,7 +111,7 @@ def test_extract_parent_pack_strings_invokes_rpfm_cli(monkeypatch, tmp_path: Pat
         out_dir = cache_dir / "extracted"
         out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "@@zerooz_def_units.loc.tsv").write_text(
-            "key\ttext\ttooltip\n" "#Loc;1;text/@@zerooz_def_units.loc\t\t\n" "land_units_onscreen_name_def_inf_x\tFrom parent\ttrue\n",
+            "key\ttext\ttooltip\n#Loc;1;text/@@zerooz_def_units.loc\t\t\nland_units_onscreen_name_def_inf_x\tFrom parent\ttrue\n",
             encoding="utf-8",
         )
         result = MagicMock()
