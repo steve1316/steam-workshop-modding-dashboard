@@ -21,6 +21,8 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 
+from backend.games.total_war_warhammer_3.paths import rpfm_cli_candidate
+
 
 @dataclass(frozen=True)
 class ScriptDef:
@@ -185,8 +187,7 @@ def _preflight(settings: dict) -> Path:
     if not helper or not helper.is_dir():
         missing.append("helper_scripts_path")
 
-    raw_rpfm = settings.get("rpfm_cli_path", "") or ""
-    rpfm = Path(raw_rpfm) if raw_rpfm else (helper / "rpfm_cli.exe" if helper else None)
+    rpfm = rpfm_cli_candidate(settings.get("rpfm_cli_path", "") or "", raw_helper)
     if not rpfm or not rpfm.is_file():
         missing.append(f"rpfm_cli at {rpfm}" if rpfm else "rpfm_cli_path")
 

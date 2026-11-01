@@ -1,4 +1,4 @@
-"""Shared internals for TW3 route modules."""
+"""Where WH3 files live: helper_scripts, rpfm_cli, the Steam Workshop folders and the parent pack cache."""
 
 from __future__ import annotations
 
@@ -10,12 +10,37 @@ from backend.games.total_war_warhammer_3 import GAME_ID
 
 
 def helper_scripts_path() -> Path:
-    """Resolve the helper_scripts directory from `config.TW3_HELPER_PATH`.
+    """Resolve the helper_scripts directory from `settings.tw3.helper_path`.
 
     Returns:
         Path that may not exist, since loaders validate it.
     """
     return Path(settings.tw3.helper_path or "")
+
+
+def rpfm_cli_candidate(rpfm_cli_path: str, helper_path: str) -> Path | None:
+    """Return where `rpfm_cli` should be: `rpfm_cli_path` if set, else `rpfm_cli.exe` in `helper_path`.
+
+    Args:
+        rpfm_cli_path: Configured `rpfm_cli` path, blank when unset.
+        helper_path: Configured helper_scripts dir, blank when unset.
+
+    Returns:
+        Candidate path that may not exist, or `None` when both are blank.
+    """
+    if rpfm_cli_path:
+        return Path(rpfm_cli_path)
+    return Path(helper_path) / "rpfm_cli.exe" if helper_path else None
+
+
+def resolve_rpfm_cli_path() -> Path | None:
+    """Resolve `rpfm_cli` from `settings.tw3`.
+
+    Returns:
+        Path when it resolves to a file, else `None`.
+    """
+    rpfm = rpfm_cli_candidate(settings.tw3.rpfm_cli_path or "", settings.tw3.helper_path or "")
+    return rpfm if rpfm is not None and rpfm.is_file() else None
 
 
 TW3_APPID = "1142710"
@@ -25,7 +50,7 @@ def tw3_workshop_content_dir(workshop_id: str) -> Path | None:
     """Resolve the local Steam Workshop folder for a TW3 workshop item.
 
     Builds `<steam_library_drive>\\SteamLibrary\\steamapps\\workshop\\content\\1142710\\<workshop_id>`
-    from `config.TW3_STEAM_LIBRARY_DRIVE`. The folder may not exist on disk, so callers should validate.
+    from `settings.tw3.steam_library_drive`. The folder may not exist on disk, so callers should validate.
 
     Args:
         workshop_id: Numeric Workshop item id, which the caller sanitizes.
@@ -48,7 +73,7 @@ def tw3_workshop_manifest_path() -> Path | None:
 
 
 def _tw3_workshop_dir() -> Path | None:
-    """Resolve the Steam library's Workshop folder from `config.TW3_STEAM_LIBRARY_DRIVE`.
+    """Resolve the Steam library's Workshop folder from `settings.tw3.steam_library_drive`.
 
     Returns:
         `<steam_library_drive>\\SteamLibrary\\steamapps\\workshop`, or `None` when the Steam library drive setting is empty.

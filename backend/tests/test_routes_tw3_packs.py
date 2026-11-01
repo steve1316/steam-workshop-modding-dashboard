@@ -61,10 +61,10 @@ def _set_drive(monkeypatch, tmp_path: Path) -> Path:
     """Point `TW3_STEAM_LIBRARY_DRIVE` at a tmp_path-shaped fake Steam library.
 
     Creates `<tmp_path>/SteamLibrary/steamapps/workshop/content/1142710/` and
-    monkeypatches `config.TW3_STEAM_LIBRARY_DRIVE` so the helper resolves there.
+    monkeypatches `settings.tw3.steam_library_drive` so the helper resolves there.
 
     Args:
-        monkeypatch: pytest `MonkeyPatch` fixture used to swap `config.TW3_STEAM_LIBRARY_DRIVE` for the test.
+        monkeypatch: pytest `MonkeyPatch` fixture used to swap `settings.tw3.steam_library_drive` for the test.
         tmp_path: pytest `tmp_path` fixture (a `Path`); the function builds the fake Steam library under it.
 
     Returns:

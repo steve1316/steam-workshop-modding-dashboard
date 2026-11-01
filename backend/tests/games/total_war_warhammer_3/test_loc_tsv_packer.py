@@ -9,9 +9,9 @@ from backend.games.total_war_warhammer_3.loc.packer import (
     RpfmFailedError,
     RpfmNotConfiguredError,
     build_translation_pack,
-    resolve_rpfm_cli_path,
     resolve_target_pack,
 )
+from backend.games.total_war_warhammer_3.paths import resolve_rpfm_cli_path
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
@@ -126,7 +126,7 @@ def test_build_translation_pack_real_rpfm_round_trips_multiline_keys(tmp_path: P
     Skips when rpfm_cli + schema are not configured on this machine.
     """
     from backend.games.total_war_warhammer_3.loc.extractor import escape_loc_text
-    from backend.games.total_war_warhammer_3.loc.packer import resolve_rpfm_cli_path
+    from backend.games.total_war_warhammer_3.paths import resolve_rpfm_cli_path
 
     rpfm = resolve_rpfm_cli_path()
     if rpfm is None or not (rpfm.parent / "schemas" / "schema_wh3.ron").is_file():
@@ -196,3 +196,11 @@ def test_resolve_rpfm_cli_path_returns_none_when_unset(monkeypatch):
     monkeypatch.setattr(settings.tw3, "rpfm_cli_path", "")
     monkeypatch.setattr(settings.tw3, "helper_path", "")
     assert resolve_rpfm_cli_path() is None
+
+
+def test_rpfm_cli_candidate_falls_back_to_helper_dir():
+    from backend.games.total_war_warhammer_3.paths import rpfm_cli_candidate
+
+    assert rpfm_cli_candidate("D:/rpfm/rpfm_cli.exe", "D:/helper") == Path("D:/rpfm/rpfm_cli.exe")
+    assert rpfm_cli_candidate("", "D:/helper") == Path("D:/helper") / "rpfm_cli.exe"
+    assert rpfm_cli_candidate("", "") is None

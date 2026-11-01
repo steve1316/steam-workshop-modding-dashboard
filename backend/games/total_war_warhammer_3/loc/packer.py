@@ -8,7 +8,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
@@ -70,23 +69,6 @@ def resolve_target_pack(workshop_content_dir: Path) -> Path:
     if len(packs) > 1:
         raise AmbiguousPackError(f"multiple .pack files in {workshop_content_dir}; cannot pick target")
     return packs[0]
-
-
-def resolve_rpfm_cli_path() -> Path | None:
-    """Resolve `rpfm_cli` like the extract path: `config.TW3_RPFM_CLI_PATH`, else `<TW3_HELPER_PATH>/rpfm_cli.exe`.
-
-    Returns:
-        Path when it resolves to a file, else None.
-    """
-    rpfm_str = settings.tw3.rpfm_cli_path or ""
-    if rpfm_str:
-        rpfm: Path | None = Path(rpfm_str)
-    else:
-        helper_str = settings.tw3.helper_path or ""
-        rpfm = Path(helper_str) / "rpfm_cli.exe" if helper_str else None
-    if rpfm is None or not rpfm.is_file():
-        return None
-    return rpfm
 
 
 def _run_rpfm(rpfm_cli_path: Path, args: list[str]) -> None:

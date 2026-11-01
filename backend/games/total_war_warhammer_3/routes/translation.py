@@ -34,10 +34,9 @@ from backend.games.total_war_warhammer_3.loc.packer import (
     PackBuildError,
     RpfmNotConfiguredError,
     build_translation_pack,
-    resolve_rpfm_cli_path,
 )
 from backend.games.total_war_warhammer_3.loc.writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
-from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, resolve_rpfm_cli_path, rpfm_cli_candidate, tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
 from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
@@ -86,22 +85,16 @@ def _extract_translation_strings(mod: WH3TranslationMod) -> dict[str, dict[str, 
 def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, LocRow]]:
     """Extract `.loc` strings from every parent `.pack` declared on `mod`.
 
-    Resolves `rpfm_cli_path` like `registry.runner._preflight`: `settings.tw3.rpfm_cli_path` if set, else `rpfm_cli.exe` in `settings.tw3.helper_path`.
-
     Args:
         mod: Translation mod whose parent packs to extract.
 
     Returns:
         Normalized filename to `{key: LocRow}`, merged across all parents.
     """
-    rpfm_str = settings.tw3.rpfm_cli_path or ""
-    if rpfm_str:
-        rpfm: Path | None = Path(rpfm_str)
-    else:
-        helper_str = settings.tw3.helper_path or ""
-        rpfm = Path(helper_str) / "rpfm_cli.exe" if helper_str else None
-    if rpfm is None or not rpfm.is_file():
-        raise HTTPException(500, f"rpfm_cli not found (tried {rpfm or 'TW3_RPFM_CLI_PATH'}); set SWMT_TW3_RPFM_CLI_PATH or place rpfm_cli.exe in SWMT_TW3_HELPER_PATH")
+    rpfm = resolve_rpfm_cli_path()
+    if rpfm is None:
+        tried = rpfm_cli_candidate(settings.tw3.rpfm_cli_path or "", settings.tw3.helper_path or "") or "SWMT_TW3_RPFM_CLI_PATH"
+        raise HTTPException(500, f"rpfm_cli not found (tried {tried}); set SWMT_TW3_RPFM_CLI_PATH or place rpfm_cli.exe in SWMT_TW3_HELPER_PATH")
 
     merged: dict[str, dict[str, LocRow]] = {}
     for parent_id in mod.parent_workshop_ids:
