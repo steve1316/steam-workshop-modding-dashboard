@@ -9,24 +9,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from backend.data import translation_store
+from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.api_responses_store import list_entries
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
-from backend.games.total_war_warhammer_3.translation_store_helpers import (
-    load_translations,
-    load_translations_raw,
-    save_translations_raw,
-)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client(monkeypatch, tmp_path: Path) -> TestClient:
-    # Redirect storage to a per-test tmp dir. `game_storage_path()` reads
-    # `config.STORAGE_PATH` at call time, so this patch reroutes every call
-    # made through `translation_store_helpers._root()`.
+    # `mods_path()` reads `config.STORAGE_PATH` at call time, so this reroutes every store call to a per-test tmp dir.
     monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
 
     # Stub the heavy I/O extractors with deterministic data.
@@ -107,9 +102,10 @@ def test_get_strings_overlay_from_translations_json(client: TestClient):
     A key with no `.loc.tsv` translation but a seeded `translations.json` entry should appear as translated with the seeded text and provider.
     """
     now = datetime.now(UTC).isoformat()
-    save_translations_raw(
+    translation_store.save_translations_raw(
         "3315737452",
         {"k2": {"text": "Seeded", "provider": "claude", "created_at": now, "updated_at": now}},
+        game_id=GAME_ID,
     )
 
     resp = client.get("/api/games/total_war_warhammer_3/translation/mods/3315737452/strings")
@@ -144,8 +140,8 @@ def test_put_string_persists_translation(client: TestClient):
     client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/rescan").json()
     # k2 still untranslated because we save into translations.json which is read by
     # _extract_translation_strings, but the stub ignores that. So just check persistence:
-    assert load_translations("3315737452")["k2"] == "New translation"
-    raw = load_translations_raw("3315737452")
+    assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "New translation"
+    raw = translation_store.load_translations_raw("3315737452", game_id=GAME_ID)
     assert raw["k2"]["provider"] == "manual"
 
 
@@ -198,8 +194,8 @@ def test_translate_batch_calls_claude_and_saves_results(client: TestClient, monk
     assert "Warhammer III" in calls["game_context"]
     assert calls["keys"] == ["k2"]
 
-    assert load_translations("3315737452")["k2"] == "EN(新文本)"
-    raw = load_translations_raw("3315737452")
+    assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "EN(新文本)"
+    raw = translation_store.load_translations_raw("3315737452", game_id=GAME_ID)
     assert raw["k2"]["provider"] == "claude"
 
     entries = list_entries("3315737452")
@@ -386,4 +382,4 @@ def test_legacy_translate_splits_joined_names(client: TestClient, monkeypatch):
     monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, *a, **k: ({"k2": "Xinwen"}, []))
     resp = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/translate", json={"keys": ["k2"]})
     assert resp.status_code == 200
-    assert load_translations("3315737452")["k2"] == "Xin Wen"
+    assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "Xin Wen"

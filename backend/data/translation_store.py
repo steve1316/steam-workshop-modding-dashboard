@@ -104,6 +104,17 @@ def load_translations_raw(mod_id: str, *, game_id: str) -> dict[str, dict]:
     return {key: _normalize_entry(value) for key, value in raw.items()}
 
 
+def save_translations_raw(mod_id: str, data: dict[str, dict], *, game_id: str) -> None:
+    """Replace the full timestamped store for a mod.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        data: Localization key to timestamped entry.
+        game_id: Game the mod belongs to.
+    """
+    _save_raw_data(_translations_path(mod_id, game_id=game_id), data)
+
+
 def save_translations_bulk(
     mod_id: str,
     new_entries: dict[str, str],

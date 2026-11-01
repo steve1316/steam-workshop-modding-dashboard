@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from backend.data import suggestion_manager
+from backend.data import suggestion_manager, translation_store
 from backend.games.total_war_warhammer_3 import glossary_store
 from backend.games.total_war_warhammer_3.api_responses_store import list_entries
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
@@ -226,9 +226,7 @@ def _seed_rows(monkeypatch, tmp_path: Path, parent: dict[str, str], saved: dict[
 
 def _saved_english() -> dict[str, str]:
     """Return the English saved in translations.json, keyed by loc key."""
-    from backend.games.total_war_warhammer_3 import translation_store_helpers as store
-
-    return {k: v["text"] for k, v in store.load_translations_raw(MOD_ID).items()}
+    return {k: v["text"] for k, v in translation_store.load_translations_raw(MOD_ID, game_id=GAME_ID).items()}
 
 
 def test_accept_with_an_edited_english_saves_the_edit_and_renames_rows_with_that_source(client: TestClient, monkeypatch, tmp_path: Path):

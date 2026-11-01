@@ -1,8 +1,7 @@
 """Tests for the WH3 parent source snapshot helpers."""
 
-from backend.games.total_war_warhammer_3 import translation_store_helpers as store
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
-from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, refresh_unchanged
+from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged
 from backend.games.total_war_warhammer_3.translation_drift import hash_text, make_entry
 
 
@@ -47,6 +46,6 @@ def test_load_parent_snapshot_normalizes_legacy_hash_strings(monkeypatch, tmp_pa
     mod_dir.mkdir(parents=True)
     (mod_dir / "parent_snapshot.json").write_text('{"units.loc.tsv": {"k1": "abc"}}', encoding="utf-8")
 
-    snap = store.load_parent_snapshot("mod1")
+    snap = load_parent_snapshot("mod1")
 
     assert snap == {"units.loc.tsv": {"k1": {"hash": "abc", "text": None}}}

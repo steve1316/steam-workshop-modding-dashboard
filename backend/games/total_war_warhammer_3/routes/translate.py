@@ -13,11 +13,11 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.data import suggestion_manager
+from backend.data import mod_settings, suggestion_manager, translation_store
 from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes import translation as _t
-from backend.games.total_war_warhammer_3.source_snapshot import accept_keys
+from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
 from backend.games.total_war_warhammer_3.translation_drift import entry_text
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.translation.orchestrator import chunk_entries, run_batch
@@ -55,7 +55,7 @@ def _glossary_prompt(mod_id: str, source_lang: str, target_lang: str, mod=None) 
     """
     base_glossary = _t.glossary_store.load_base_glossary()
     mod_terms = _t.glossary_store.mod_glossary_as_terms(mod_id, source_lang)
-    if mod is not None and _t.store.load_include_translated_names(mod_id):
+    if mod is not None and mod_settings.load_include_translated_names(mod_id, game_id=GAME_ID):
         for term in _translated_name_terms(mod, mod_id):
             mod_terms["terms"][term["english"]] = {"english": term["english"], "category": term["category"], "key": "", "source_mappings": {source_lang: term["source"]}}
     prompt = _t.get_combined_glossary_prompt(
@@ -80,9 +80,9 @@ def _overlaid_rows(mod, mod_id: str) -> tuple[list, dict[str, str]]:
     """
     parent = _t._extract_all_parent_strings(mod)
     translation = _t._extract_translation_strings(mod)
-    snapshot = _t.store.load_parent_snapshot(mod_id)
+    snapshot = load_parent_snapshot(mod_id)
     drift = _t.compute_drift(parent=parent, translation=translation, snapshot=snapshot)
-    overlaid = _t._overlay_translations(drift, _t.store.load_translations_raw(mod_id))
+    overlaid = _t._overlay_translations(drift, translation_store.load_translations_raw(mod_id, game_id=GAME_ID))
 
     src_by_key: dict[str, str] = {}
     for rows in parent.values():
@@ -153,11 +153,11 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
         Entries in drift order, and a key -> `Revision` map of the recorded old source and the translation shown in the table.
     """
     parent = _t._extract_all_parent_strings(mod)
-    snapshot = _t.store.load_parent_snapshot(mod_id)
+    snapshot = load_parent_snapshot(mod_id)
     drift = _t.compute_drift(parent=parent, translation=_t._extract_translation_strings(mod), snapshot=snapshot)
     entries: list[tuple[str, str]] = []
     revisions: dict[str, Revision] = {}
-    for row in _t._overlay_translations(drift, _t.store.load_translations_raw(mod_id)):
+    for row in _t._overlay_translations(drift, translation_store.load_translations_raw(mod_id, game_id=GAME_ID)):
         if row.status != "stale" or not row.parent_text or not row.parent_text.strip() or not row.translation_text:
             continue
         entries.append((row.key, row.parent_text))
@@ -392,14 +392,14 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     if suggestions:
         suggestion_manager.add_suggestions(req.mod_id, suggestions, game_id=GAME_ID)
 
-    raw = _t.store.load_translations_raw(req.mod_id)
+    raw = translation_store.load_translations_raw(req.mod_id, game_id=GAME_ID)
     now = datetime.now(UTC).isoformat()
     for key, text in spaced.items():
         existing = raw.get(key, {})
         raw[key] = {"text": text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": "claude"}
-    _t.store.save_translations_raw(req.mod_id, raw)
+    translation_store.save_translations_raw(req.mod_id, raw, game_id=GAME_ID)
     # Each saved row was translated from the current source, so that source becomes its baseline. It shows as pending until Sync.
-    _t.store.save_parent_snapshot(req.mod_id, accept_keys(_t.store.load_parent_snapshot(req.mod_id), parent, set(spaced)))
+    save_parent_snapshot(req.mod_id, accept_keys(load_parent_snapshot(req.mod_id), parent, set(spaced)))
 
     _log_batch_call(req.mod_id, keys, provider.last_raw_responses)
 

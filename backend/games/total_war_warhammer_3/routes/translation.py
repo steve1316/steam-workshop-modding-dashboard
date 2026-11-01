@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend import config
+from backend.data import character_context, mod_settings, translation_store
 from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
 from backend.data.mod_settings import (
     load_source_language_override,
@@ -33,9 +34,6 @@ from backend.games.total_war_warhammer_3 import (
 )
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
 from backend.games.total_war_warhammer_3 import translation_context as tc
-from backend.games.total_war_warhammer_3 import (
-    translation_store_helpers as store,
-)
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.canonical_status import to_status_rows
 from backend.games.total_war_warhammer_3.loc_extractor import (
@@ -52,8 +50,8 @@ from backend.games.total_war_warhammer_3.loc_tsv_packer import (
 )
 from backend.games.total_war_warhammer_3.loc_tsv_writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
-from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
-from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, refresh_unchanged
+from backend.games.total_war_warhammer_3.routes._paths import parent_pack_cache_dir, tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
 from backend.games.total_war_warhammer_3.translation_drift import (
     DriftRow,
     compute_drift,
@@ -124,7 +122,7 @@ def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, L
         packs = sorted(parent_dir.glob("*.pack"))
         if not packs:
             continue
-        cache_dir = store.parent_pack_cache_dir(parent_id)
+        cache_dir = parent_pack_cache_dir(parent_id)
         for pack in packs:
             extracted = extract_parent_pack_strings(pack, rpfm, cache_dir)
             for filename, rows in extracted.items():
@@ -279,7 +277,7 @@ def _has_unsynced_changes(mod_id: str, translation: dict[str, dict[str, LocRow]]
     Returns:
         `True` when any entry differs from the on-disk text.
     """
-    raw = store.load_translations_raw(mod_id)
+    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     if not raw:
         return False
     loc_by_key: dict[str, str] = {}
@@ -404,15 +402,15 @@ def rescan(mod_id: str) -> RescanSummary:
     mod = _require_mod(mod_id)
     parent = _extract_all_parent_strings(mod)
     translation = _extract_translation_strings(mod)
-    snapshot = store.load_parent_snapshot(mod_id)
+    snapshot = load_parent_snapshot(mod_id)
 
     drift = compute_drift(parent=parent, translation=translation, snapshot=snapshot)
 
     # Adds never-seen keys and backfills text on matching ones. Drifted keys keep their old entry so they stay changed.
-    store.save_parent_snapshot(mod_id, refresh_unchanged(snapshot, parent))
+    save_parent_snapshot(mod_id, refresh_unchanged(snapshot, parent))
 
     # Count from the overlaid rows, not raw drift, so empty-string clears and in-flight overrides match the strings view.
-    raw_translations = store.load_translations_raw(mod_id)
+    raw_translations = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     overlaid = _overlay_translations(drift, raw_translations)
     # Blank parent source has nothing to translate, so it is left out of the progress counts like Chrono Ark.
     counts: dict[str, int] = {"translated": 0, "untranslated": 0, "stale": 0, "orphan": 0}
@@ -427,7 +425,7 @@ def rescan(mod_id: str) -> RescanSummary:
     for srow in to_status_rows([d for d in drift if d.status != "orphan"], raw_translations):
         canonical_counts[srow.status] += 1
 
-    ctx = store.load_character_context(mod_id)
+    ctx = character_context.load_character_context(mod_id, game_id=GAME_ID)
     has_mod_context = bool((ctx.get("source_game") or "").strip() or (ctx.get("character_name") or "").strip() or (ctx.get("background") or "").strip())
 
     return RescanSummary(
@@ -452,8 +450,8 @@ def _drift_and_overlay(mod_id: str, mod: WH3TranslationMod) -> tuple[list[DriftR
     """
     parent = _extract_all_parent_strings(mod)
     translation = _extract_translation_strings(mod)
-    drift = compute_drift(parent=parent, translation=translation, snapshot=store.load_parent_snapshot(mod_id))
-    raw_translations = store.load_translations_raw(mod_id)
+    drift = compute_drift(parent=parent, translation=translation, snapshot=load_parent_snapshot(mod_id))
+    raw_translations = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     # Orphans (translated keys whose parent source is gone) are hidden from the table and pruned from disk on the next sync.
     overlaid = [r for r in _overlay_translations(drift, raw_translations) if r.status != "orphan"]
     return drift, raw_translations, overlaid
@@ -515,7 +513,7 @@ def put_string(mod_id: str, key: str, edit: TranslationEdit) -> dict:
         `{"status": "ok"}`.
     """
     mod = _require_mod(mod_id)
-    raw = store.load_translations_raw(mod_id)
+    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     now = datetime.now(UTC).isoformat()
     existing = raw.get(key, {})
     raw[key] = {
@@ -524,10 +522,10 @@ def put_string(mod_id: str, key: str, edit: TranslationEdit) -> dict:
         "updated_at": now,
         "provider": "manual",
     }
-    store.save_translations_raw(mod_id, raw)
+    translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
     # A manual edit settles a changed row, so accept the current source as its baseline. Best effort since extraction may need RPFM.
     try:
-        store.save_parent_snapshot(mod_id, accept_keys(store.load_parent_snapshot(mod_id), _extract_all_parent_strings(mod), {key}))
+        save_parent_snapshot(mod_id, accept_keys(load_parent_snapshot(mod_id), _extract_all_parent_strings(mod), {key}))
     except Exception as e:
         logger.warning("Could not accept the current source for %s in mod %s: %s", key, mod_id, e)
     return {"status": "ok"}
@@ -544,10 +542,10 @@ def get_mod_context(mod_id: str) -> dict:
         Mod context fields (`source_game`, `character_name`, `background`), the per-mod language overrides, and `include_translated_names`.
     """
     _require_mod(mod_id)
-    ctx = store.load_character_context(mod_id)
+    ctx = character_context.load_character_context(mod_id, game_id=GAME_ID)
     ctx["source_language_override"] = load_source_language_override(mod_id, game_id=GAME_ID)
     ctx["target_language_override"] = load_target_language_override(mod_id, game_id=GAME_ID)
-    ctx["include_translated_names"] = store.load_include_translated_names(mod_id)
+    ctx["include_translated_names"] = mod_settings.load_include_translated_names(mod_id, game_id=GAME_ID)
     return ctx
 
 
@@ -610,7 +608,7 @@ def translate_batch(mod_id: str, req: TranslateBatchRequest) -> dict:
         target_lang=mod.target_language,
     )
 
-    raw = store.load_translations_raw(mod_id)
+    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     now = datetime.now(UTC).isoformat()
     keep = glossary_words(mod_terms["terms"])
     for key, text in translations.items():
@@ -622,7 +620,7 @@ def translate_batch(mod_id: str, req: TranslateBatchRequest) -> dict:
             "updated_at": now,
             "provider": "claude",
         }
-    store.save_translations_raw(mod_id, raw)
+    translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
 
     api_responses_store.append(
         mod_id,
@@ -650,10 +648,10 @@ def put_mod_context(mod_id: str, ctx: ModContext) -> dict:
         `{"status": "ok"}`.
     """
     _require_mod(mod_id)
-    store.save_character_context(mod_id, ctx.model_dump())
+    character_context.save_character_context(mod_id, ctx.model_dump(), game_id=GAME_ID)
     save_source_language_override(mod_id, ctx.source_language_override, game_id=GAME_ID)
     save_target_language_override(mod_id, ctx.target_language_override, game_id=GAME_ID)
-    store.save_include_translated_names(mod_id, ctx.include_translated_names)
+    mod_settings.save_include_translated_names(mod_id, ctx.include_translated_names, game_id=GAME_ID)
     return {"status": "ok"}
 
 
@@ -700,7 +698,7 @@ def clear_translations(mod_id: str) -> dict:
     mod = _require_mod(mod_id)
     snapshot_store.create_snapshot(mod_id, label="pre-clear-translations", kind="auto", local_source_dir=mod.local_source_dir)
 
-    raw = store.load_translations_raw(mod_id)
+    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     translation = _extract_translation_strings(mod)
 
     # Every key that currently shows English, from translations.json or the .loc.tsv files.
@@ -726,7 +724,7 @@ def clear_translations(mod_id: str) -> dict:
             "updated_at": now,
             "provider": existing.get("provider") or "manual",
         }
-    store.save_translations_raw(mod_id, cleared)
+    translation_store.save_translations_raw(mod_id, cleared, game_id=GAME_ID)
     return {"cleared": len(cleared)}
 
 
@@ -747,7 +745,7 @@ def sync_changes(mod_id: str) -> dict:
     # The pre-sync snapshot keeps them recoverable.
     parent = _extract_all_parent_strings(mod)
     translation = _extract_translation_strings(mod)
-    snapshot = store.load_parent_snapshot(mod_id)
+    snapshot = load_parent_snapshot(mod_id)
     orphans = [d for d in compute_drift(parent=parent, translation=translation, snapshot=snapshot) if d.status == "orphan"]
     removed_orphans = 0
     if orphans:
@@ -756,16 +754,16 @@ def sync_changes(mod_id: str) -> dict:
             keys_by_file.setdefault(d.source_filename, set()).add(d.key)
         removed_orphans = sum(remove_keys_from_loc_tsv(mod, keys_by_file).values())
         orphan_keys = {d.key for d in orphans}
-        raw = store.load_translations_raw(mod_id)
+        raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
         pruned = {k: v for k, v in raw.items() if k not in orphan_keys}
         if len(pruned) != len(raw):
-            store.save_translations_raw(mod_id, pruned)
+            translation_store.save_translations_raw(mod_id, pruned, game_id=GAME_ID)
 
     drift = get_strings(mod_id)
     per_file = sync_translations_to_loc_tsv(mod, drift)
 
     # Drifted keys keep their old snapshot entry so they stay changed. Update Changed and Accept re-baseline those explicitly.
-    store.save_parent_snapshot(mod_id, refresh_unchanged(store.load_parent_snapshot(mod_id), parent))
+    save_parent_snapshot(mod_id, refresh_unchanged(load_parent_snapshot(mod_id), parent))
 
     # Rebuild the published .pack from the freshly written files.
     # Non-fatal since the writeback already succeeded, so problems are a warning. Skipped when nothing was written.
@@ -807,12 +805,12 @@ def accept_changed(mod_id: str, req: AcceptChangedRequest) -> dict:
     """
     mod = _require_mod(mod_id)
     parent = _extract_all_parent_strings(mod)
-    snapshot = store.load_parent_snapshot(mod_id)
+    snapshot = load_parent_snapshot(mod_id)
     drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=snapshot)
     changed = {r.key for r in drift if r.status == "stale"}
     keys = changed if req.keys is None else changed & set(req.keys)
     if keys:
-        store.save_parent_snapshot(mod_id, accept_keys(snapshot, parent, keys))
+        save_parent_snapshot(mod_id, accept_keys(snapshot, parent, keys))
     return {"accepted": len(keys)}
 
 
@@ -940,8 +938,8 @@ def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new
     if not source or old_english == new_english:
         return 0
     parent = _extract_all_parent_strings(mod)
-    drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=store.load_parent_snapshot(mod_id))
-    raw = store.load_translations_raw(mod_id)
+    drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=load_parent_snapshot(mod_id))
+    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
 
     now = datetime.now(UTC).isoformat()
     changed = 0
@@ -957,7 +955,7 @@ def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new
         raw[row.key] = {"text": new_text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": existing.get("provider") or row.provider or "manual"}
         changed += 1
     if changed:
-        store.save_translations_raw(mod_id, raw)
+        translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
     return changed
 
 

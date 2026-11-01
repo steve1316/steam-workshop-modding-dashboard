@@ -114,3 +114,36 @@ def save_target_language_override(
     existing["updated_at"] = datetime.now(UTC).isoformat()
 
     write_json(path, existing)
+
+
+def load_include_translated_names(mod_id: str, *, game_id: str) -> bool:
+    """Load whether translated names outside the glossary are sent with every prompt.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        game_id: Game the mod belongs to.
+
+    Returns:
+        Saved setting, or False when never saved or unreadable.
+    """
+    path = mods_path(game_id) / mod_id / "prompt_options.json"
+    if not path.exists():
+        return False
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return bool(json.load(f).get("include_translated_names", False))
+    except (json.JSONDecodeError, OSError, AttributeError):
+        return False
+
+
+def save_include_translated_names(mod_id: str, value: bool, *, game_id: str) -> None:
+    """Save whether translated names outside the glossary are sent with every prompt.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        value: Setting to save.
+        game_id: Game the mod belongs to.
+    """
+    path = mods_path(game_id) / mod_id / "prompt_options.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(path, {"include_translated_names": value})

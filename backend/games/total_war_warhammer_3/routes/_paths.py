@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend import config
+from backend.core.paths import game_storage_path
+from backend.games.total_war_warhammer_3 import GAME_ID
 
 
 def helper_scripts_path() -> Path:
@@ -58,3 +60,15 @@ def _tw3_workshop_dir() -> Path | None:
     if len(drive) == 2 and drive.endswith(":"):
         drive = drive + "\\"
     return Path(drive) / "SteamLibrary" / "steamapps" / "workshop"
+
+
+def parent_pack_cache_dir(parent_workshop_id: str) -> Path:
+    """Return the per-parent RPFM extract cache dir.
+
+    Args:
+        parent_workshop_id: Workshop id of the parent pack.
+
+    Returns:
+        Cache directory.
+    """
+    return game_storage_path(GAME_ID) / "parent_pack_cache" / parent_workshop_id
