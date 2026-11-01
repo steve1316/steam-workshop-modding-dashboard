@@ -464,9 +464,7 @@ def test_open_source_file_resolves_and_opens(client: TestClient, monkeypatch, tm
     mod_id = "3315737452"
     loc_file = tmp_path / "translation_mod_source" / "text" / "units.loc.tsv"
     loc_file.write_text("key\ttext\nk1\tHello", encoding="utf-8")
-    # Stub out both launch paths so no real application/explorer is spawned, regardless of platform.
-    monkeypatch.setattr("os.startfile", lambda p: None, raising=False)
-    monkeypatch.setattr(routes_module.subprocess, "Popen", lambda *a, **k: None)
+    monkeypatch.setattr(routes_module, "open_path", lambda p: None)
 
     resp = client.post(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/open-source-file/units.loc.tsv")
     assert resp.status_code == 200

@@ -6,9 +6,6 @@ Heavy I/O (RPFM extract, TSV scan) sits behind module-level helpers so tests can
 from __future__ import annotations
 
 import logging
-import os
-import subprocess
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -18,6 +15,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend import config
+from backend.core.os_open import open_path
 from backend.data import character_context, mod_settings, translation_store
 from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
 from backend.data.mod_settings import (
@@ -1066,12 +1064,7 @@ def open_mod_folder(mod_id: str) -> dict:
     folder = mod.local_source_dir
     if not folder.exists():
         raise HTTPException(404, f"local source dir not found: {folder}")
-    if sys.platform == "win32":
-        subprocess.Popen(["explorer", str(folder)])
-    elif sys.platform == "darwin":
-        subprocess.Popen(["open", str(folder)])
-    else:
-        subprocess.Popen(["xdg-open", str(folder)])
+    open_path(folder)
     return {"status": "ok"}
 
 
@@ -1092,10 +1085,5 @@ def open_source_file(mod_id: str, filename: str) -> dict:
     target = _find_existing_user_file(mod, filename)
     if target is None or not target.is_file():
         raise HTTPException(404, f"source file not found: {filename}")
-    if sys.platform == "win32":
-        os.startfile(target)
-    elif sys.platform == "darwin":
-        subprocess.Popen(["open", str(target)])
-    else:
-        subprocess.Popen(["xdg-open", str(target)])
+    open_path(target)
     return {"status": "ok", "path": str(target)}

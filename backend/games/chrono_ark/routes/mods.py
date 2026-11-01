@@ -1,14 +1,13 @@
 """Chrono Ark mod API endpoints for the Steam Workshop Modding Dashboard."""
 
 import json
-import os
 import shutil
-import subprocess
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from backend.core.json_store import write_json
+from backend.core.os_open import open_path, reveal_path
 from backend.core.paths import GameStorage, safe_child
 from backend.data.character_context import load_character_context, save_character_context
 from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
@@ -529,7 +528,7 @@ async def open_mod_folder(mod_id: str):
         raise HTTPException(status_code=404, detail="Mod directory not found")
 
     try:
-        os.startfile(mod_path)
+        open_path(mod_path)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to open folder: {str(e)}") from e
@@ -772,7 +771,7 @@ async def open_source_file(mod_id: str, filename: str):
 
     for candidate in candidates:
         if candidate.is_file():
-            os.startfile(candidate)
+            open_path(candidate)
             return {"path": str(candidate)}
 
     raise HTTPException(status_code=404, detail=f"Source file not found: {filename}")
@@ -799,7 +798,7 @@ async def open_base_game_file(filename: str):
     if not candidate.is_file():
         raise HTTPException(status_code=404, detail=f"Base game file not found: {filename}")
 
-    subprocess.Popen(["explorer", "/select,", str(candidate)])
+    reveal_path(candidate)
     return {"path": str(candidate)}
 
 

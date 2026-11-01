@@ -12,6 +12,7 @@ from backend import config
 from backend.games.total_war_warhammer_3 import publish_notes
 from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
+from backend.games.total_war_warhammer_3.routes import packs as packs_routes
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
 from backend.web_server import app
 
@@ -188,12 +189,12 @@ def test_last_modified_returns_404_when_drive_unset(monkeypatch):
 # POST /packs/{workshop_id}/open
 
 
-def test_open_pack_folder_invokes_os_startfile_on_success(monkeypatch, tmp_path):
+def test_open_pack_folder_opens_the_folder_on_success(monkeypatch, tmp_path):
     parent = _set_drive(monkeypatch, tmp_path)
     workshop_dir = parent / "999"
     workshop_dir.mkdir()
     called_with: list[Path] = []
-    monkeypatch.setattr("os.startfile", lambda path: called_with.append(Path(path)))
+    monkeypatch.setattr(packs_routes, "open_path", called_with.append)
     res = TestClient(app).post("/api/games/total_war_warhammer_3/packs/999/open")
     assert res.status_code == 200
     assert res.json() == {"status": "success"}
@@ -202,20 +203,20 @@ def test_open_pack_folder_invokes_os_startfile_on_success(monkeypatch, tmp_path)
 
 def test_open_pack_folder_returns_404_when_folder_missing(monkeypatch, tmp_path):
     _set_drive(monkeypatch, tmp_path)
-    monkeypatch.setattr("os.startfile", lambda path: None)
+    monkeypatch.setattr(packs_routes, "open_path", lambda path: None)
     res = TestClient(app).post("/api/games/total_war_warhammer_3/packs/999/open")
     assert res.status_code == 404
 
 
 def test_open_pack_folder_returns_400_when_workshop_id_non_numeric(monkeypatch):
-    monkeypatch.setattr("os.startfile", lambda path: None)
+    monkeypatch.setattr(packs_routes, "open_path", lambda path: None)
     res = TestClient(app).post("/api/games/total_war_warhammer_3/packs/abc/open")
     assert res.status_code == 400
 
 
 def test_open_pack_folder_returns_404_when_drive_unset(monkeypatch):
     monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "")
-    monkeypatch.setattr("os.startfile", lambda path: None)
+    monkeypatch.setattr(packs_routes, "open_path", lambda path: None)
     res = TestClient(app).post("/api/games/total_war_warhammer_3/packs/999/open")
     assert res.status_code == 404
 

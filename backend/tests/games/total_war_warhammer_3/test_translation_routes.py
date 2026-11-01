@@ -257,22 +257,12 @@ def test_open_folder_calls_subprocess(client: TestClient, monkeypatch, tmp_path:
         lambda mid: fake_mod if mid == "3315737452" else None,
     )
 
-    calls: list[list[str]] = []
-
-    def fake_popen(args, *a, **kw):
-        calls.append(list(args))
-
-        class Dummy:
-            pass
-
-        return Dummy()
-
-    monkeypatch.setattr("subprocess.Popen", fake_popen)
+    opened: list[Path] = []
+    monkeypatch.setattr(routes_module, "open_path", opened.append)
     resp = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/open-folder")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
-    assert len(calls) == 1
-    assert any(str(fake_source) in arg for arg in calls[0])
+    assert opened == [fake_source]
 
 
 def test_open_folder_404s_when_source_dir_missing(client: TestClient, monkeypatch, tmp_path: Path):

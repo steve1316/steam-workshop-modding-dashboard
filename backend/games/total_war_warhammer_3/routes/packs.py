@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 
 from fastapi import APIRouter, HTTPException
@@ -11,6 +10,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend import config
+from backend.core.os_open import open_path
 from backend.games.total_war_warhammer_3 import publish_notes, published_times
 from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
@@ -106,7 +106,7 @@ def open_pack_folder(workshop_id: str):
         raise HTTPException(status_code=404, detail="workshop folder not found")
 
     try:
-        os.startfile(folder)
+        open_path(folder)
         return {"status": "success"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to open folder: {exc}") from exc
