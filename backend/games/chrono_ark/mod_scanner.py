@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+from backend.core.paths import safe_child
 from backend.games.base import ModInfo
 from backend.games.chrono_ark.csv_extractor import extract_mod_strings
 
@@ -111,3 +112,31 @@ def scan_workshop(
             mods.append(info)
 
     return mods
+
+
+def find_workshop_mod(
+    workshop_path: Path,
+    mod_id: str,
+    metadata_filename: str,
+    skip_dlls: set[str],
+    ignored_ids: set[str] | None = None,
+) -> ModInfo | None:
+    """Classify one installed mod by its folder name without scanning the rest of the workshop.
+
+    Args:
+        workshop_path: Workshop content directory.
+        mod_id: Mod's Workshop id, which is its folder name.
+        metadata_filename: Metadata JSON filename.
+        skip_dlls: DLL filenames to skip.
+        ignored_ids: Mod ids treated as not installed.
+
+    Returns:
+        The mod's `ModInfo`, or `None` when it is missing or ignored.
+    """
+    try:
+        mod_dir = safe_child(workshop_path, mod_id)
+    except ValueError:
+        return None
+    if mod_id in (ignored_ids or set()) or not mod_dir.is_dir():
+        return None
+    return classify_mod(mod_dir, metadata_filename, skip_dlls)

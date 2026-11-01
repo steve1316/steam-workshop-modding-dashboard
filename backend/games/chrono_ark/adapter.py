@@ -332,6 +332,24 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             ignored_ids=set(settings.ignored_mods),
         )
 
+    def find_mod(self, mod_id: str, search_path: Path | None = None) -> ModInfo | None:
+        """Find one installed workshop mod by id.
+
+        Args:
+            mod_id: Mod's Workshop id.
+            search_path: Workshop directory override (defaults to `_WORKSHOP_PATH`).
+
+        Returns:
+            The mod's `ModInfo`, or `None` when it is not installed or is ignored.
+        """
+        return mod_scanner.find_workshop_mod(
+            workshop_path=search_path or self._WORKSHOP_PATH,
+            mod_id=mod_id,
+            metadata_filename=self._METADATA_FILENAME,
+            skip_dlls=self._SKIP_DLLS,
+            ignored_ids=set(settings.ignored_mods),
+        )
+
     def extract_strings(self, mod_path: Path) -> tuple[dict[str, LocString], list[str]]:
         """Extract localization strings from CSVs, then merge in gdata JSON (`gdata/Add/`) and DLL strings not already covered.
 

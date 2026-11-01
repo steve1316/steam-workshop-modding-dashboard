@@ -48,6 +48,7 @@ def fake_ca(monkeypatch):
     provider = _FakeProvider()
     strings = {"Buff/B_Test_Name": LocString(key="Buff/B_Test_Name", type="Text", desc="", translations={"Korean": "테스트"})}
     monkeypatch.setattr(ChronoArkAdapter, "scan_mods", lambda self, search_path=None: [FAKE_MOD])
+    monkeypatch.setattr(ChronoArkAdapter, "find_mod", lambda self, mod_id, search_path=None: FAKE_MOD if mod_id == FAKE_MOD.mod_id else None)
     monkeypatch.setattr(ChronoArkAdapter, "extract_strings", lambda self, path: (strings, {}))
     monkeypatch.setattr(ca_translation, "get_provider", lambda name: provider)
     monkeypatch.setattr(ca_translation, "load_glossary", lambda path: {})

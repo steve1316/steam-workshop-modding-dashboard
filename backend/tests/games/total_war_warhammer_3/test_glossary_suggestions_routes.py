@@ -11,6 +11,7 @@ from backend.data import suggestion_manager, translation_store
 from backend.data.api_response_log import list_entries
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
+from backend.games.total_war_warhammer_3.routes import translation as translation_routes
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from fastapi import FastAPI
@@ -31,7 +32,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     fake_source = tmp_path / "translation_mod_source"
     (fake_source / "text").mkdir(parents=True, exist_ok=True)
     fake_mod = WH3TranslationMod(workshop_id=MOD_ID, display_name="Test Mod", parent_workshop_ids=("p",), local_source_dir=fake_source)
-    monkeypatch.setattr(gs_module, "get_translation_mod", lambda mid: fake_mod if mid == MOD_ID else None)
+    monkeypatch.setattr(translation_routes, "get_translation_mod", lambda mid: fake_mod if mid == MOD_ID else None)
     app = FastAPI()
     app.include_router(gs_module.router, prefix="/api/games/total_war_warhammer_3")
     return TestClient(app)

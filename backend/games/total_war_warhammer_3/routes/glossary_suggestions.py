@@ -9,37 +9,21 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from backend.data import api_response_log, suggestion_manager
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _tr
-from backend.games.total_war_warhammer_3.routes.translation import _extract_all_parent_strings
+from backend.games.total_war_warhammer_3.routes.translation import _extract_all_parent_strings, _require_mod
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
-from backend.games.total_war_warhammer_3.translation.mods import get_translation_mod
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import SuggestionAction
 from backend.translation.suggestions import accepted_suggestions
 
 router = APIRouter(tags=["glossary-suggestions"])
-
-
-def _require_mod(mod_id: str):
-    """Resolve a registered WH3 translation mod or raise 404.
-
-    Args:
-        mod_id: Workshop id of the WH3 mod.
-
-    Returns:
-        The resolved `WH3TranslationMod`.
-    """
-    mod = get_translation_mod(mod_id)
-    if mod is None:
-        raise HTTPException(status_code=404, detail=f"translation mod not found: {mod_id}")
-    return mod
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/accept")

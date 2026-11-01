@@ -157,11 +157,10 @@ def _find_mod(mod_id: str):
     Returns:
         Matching `ModInfo`.
     """
-    mods = chrono_ark_adapter().scan_mods()
-    matching = [m for m in mods if m.mod_id == mod_id]
-    if not matching:
+    mod = chrono_ark_adapter().find_mod(mod_id)
+    if mod is None:
         raise HTTPException(status_code=404, detail="Mod not found")
-    return matching[0]
+    return mod
 
 
 def _find_mod_path(mod_id: str) -> Path:
@@ -173,11 +172,7 @@ def _find_mod_path(mod_id: str) -> Path:
     Returns:
         Mod's root directory.
     """
-    mods = chrono_ark_adapter().scan_mods()
-    matching = [m for m in mods if m.mod_id == mod_id]
-    if not matching:
-        raise HTTPException(status_code=404, detail="Mod not found")
-    return matching[0].path
+    return _find_mod(mod_id).path
 
 
 def _merge_gdata_originals(

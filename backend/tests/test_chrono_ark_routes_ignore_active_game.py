@@ -28,6 +28,7 @@ def wh3_active(monkeypatch):
     # The cached adapter has already rotated to WH3, as it does on a live server after a game switch.
     monkeypatch.setattr(helpers, "_adapter", get_adapter("total_war_warhammer_3"))
     monkeypatch.setattr(ChronoArkAdapter, "scan_mods", lambda self, search_path=None: [FAKE_CA_MOD])
+    monkeypatch.setattr(ChronoArkAdapter, "find_mod", lambda self, mod_id, search_path=None: FAKE_CA_MOD if mod_id == FAKE_CA_MOD.mod_id else None)
 
 
 def test_find_mod_uses_chrono_ark_adapter_when_wh3_is_active(wh3_active):

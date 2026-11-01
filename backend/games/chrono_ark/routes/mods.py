@@ -309,10 +309,9 @@ async def update_string(mod_id: str, update: TranslationUpdate):
     tracker = ProgressTracker(game_id=GAME_ID)
 
     # An empty source keeps the key "translated" even with empty English.
-    mods = chrono_ark_adapter().scan_mods()
-    matching = [m for m in mods if m.mod_id == mod_id]
-    if matching:
-        strings, _ = chrono_ark_adapter().extract_strings(matching[0].path)
+    mod = chrono_ark_adapter().find_mod(mod_id)
+    if mod is not None:
+        strings, _ = chrono_ark_adapter().extract_strings(mod.path)
         if update.key in strings:
             loc_str = strings[update.key]
             lang_override = load_source_language_override(mod_id, game_id=GAME_ID)
