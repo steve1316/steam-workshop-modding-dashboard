@@ -8,29 +8,27 @@ import { useConfirm } from "../../../../ui/useConfirm"
 
 /** Props for `ModGlossaryModal`. */
 interface ModGlossaryModalProps {
-    /** Steam Workshop ID of the translation mod whose glossary this edits. */
     workshopId: string
-    /** Called when the modal is closed. */
     onClose: () => void
-    /** Called with how many edit suggestions were saved, so the page refreshes its Suggestions count. */
+    /** Called with the saved edit-suggestion count so the page can refresh its Suggestions count. */
     onSuggestionsChanged: (added: number) => void
-    /** Called after an edit or Apply All changed existing translations, so the page reloads its rows. */
+    /** Called after an edit or Apply All changed translations, so the page reloads its rows. */
     onTranslationsChanged?: () => void
 }
 
-/** Read the single source text from an editor term's mappings (WH3 stores one source per term). */
+/** Read the single source text from an editor term's mappings, since WH3 stores one per term. */
 function sourceOf(term: GlossaryEditorTerm): string {
     return Object.values(term.sourceMappings)[0] ?? ""
 }
 
 /**
- * Per-mod glossary editor modal. A thin wrapper around the shared `GlossaryEditor` (single-source, grouped by category): it owns the glossary load,
- * Claude-powered Suggest Edits, Apply All (word-boundary find-and-replace) and Delete All (restorable from History), wiring CRUD to the WH3 translation API.
- * @param workshopId - Steam Workshop ID whose glossary to edit.
- * @param onClose - Called when the modal is closed.
- * @param onSuggestionsChanged - Called with how many edit suggestions were saved.
- * @param onTranslationsChanged - Called after an edit or Apply All changed existing translations.
- * @returns The rendered modal.
+ * Per-mod glossary editor modal, a thin wrapper around the shared `GlossaryEditor` that wires CRUD, Suggest Edits, Apply All and Delete All to the WH3 API.
+ *
+ * @param workshopId Translation mod Workshop id.
+ * @param onClose Called when the modal closes.
+ * @param onSuggestionsChanged Called with the saved suggestion count.
+ * @param onTranslationsChanged Called after an edit or Apply All changed translations.
+ * @returns The modal.
  */
 const ModGlossaryModal: React.FC<ModGlossaryModalProps> = ({ workshopId, onClose, onSuggestionsChanged, onTranslationsChanged }) => {
     const [terms, setTerms] = useState<GlossaryEditorTerm[]>([])

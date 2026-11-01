@@ -5,17 +5,16 @@ import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } f
 
 /** Props for `ApiResponsesModal`. */
 interface ApiResponsesModalProps {
-    /** Steam Workshop ID of the translation mod whose API responses to show. */
     workshopId: string
-    /** Called when the modal is closed. */
     onClose: () => void
 }
 
 /**
- * WH3 provider audit-log modal. A thin wrapper: it fetches WH3's api-responses and maps them onto the shared `ApiResponsesModal`.
- * @param workshopId - Steam Workshop ID whose responses to fetch.
- * @param onClose - Called when the modal is closed.
- * @returns The modal element.
+ * WH3 provider audit-log modal, a thin wrapper that maps WH3's api-responses onto the shared `ApiResponsesModal`.
+ *
+ * @param workshopId Translation mod Workshop id.
+ * @param onClose Called when the modal closes.
+ * @returns The modal.
  */
 const ApiResponsesModal: React.FC<ApiResponsesModalProps> = ({ workshopId, onClose }) => {
     const [entries, setEntries] = useState<ApiResponseEntry[]>([])

@@ -15,17 +15,16 @@ import ValidationPanel from "../../components/ValidationPanel"
 import { useValidation } from "../../hooks/useValidation"
 
 /**
- * Card grid over `SUPPORTED_MODS` from the configured helper_scripts directory. Supports add, edit, and delete via the `+ Add Mod` button and
- * the per-card Edit button. Search filters across `name` and `package_name`. A `ValidationPanel` above the grid lists any broken registry references.
+ * Searchable card grid over `SUPPORTED_MODS` with add and edit, filtering on `name` and `package_name`. A `ValidationPanel` lists broken references.
  *
- * @returns A page that renders a searchable card grid of TW3 supported mods, or a `RegistryErrorBanner` when the backend reports a configuration error.
+ * @returns The grid, or a `RegistryErrorBanner` on a backend configuration error.
  */
 export default function SupportedModsPage() {
     const navigate = useNavigate()
     const slug = useGameSlug()
     const [mods, setMods] = useState<SupportedMod[] | null>(null)
     const [error, setError] = useState<RegistryError | null>(null)
-    // A load failure that is not a registry error, e.g. the backend is down. Shown in the section with Retry.
+    // A non-registry load failure such as the backend being down.
     const [loadError, setLoadError] = useState<string | null>(null)
     const [attempt, setAttempt] = useState(0)
     const [search, setSearch] = useState("")
@@ -62,7 +61,7 @@ export default function SupportedModsPage() {
     const cardWidth = useCardWidth(gridWrapperRef, filtered.length)
     const query = search.trim()
 
-    /** Clears the load error, which brings the skeleton back, and loads again. */
+    /** Clears the load error (bringing the skeleton back) and reloads. */
     const retry = () => {
         setLoadError(null)
         setAttempt((n) => n + 1)

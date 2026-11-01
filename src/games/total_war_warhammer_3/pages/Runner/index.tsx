@@ -6,7 +6,7 @@ import ScriptCard, { type ScriptEntry } from "../../components/ScriptCard"
 import RunnerLogTerminal from "../../components/RunnerLogTerminal"
 import PageHeader from "../../../../ui/PageHeader"
 
-/** The set of registered helper scripts shown on the Runner page. */
+/** Registered helper scripts shown on the Runner page. */
 const SCRIPTS: ScriptEntry[] = [
     {
         id: "update_dynamic_rors",
@@ -53,16 +53,16 @@ const SCRIPTS: ScriptEntry[] = [
 
 /** Payload delivered on the SSE "done" event when a run finishes. */
 interface DoneEvent {
-    /** Process exit code, or null if the process was killed. */
+    /** Null if the process was killed. */
     exit_code: number | null
-    /** Total wall-clock seconds the run took, or null if unavailable. */
+    /** Wall-clock seconds, null if unavailable. */
     duration_seconds: number | null
 }
 
 /**
- * TW3 Runner page. Renders a grid of `ScriptCard` instances and a persistent `RunnerLogTerminal` below. Starting a run appends a separator into the shared log; the active card swaps Run for Cancel and siblings disable. During the `update` pipeline, each script it rebuilds shows its progress instead. SSE lines append into the same shared log as data entries, with a closing separator on `done`.
+ * TW3 Runner page: a grid of `ScriptCard`s above a persistent `RunnerLogTerminal`. SSE lines append to the shared log, bracketed by separators.
  *
- * @returns The Runner page composition.
+ * @returns The Runner page.
  */
 export default function RunnerPage() {
     const run = useCurrentRun()
@@ -77,7 +77,7 @@ export default function RunnerPage() {
             sourceRef.current = null
             return
         }
-        if (sourceRef.current) return // already attached
+        if (sourceRef.current) return
 
         activeScriptIdRef.current = run.script_id
         const es = new EventSource(runStreamUrl())

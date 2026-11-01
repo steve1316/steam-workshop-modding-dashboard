@@ -7,11 +7,11 @@ let latestIssues: ValidationIssue[] | null = null
 let latestError: RegistryError | null = null
 let intervalId: number | null = null
 
-/** Snapshot broadcast to every subscriber on each tick. */
+/** Broadcast to every subscriber on each tick. */
 interface Snapshot {
-    /** Latest issues from the backend, or `null` before the first successful fetch. */
+    /** Null before the first successful fetch. */
     issues: ValidationIssue[] | null
-    /** Set when the most recent fetch failed; `null` after a successful fetch. */
+    /** Null after a successful fetch. */
     error: RegistryError | null
 }
 
@@ -30,12 +30,11 @@ const tick = async (): Promise<void> => {
         if (err instanceof RegistryError) {
             latestError = err
         } else {
-            // Network errors, JSON parse failures, etc. surface as a synthetic RegistryError
-            // so the UI flips out of loading state and can render a banner.
+            // Wrap non-registry errors so the UI leaves loading state and can show a banner.
             const detail = err instanceof Error ? err.message : "Unknown error during validation fetch"
             latestError = new RegistryError(0, detail, null)
         }
-        // Preserve latestIssues on failure so the UI keeps its last-known good data.
+        // Keep latestIssues on failure so the UI shows its last good data.
     }
     broadcast()
 }
@@ -54,22 +53,20 @@ const stopPolling = () => {
 
 /** Return shape of `useValidation`. */
 interface UseValidationResult {
-    /** Latest issues from the backend, or `null` before first fetch. */
+    /** Null before the first fetch. */
     issues: ValidationIssue[] | null
-    /** True between subscribe and first response (i.e. no data and no error yet). */
+    /** True until the first response (no data and no error yet). */
     loading: boolean
-    /** Set when the most recent fetch failed; cleared on the next success. */
+    /** Cleared on the next success. */
     error: RegistryError | null
-    /** Trigger an immediate out-of-band poll and broadcast the result to all subscribers.
-     *  Resolves when the broadcast completes. */
+    /** Polls immediately and broadcasts the result to all subscribers. */
     refresh: () => Promise<void>
 }
 
 /**
- * Returns the latest TW3 FK validation issues. The poll is shared across all callers via a
- * module-level subscriber set, so multiple mounted hooks produce only one request per `INTERVAL_MS`.
+ * Latest TW3 FK validation issues. The poll is shared across callers, so many mounted hooks make one request per `INTERVAL_MS`.
  *
- * @returns Object with `issues`, `loading`, `error`, and a `refresh` callback.
+ * @returns The issues, loading flag, error, and a `refresh` callback.
  */
 export function useValidation(): UseValidationResult {
     const [snap, setSnap] = useState<Snapshot>({ issues: latestIssues, error: latestError })
@@ -77,8 +74,7 @@ export function useValidation(): UseValidationResult {
     useEffect(() => {
         subscribers.add(setSnap)
         if (subscribers.size === 1) startPolling()
-        // Push the latest known state into this subscriber on subscribe so it does not have to wait
-        // up to INTERVAL_MS for the first update.
+        // Avoid waiting up to INTERVAL_MS for the first update.
         setSnap({ issues: latestIssues, error: latestError })
         return () => {
             subscribers.delete(setSnap)

@@ -14,11 +14,9 @@ import PatternOverridesSection, { type PatternOverrideRow } from "./sections/Pat
 import MiscSection from "./sections/Misc"
 
 /**
- * Add / edit page for a single `SUPPORTED_MODS` entry. Detects mode from
- * the route (`/supported-mods/new` vs `/supported-mods/edit/:packageName`),
- * fetches the existing entry when editing, and posts/puts on Save.
+ * Add/edit page for one `SUPPORTED_MODS` entry. Mode comes from the route (`new` vs `edit/:packageName`).
  *
- * @returns The rendered form page.
+ * @returns The form page.
  */
 const SupportedModFormPage = () => {
     const { packageName } = useParams()

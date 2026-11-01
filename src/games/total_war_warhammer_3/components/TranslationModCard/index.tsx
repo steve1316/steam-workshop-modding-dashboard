@@ -12,29 +12,23 @@ import PublishWorkshopDialog, { type PublishPrepareStep } from "../PublishWorksh
 
 /** Props for TranslationModCard. */
 export interface TranslationModCardProps {
-    /** The translation mod registry summary. */
     mod: WH3TranslationModSummary
-    /** Latest rescan result, or `null` when the mod has not been scanned this session. */
+    /** Null when the mod has not been scanned this session. */
     progress: WH3RescanSummary | null
-    /** Called when the user clicks the rescan icon button. Receives the mod's workshop id. */
+    /** Receives the mod's workshop id. */
     onRescan: (workshopId: string) => void
-    /** Trimmed dashboard search text. The matching part of the title is highlighted. */
+    /** Trimmed dashboard search text, highlighted in the title. */
     searchQuery?: string
 }
 
 /**
- * Dashboard card for a single WH3 translation mod. Renders via the shared `ModCard` shell so
- * the layout matches Chrono Ark's mod card exactly: preview image, title + workshop-id badge,
- * optional parent-mod-link subtitle, progress bar (translated gradient + untouched gray, from the same statuses as the strings table),
- * stat boxes (`Remaining` + `Format`), optional `Needs Sync` badge, and an action row with a
- * `View` button (warning color when untranslated rows remain), a `Publish` button that syncs first when needed, the mod's Steam
- * link, and a rescan icon button.
+ * Dashboard card for one WH3 translation mod, built on the shared `ModCard` shell so it matches Chrono Ark's card. The Publish button syncs first when needed.
  *
- * @param mod The translation mod registry summary.
- * @param progress Latest rescan result, or `null` when not yet scanned.
- * @param onRescan Callback fired when the rescan icon is clicked.
- * @param searchQuery Trimmed search text to highlight in the title.
- * @returns The rendered card.
+ * @param mod Registry summary.
+ * @param progress Latest rescan result, or null if not yet scanned.
+ * @param onRescan Called on the rescan icon.
+ * @param searchQuery Search text to highlight in the title.
+ * @returns The card.
  */
 const TranslationModCard: React.FC<TranslationModCardProps> = ({ mod, progress, onRescan, searchQuery = "" }) => {
     const navigate = useNavigate()

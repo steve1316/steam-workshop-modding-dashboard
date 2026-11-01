@@ -4,50 +4,44 @@ import Modal from "../../../../ui/Modal"
 
 /** A step the dialog runs before spawning SteamCMD, such as syncing a translation mod. */
 export interface PublishPrepareStep {
-    /** Note shown under the dialog description explaining what will run first. */
+    /** Shown under the dialog description. */
     note: ReactNode
-    /** Status line logged while the step runs. */
     status: string
-    /** Runs the step. Throwing aborts the publish and shows the error's message. */
+    /** Throwing aborts the publish and shows the error's message. */
     run: () => Promise<void>
 }
 
-/** Props for PublishWorkshopDialog. */
+/** Props for `PublishWorkshopDialog`. */
 interface PublishWorkshopDialogProps {
-    /** Numeric Steam Workshop item id of the pack being published. */
     workshopId: string
-    /** Display title of the pack, shown in the dialog header. */
     title: string
-    /** Called when the user dismisses the dialog. */
     onClose: () => void
-    /** Optional step run before the publish starts. */
     prepare?: PublishPrepareStep
 }
 
 /** One line of streamed SteamCMD output. */
 interface LogEntry {
-    /** Sequence number used for React keys. */
     seq: number
-    /** The raw stdout line from SteamCMD, or a synthesised status line. */
+    /** Raw SteamCMD stdout, or a synthesized status line. */
     line: string
-    /** When true, the line is a status message rendered with dimmed italic styling. */
+    /** Rendered dimmed and italic. */
     status?: boolean
 }
 
 /** Lifecycle of the publish dialog. */
 type Phase = "idle" | "publishing" | "done" | "error"
 
-/** Lifecycle of the generated changenote: fetching, filled in, nothing changed since the last upload, or could not be generated. */
+/** Lifecycle of the generated changenote. */
 type NoteState = "loading" | "ready" | "unchanged" | "error"
 
 /**
- * Modal dialog for pushing a TW3 compat pack update to the Steam Workshop. Collects a changenote, calls the backend `publishPack` endpoint, then opens an `EventSource` to the publish stream and renders each SteamCMD stdout line in a terminal-styled log panel until the run completes. Reuses the styling pattern of `ConfirmModal` and `RunnerLogTerminal`.
+ * Modal for pushing a TW3 compat pack update to the Workshop. Collects a changenote, calls `publishPack`, then streams SteamCMD output into a log panel.
  *
- * @param workshopId Numeric Steam Workshop item id of the pack being published.
- * @param title Display title of the pack, shown in the dialog header.
+ * @param workshopId Workshop item id being published.
+ * @param title Pack title for the header.
  * @param onClose Called when the user dismisses the dialog.
- * @param prepare Optional step run before the publish starts.
- * @returns The rendered modal overlay.
+ * @param prepare Step run before the publish starts.
+ * @returns The modal overlay.
  */
 const PublishWorkshopDialog = ({ workshopId, title, onClose, prepare }: PublishWorkshopDialogProps) => {
     const [changenote, setChangenote] = useState("")

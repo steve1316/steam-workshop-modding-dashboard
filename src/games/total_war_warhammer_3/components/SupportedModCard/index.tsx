@@ -5,25 +5,19 @@ import ValidationBadge from "../ValidationBadge"
 
 /** Props for `SupportedModCard`. */
 interface Props {
-    /** The mod registry entry to render. */
     mod: SupportedMod
-    /** Validation issues affecting this mod (empty array when clean). */
     issues: ValidationIssue[]
-    /** Optional callback invoked with the mod's `package_name` when the Edit button is clicked. The button is omitted when this prop is not provided. */
+    /** The Edit button is omitted when not provided. */
     onEdit?: (packageName: string) => void
 }
 
 /**
- * Card representation of one TW3 supported-mod entry. Wraps `WorkshopCard`
- * with the mod's name, package name, derived workshop-id badge, and a body
- * slot containing the expandable validation-issues block (when issues exist), the modified
- * attributes list (when non-empty), an optional Edit button (when `onEdit` is provided), and an
- * "Open Workshop Folder" button (when `workshop_id` is set).
+ * Card for one TW3 supported-mod entry, wrapping `WorkshopCard` with the validation issues, modified attributes, Edit, and "Open Workshop Folder" controls.
  *
- * @param mod The mod registry entry to render.
- * @param issues Validation issues affecting this mod; an empty array hides the badge.
- * @param onEdit Optional callback invoked with the mod's `package_name` when the Edit button is clicked.
- * @returns The rendered card.
+ * @param mod Registry entry.
+ * @param issues Issues affecting this mod, empty to hide the badge.
+ * @param onEdit Called with the mod's `package_name` on Edit.
+ * @returns The card.
  */
 const SupportedModCard = ({ mod, issues, onEdit }: Props) => {
     const previewImageUrl = mod.workshop_id ? `${API_BASE}/games/total_war_warhammer_3/packs/${mod.workshop_id}/preview` : null
@@ -45,7 +39,7 @@ const SupportedModCard = ({ mod, issues, onEdit }: Props) => {
                     </ul>
                 </details>
             )}
-            {/* Footer is pinned to the bottom of the card body so the attributes line sits at the same height on every card. */}
+            {/* Pinned to the bottom so the attributes line sits at the same height on every card. */}
             {(hasAttributes || onEdit || mod.workshop_id) && (
                 <div data-testid="supported-mod-card-footer" style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "auto" }}>
                     {hasAttributes && (

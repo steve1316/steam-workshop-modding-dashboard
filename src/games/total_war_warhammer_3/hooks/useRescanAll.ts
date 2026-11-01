@@ -6,23 +6,21 @@ import { rescanMod } from "../translationApi"
 
 /** State and actions returned by `useRescanAll`. */
 export interface RescanAll {
-    /** Latest rescan result per workshop id. Missing until that mod has been scanned this session. */
+    /** Missing until that mod has been scanned this session. */
     progressByMod: Record<string, WH3RescanSummary | null>
-    /** Position in the running batch, or null while idle. */
+    /** Null while idle. */
     progress: TaskProgress | null
-    /** True while a batch is running. */
     running: boolean
-    /** Rescans the given mods one at a time, cancelling any batch already running. Resolves to how many rescans failed (0 when cancelled). */
+    /** Rescans mods one at a time, cancelling any running batch. Resolves to the failure count (0 when cancelled). */
     rescanAll: (ids: string[]) => Promise<number>
-    /** Rescans one mod outside any batch, e.g. from a card's rescan button. A failure leaves its card as it was. */
+    /** Rescans one mod outside any batch. A failure leaves its card as it was. */
     rescanOne: (id: string) => Promise<void>
 }
 
 /**
- * Rescans WH3 translation mods one at a time so the dashboard can show "n / total". A new batch cancels the one already running, and
- * leaving the page cancels the batch so no rescans keep running in the background.
+ * Rescans WH3 translation mods one at a time for the dashboard's "n / total". A new batch or leaving the page cancels the running one.
  *
- * @returns Per-mod results, batch progress and the rescan actions.
+ * @returns Per-mod results, progress, and the rescan actions.
  */
 export function useRescanAll(): RescanAll {
     const [progressByMod, setProgressByMod] = useState<Record<string, WH3RescanSummary | null>>({})
@@ -56,7 +54,7 @@ export function useRescanAll(): RescanAll {
                 setProgressByMod((prev) => ({ ...prev, [id]: summary }))
             } catch {
                 if (controller.signal.aborted) return 0
-                // A failed rescan leaves that card on its previous result. The rest of the batch still runs.
+                // The rest of the batch still runs.
                 failed++
             }
         }

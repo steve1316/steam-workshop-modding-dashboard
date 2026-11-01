@@ -3,17 +3,15 @@ import type { ValidationIssue } from "../../api"
 
 /** Props for `ValidationBadge`. */
 interface Props {
-    /** Issues affecting one mod. When empty, the component renders nothing. */
+    /** Renders nothing when empty. */
     issues: ValidationIssue[]
 }
 
 /**
- * Inline warning badge surfaced on rows with unresolved validation issues.
- * Renders nothing when the issues array is empty.
+ * Inline warning badge for rows with unresolved validation issues.
  *
- * @param issues The issues affecting this row.
- * @returns An amber `FaExclamationTriangle` with hover tooltip listing each
- *     issue's `message`, or `null` when there are no issues.
+ * @param issues Issues affecting this row.
+ * @returns A warning icon whose tooltip lists each message, or null when there are no issues.
  */
 export default function ValidationBadge({ issues }: Props) {
     if (issues.length === 0) return null

@@ -1,6 +1,5 @@
 import type { StepStatus } from "../../api"
 
-/** Text shown for each pipeline step status. */
 const LABELS: Record<StepStatus, string> = {
     queued: "Waiting...",
     running: "In-Progress...",
@@ -11,18 +10,16 @@ const LABELS: Record<StepStatus, string> = {
 
 /** Props for `StepIndicator`. */
 interface Props {
-    /** Progress of the script inside the running `update` pipeline. */
     status: StepStatus
-    /** Extra classes appended to the indicator (e.g. `btn-compact`). */
     className?: string
 }
 
 /**
- * Button-shaped status pill that stands in for a script's Run button while the `update` pipeline runs. Queued and running steps show a spinner.
+ * Status pill standing in for a script's Run button while the `update` pipeline runs. Queued and running steps show a spinner.
  *
- * @param status Progress of the script inside the pipeline.
- * @param className Extra classes appended after the indicator classes.
- * @returns A `span` with `role="status"` describing the step.
+ * @param status Pipeline progress of the script.
+ * @param className Extra classes.
+ * @returns The status span.
  */
 export default function StepIndicator({ status, className }: Props) {
     return (

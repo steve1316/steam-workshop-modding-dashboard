@@ -2,20 +2,16 @@ import { Link } from "react-router-dom"
 
 /** Props for `RegistryErrorBanner`. */
 interface Props {
-    /** Detail message from the API response. */
     detail: string
-    /** Optional list of missing settings to surface inline. */
     missing?: string[] | null
 }
 
 /**
- * Banner shown on TW3 registry pages when the helper_scripts directory is
- * missing, misconfigured, or contains a syntax error. Links the user to the
- * Settings page for configuration.
+ * Banner for TW3 registry pages when helper_scripts is missing, misconfigured, or has a syntax error. Links to Settings.
  *
- * @param detail Error detail from the API response.
- * @param missing Optional list of missing settings.
- * @returns A glass-card banner with a configure-in-Settings link.
+ * @param detail Error detail from the API.
+ * @param missing Missing settings.
+ * @returns The banner.
  */
 export default function RegistryErrorBanner({ detail, missing }: Props) {
     return (

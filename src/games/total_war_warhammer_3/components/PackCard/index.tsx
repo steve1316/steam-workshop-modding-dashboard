@@ -7,15 +7,12 @@ import PublishWorkshopDialog from "../PublishWorkshopDialog"
 import ScriptRunButton from "../ScriptRunButton"
 
 /**
- * Format a unix timestamp as a relative "<label> ... ago" string.
+ * Format a unix timestamp as a relative "<label> ... ago" string. Sub-hour deltas read `"<1h ago"`, under a day is whole hours, and beyond that is days with one decimal.
  *
- * Sub-hour deltas collapse to `"<1h ago"`, deltas under a day stay in whole hours, and anything 24h+ switches to days with a single decimal
- * (trailing `.0` is dropped so whole-day values read cleanly).
- *
- * @param label Prefix such as `"Rebuilt"` or `"Published"`.
- * @param unix Unix timestamp (seconds) of the event.
- * @param nowMs Current epoch time in milliseconds, defaulted to `Date.now()` so tests can inject a fixed clock.
- * @returns A human-readable label such as `"Rebuilt 3h ago"`, `"Published 1.2 days ago"`, or `"Rebuilt <1h ago"` when the delta is sub-hour.
+ * @param label Prefix such as `"Rebuilt"`.
+ * @param unix Event time in seconds.
+ * @param nowMs Current time in ms, injectable for tests.
+ * @returns A label such as `"Rebuilt 3h ago"`.
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function formatAgo(label: string, unix: number, nowMs: number = Date.now()): string {
@@ -29,32 +26,27 @@ export function formatAgo(label: string, unix: number, nowMs: number = Date.now(
 
 /** A single compat pack card shown on the TW3 Dashboard. */
 export interface PackEntry {
-    /** Display name of the compat pack. */
     title: string
-    /** Steam Workshop item ID. */
     workshopId: string
-    /** Backend script id that rebuilds this pack. Omit for mods that have no rebuild pipeline. */
+    /** Omit for mods that have no rebuild pipeline. */
     scriptId?: string
-    /** Optional note shown when multiple packs share a script. */
+    /** Shown when multiple packs share a script. */
     sharedNote?: string
 }
 
-/** Props for PackCardComponent. */
+/** Props for `PackCardComponent`. */
 interface PackCardProps {
-    /** A single entry from the TW3 `PACKS` array. */
     pack: PackEntry
-    /** Trimmed dashboard search text. The matching part of the title is highlighted. */
+    /** Trimmed dashboard search text, highlighted in the title. */
     searchQuery?: string
 }
 
 /**
- * TW3-specific dashboard card. Wraps `WorkshopCard` with the pack title +
- * workshopId badge, then fills the body slot with an optional sharedNote, a
- * Rebuild `ScriptRunButton`, and a Steam workshop link.
+ * TW3 dashboard card wrapping `WorkshopCard` with a title, workshopId badge, optional note, Rebuild button, and Steam link.
  *
- * @param pack The pack metadata to render.
- * @param searchQuery Trimmed search text to highlight in the title.
- * @returns The rendered TW3 pack card.
+ * @param pack Pack metadata.
+ * @param searchQuery Search text to highlight in the title.
+ * @returns The pack card.
  */
 const PackCardComponent = ({ pack, searchQuery = "" }: PackCardProps) => {
     const [publishOpen, setPublishOpen] = useState(false)

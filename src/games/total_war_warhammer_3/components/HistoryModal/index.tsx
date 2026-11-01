@@ -7,25 +7,21 @@ import { useConfirm } from "../../../../ui/useConfirm"
 
 /** Props for `HistoryModal`. */
 interface HistoryModalProps {
-    /** Steam Workshop ID of the translation mod whose snapshots to show. */
     workshopId: string
-    /** Called when the modal is closed. */
     onClose: () => void
-    /** When `true`, render the header as "Reset to snapshot" instead of "History". */
+    /** Renders the header as "Reset to snapshot" instead of "History". */
     defaultRestoreMode: boolean
-    /** Called after a successful Restore so the parent page can re-fetch its drift. */
     onRestored: () => void
 }
 
 /**
- * WH3 snapshot-history modal. A thin wrapper over the shared `HistoryModal`: it owns the snapshot API (list/create/restore/delete) and maps each snapshot
- * onto the shared entry shape, while restore/delete confirm through `useConfirm` and API errors show inside the dialog. Used by both the History toolbar
- * button and the Reset action.
- * @param workshopId - Steam Workshop ID whose snapshots to manage.
- * @param onClose - Called when the modal is closed.
- * @param defaultRestoreMode - When `true`, the header reads "Reset to snapshot".
- * @param onRestored - Called after a successful restore so the parent can re-fetch.
- * @returns The modal element.
+ * WH3 snapshot-history modal, a thin wrapper over the shared `HistoryModal`. Used by both the History toolbar button and the Reset action.
+ *
+ * @param workshopId Translation mod Workshop id.
+ * @param onClose Called when the modal closes.
+ * @param defaultRestoreMode Header reads "Reset to snapshot".
+ * @param onRestored Called after a restore so the parent can re-fetch.
+ * @returns The modal.
  */
 const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaultRestoreMode, onRestored }) => {
     const [snaps, setSnaps] = useState<WH3SnapshotMeta[]>([])

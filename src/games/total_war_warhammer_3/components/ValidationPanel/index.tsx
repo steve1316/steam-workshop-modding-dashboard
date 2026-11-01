@@ -3,19 +3,18 @@ import type { ValidationIssue } from "../../api"
 
 /** Props for ValidationPanel. */
 interface Props {
-    /** Latest issues from `useValidation`, or `null` before the first fetch completes. */
+    /** Null before the first fetch completes. */
     issues: ValidationIssue[] | null
-    /** Triggers an out-of-band validation poll. Resolves once the new results are broadcast. */
+    /** Resolves once the new results are broadcast. */
     onRefresh: () => Promise<void>
 }
 
 /**
- * Cross-reference report for the TW3 registries, shown above the Supported Mods grid. Groups issues by kind with missing mod paths
- * expanded and missing effect categories collapsed. Renders nothing while loading or when every reference resolves.
+ * Cross-reference report shown above the Supported Mods grid. Groups issues by kind, with missing mod paths expanded and effect categories collapsed.
  *
- * @param issues Latest issues from `useValidation`, or `null` before the first fetch completes.
- * @param onRefresh Triggers an out-of-band validation poll.
- * @returns The validation panel, or `null` when there is nothing to report.
+ * @param issues Latest issues from `useValidation`, null before the first fetch.
+ * @param onRefresh Triggers a validation poll.
+ * @returns The panel, or null while loading or when everything resolves.
  */
 const ValidationPanel = ({ issues, onRefresh }: Props) => {
     const [refreshing, setRefreshing] = useState(false)
@@ -75,15 +74,14 @@ const ValidationPanel = ({ issues, onRefresh }: Props) => {
 
 /** Props for IssueRow. */
 interface IssueRowProps {
-    /** The validation issue to display. */
     issue: ValidationIssue
 }
 
 /**
- * Single issue entry showing the mod name, the broken reference, and the message.
+ * One issue entry with the mod name, broken reference, and message.
  *
- * @param issue The validation issue to display.
- * @returns The rendered issue row.
+ * @param issue Issue to display.
+ * @returns The row.
  */
 function IssueRow({ issue }: IssueRowProps) {
     return (

@@ -3,15 +3,15 @@ import { clearLog, useRunnerLog } from "../../hooks/useRunnerLog"
 
 /** Props for `RunnerLogTerminal`. */
 interface RunnerLogTerminalProps {
-    /** When true, the terminal stretches to fill its flex parent vertically instead of using a fixed max-height. */
+    /** Stretches to fill the flex parent instead of using a fixed max-height. */
     fill?: boolean
 }
 
 /**
- * Scrollable terminal that renders the shared `useRunnerLog` buffer. Always rendered on the Runner page; shows a placeholder when empty. Auto-scrolls to the latest entry on each new line.
+ * Scrollable terminal for the shared `useRunnerLog` buffer. Shows a placeholder when empty and auto-scrolls to the latest line.
  *
- * @param fill When true, stretches to fill its flex parent and lets the inner `<pre>` grow with the viewport instead of capping at 400px.
- * @returns A `glass-card`-styled block containing a header row with the Clear button and a `<pre>` of log entries.
+ * @param fill Grows with the viewport instead of capping at 400px.
+ * @returns The terminal block.
  */
 export default function RunnerLogTerminal({ fill = false }: RunnerLogTerminalProps) {
     const lines = useRunnerLog()

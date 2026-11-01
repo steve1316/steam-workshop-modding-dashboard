@@ -60,25 +60,20 @@ type ModalKey = "glossary" | "responses" | "history" | "reset" | null
 
 /** A staged Translate Names run in progress. */
 type NamesRun = {
-    /** Stages from the names preview, in run order. */
     stages: WH3NameStage[]
-    /** Index of the stage that is running or was just reviewed. */
+    /** Index of the running or just-reviewed stage. */
     index: number
-    /** Provider the run was started with. */
     provider: string
-    /** Names translated so far across all stages. */
     translated: number
 }
 
 /** The finished stage a review dialog or paused banner describes. */
 type StageStep = {
-    /** Zero-based index of the finished stage. */
+    /** Zero-based. */
     index: number
-    /** Stages in the run. */
     total: number
-    /** Finished stage's display name. */
     label: string
-    /** Next stage's display name, or null when the finished stage was the last one. */
+    /** Null when the finished stage was the last. */
     nextLabel: string | null
 }
 
@@ -115,9 +110,9 @@ const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
 }
 
 /**
- * Per-mod WH3 translation review page. Renders the shared `<TranslationPage>` shell so it mirrors Chrono Ark 1-to-1: canonical status chips, the same
- * status-filter pills, header identity (preview / steam link / open-folder / pending-sync badge) and language controls, the toolbar groups, and the modals.
- * @returns The rendered page.
+ * Per-mod WH3 translation review page. Renders the shared `<TranslationPage>` shell so it mirrors Chrono Ark 1-to-1.
+ *
+ * @returns The page.
  */
 const TranslationDetailsPage: React.FC = () => {
     const { workshopId = "" } = useParams<{ workshopId: string }>()
@@ -144,9 +139,8 @@ const TranslationDetailsPage: React.FC = () => {
     }, [workshopId])
     const { confirm, confirmDialog } = useConfirm()
     const [showReviewModal, setShowReviewModal] = useState(false)
-    // Translate Names runs one stage at a time. pendingScope drives the confirm-modal title. namesRunRef holds the active run (read in the batch effect,
-    // not a dependency, so advancing it does not re-fire the effect). stageReview is the review for the stage that just finished, and pausedStep is a
-    // finished stage whose review was closed. nameReviewSuggestions opens the Suggest from Translated Names review.
+    // Translate Names runs one stage at a time. namesRunRef is read in the batch effect but is not a dependency, so advancing it does not re-fire the effect.
+    // stageReview is the finished stage's review, and pausedStep is a finished stage whose review was closed.
     const [pendingScope, setPendingScope] = useState<"all" | "names" | "changed">("all")
     const namesRunRef = useRef<NamesRun | null>(null)
     const [stageReview, setStageReview] = useState<{ step: StageStep; suggestions: TermSuggestion[] } | null>(null)
@@ -177,7 +171,7 @@ const TranslationDetailsPage: React.FC = () => {
         return DEFAULT_COLUMN_WIDTHS
     })
 
-    // Persist column widths whenever they change (the shared table reports drags via onResizeColumn).
+    // Persist column widths whenever they change.
     useEffect(() => {
         try {
             window.localStorage.setItem(COLUMN_WIDTH_KEY, JSON.stringify(columnWidths))
@@ -261,7 +255,7 @@ const TranslationDetailsPage: React.FC = () => {
         [workshopId]
     )
 
-    // Optimistically reflect each completed batch's translations in the table while the run continues.
+    // Show each completed batch's translations in the table while the run continues.
     const onBatchTranslated = useCallback((translations: Record<string, string>) => {
         setStrings((prev) =>
             prev.map((r) => (translations[r.key] !== undefined ? { ...r, translation_text: translations[r.key], provider: "claude", status: "translated", canonical_status: "pending" } : r))
@@ -271,7 +265,7 @@ const TranslationDetailsPage: React.FC = () => {
     const { state: batchState, startTranslation, continueAfterReview, cancel: cancelTranslation } = useIterativeTranslation("total_war_warhammer_3", workshopId, onBatchTranslated)
     const isTranslating = batchState.phase === "translating"
 
-    // Clicking Translate previews the run (prompts + cost + batch plan) and opens the confirm modal. Confirming starts the iterative batch loop.
+    // Translate previews the run and opens the confirm modal. Confirming starts the batch loop.
     const handleTranslateClick = useCallback(
         async (provider?: string) => {
             const p = provider || activeProvider
@@ -291,7 +285,7 @@ const TranslationDetailsPage: React.FC = () => {
         [workshopId, activeProvider]
     )
 
-    // Translate only the name strings (unit/skill/building/location/...) first. They are then reviewed into the glossary so the bulk run reuses them.
+    // Translate name strings first, then review them into the glossary so the bulk run reuses them.
     const handleTranslateNamesClick = useCallback(
         async (provider?: string) => {
             const p = provider || activeProvider
@@ -311,7 +305,7 @@ const TranslationDetailsPage: React.FC = () => {
         [workshopId, activeProvider]
     )
 
-    // Update Changed previews only the changed rows and revises their previous translations.
+    // Update Changed revises the previous translations of changed rows only.
     const handleUpdateChangedClick = useCallback(
         async (provider?: string) => {
             const p = provider || activeProvider
@@ -392,7 +386,7 @@ const TranslationDetailsPage: React.FC = () => {
         cancelTranslation()
     }, [cancelTranslation])
 
-    // When the iterative run finishes (or errors), refresh counts + rows and surface a result banner.
+    // When the run finishes or errors, refresh counts and rows and show a result banner.
     useEffect(() => {
         // A names run does not pause for per-batch provider suggestions. Each stage's names are reviewed once the stage finishes.
         if (batchState.phase === "reviewing" && namesRunRef.current) {
@@ -435,7 +429,7 @@ const TranslationDetailsPage: React.FC = () => {
         }
     }, [batchState, workshopId, loadStrings, continueAfterReview, advanceNamesRun, refreshSuggestions])
 
-    // Suggest glossary terms from names that are already translated, without translating anything.
+    // Suggest glossary terms from already-translated names without translating anything.
     const onSuggestFromNames = useCallback(async () => {
         try {
             const names = await loadNameSuggestions(workshopId)
@@ -484,7 +478,7 @@ const TranslationDetailsPage: React.FC = () => {
         const summary = await rescanMod(workshopId)
         setProgress(summary)
         await loadStrings()
-        // Snapshots include the glossary, and the History dialog stays open after a restore, so refresh the count now.
+        // Snapshots include the glossary and the dialog stays open after a restore, so refresh the count now.
         refreshGlossaryCount()
         setBanner({ type: "success", message: "Restored from snapshot" })
     }, [workshopId, loadStrings, refreshGlossaryCount])
@@ -748,7 +742,7 @@ const TranslationDetailsPage: React.FC = () => {
                 />
             )}
 
-            {/* Suggest from Translated Names: already-translated names the glossary does not cover yet. */}
+            {/* Suggest from Translated Names. */}
             {nameReviewSuggestions && (
                 <GlossarySuggestionModal
                     gameId="total_war_warhammer_3"
@@ -763,7 +757,7 @@ const TranslationDetailsPage: React.FC = () => {
                 />
             )}
 
-            {/* Shown when the iterative loop pauses for glossary suggestion review between batches. Closing pauses; the paused banner lets the user resume. */}
+            {/* Glossary suggestion review between batches. Closing pauses, and the paused banner resumes. */}
             {batchState.phase === "reviewing" && showReviewModal && !namesRunRef.current && (
                 <GlossarySuggestionModal
                     gameId="total_war_warhammer_3"

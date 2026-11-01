@@ -3,36 +3,33 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { fetchChangeNotes, publishAllPacks, publishAllStreamUrl, RegistryError, type BatchPublishHandle, type BatchPublishItem, type ChangeNote } from "../../api"
 import Modal from "../../../../ui/Modal"
 
-/** One pack entry as the Dashboard hands them in. */
+/** One pack entry from the Dashboard. */
 interface PackEntry {
-    /** Display name of the mod. */
     title: string
-    /** Numeric Steam Workshop item id. Empty values are treated as "skipped" and never sent to the backend. */
+    /** Empty values are treated as skipped and never sent to the backend. */
     workshopId: string
-    /** Optional script id used by the per-mod rebuild button. Unused here but accepted so the Dashboard can pass the array as-is. */
+    /** Unused here, accepted so the Dashboard can pass its array as-is. */
     scriptId?: string
-    /** Optional explanatory note carried from the Dashboard. Unused in this dialog but accepted for the same reason. */
+    /** Unused here, same reason as `scriptId`. */
     sharedNote?: string
 }
 
-/** Props for PublishAllDialog. */
+/** Props for `PublishAllDialog`. */
 interface PublishAllDialogProps {
-    /** Pack entries to consider for the batch. Empty-workshopId entries appear in the dialog as pre-skipped. */
+    /** Empty-workshopId entries show as pre-skipped. */
     packs: PackEntry[]
-    /** Called when the user dismisses the dialog. */
     onClose: () => void
 }
 
-/** Per-mod lifecycle status mirrored from the backend orchestrator. */
+/** Per-mod status mirrored from the backend orchestrator. */
 type ModStatus = "pending" | "publishing" | "done" | "failed" | "skipped"
 
-/** Three-phase lifecycle: pre-batch confirmation, in-flight, all-done summary. */
+/** Dialog lifecycle. */
 type Phase = "confirming" | "running" | "done"
 
-/** Lifecycle of a row's generated changenote: fetching, filled in, nothing changed since the last upload, or could not be generated. */
+/** Lifecycle of a row's generated changenote. */
 type NoteState = "loading" | "ready" | "unchanged" | "error"
 
-/** Label on each row's note button for every note state. */
 const NOTE_LABELS: Record<NoteState, string> = {
     loading: "Generating...",
     ready: "Note",
@@ -55,7 +52,7 @@ const TEXTAREA_STYLE: CSSProperties = {
     boxSizing: "border-box",
 }
 
-/** One row in the per-mod status list rendered while a batch is running. */
+/** One row in the per-mod status list. */
 interface ModRow {
     workshopId: string
     title: string
@@ -64,17 +61,16 @@ interface ModRow {
     error: string | null
     durationSeconds: number | null
     reason: string | null
-    /** Whether the user has this row checked for inclusion in the batch. Ignored for pre-skipped rows. */
+    /** Ignored for pre-skipped rows. */
     selected: boolean
-    /** Changenote sent with this mod's upload. Pre-filled from the generated note and editable before publishing. */
+    /** Pre-filled from the generated note and editable before publishing. */
     note: string
-    /** Where this row's generated note stands. Rows without a workshop id never load one. */
+    /** Rows without a workshop id never load a note. */
     noteState: NoteState
-    /** Whether this row's changenote editor is open. */
     expanded: boolean
 }
 
-/** One line of streamed SteamCMD output, scoped to the mod that emitted it. */
+/** One line of SteamCMD output, scoped to its mod. */
 interface LogEntry {
     seq: number
     workshopId: string
@@ -82,12 +78,11 @@ interface LogEntry {
 }
 
 /**
- * Fold one generated changenote into a row. Changed mods get the note, unchanged ones start unchecked but keep the note so re-checking them
- * still has text to send, and failures open an empty editor.
+ * Fold one generated changenote into a row. Unchanged mods start unchecked but keep the note, and failures open an empty editor.
  *
- * @param row The row to update.
- * @param result The generated note for the row, or null/undefined when none could be generated.
- * @returns The updated row. Rows that are not waiting on a note are returned unchanged.
+ * @param row Row to update.
+ * @param result Generated note, or null when none could be generated.
+ * @returns The updated row, unchanged if it is not waiting on a note.
  */
 function applyNote(row: ModRow, result: ChangeNote | null | undefined): ModRow {
     if (row.noteState !== "loading") return row
@@ -97,13 +92,11 @@ function applyNote(row: ModRow, result: ChangeNote | null | undefined): ModRow {
 }
 
 /**
- * Modal dialog that publishes many compat packs to the Workshop, each with its own generated changelog the user can review and edit.
- * The dialog fetches a generated note per mod, POSTs `/packs/publish-all`, opens an SSE stream against the returned `batch_id`, and
- * surfaces per-mod status badges plus a live SteamCMD log for the currently uploading mod.
+ * Modal that publishes many compat packs to the Workshop, each with its own editable generated changelog. Streams per-mod status and the live SteamCMD log.
  *
- * @param packs Pack entries to consider. Empty-workshopId entries are pre-marked as skipped.
+ * @param packs Pack entries to consider.
  * @param onClose Called when the user dismisses the dialog.
- * @returns The rendered modal overlay.
+ * @returns The modal overlay.
  */
 const PublishAllDialog = ({ packs, onClose }: PublishAllDialogProps) => {
     const [phase, setPhase] = useState<Phase>("confirming")
@@ -138,7 +131,7 @@ const PublishAllDialog = ({ packs, onClose }: PublishAllDialogProps) => {
     const notesLoading = eligible.some((r) => r.noteState === "loading")
     const canPublish = !notesLoading && selectedEligible.length > 0 && selectedEligible.every((r) => r.note.trim().length > 0)
 
-    // Generate every eligible mod's note once. Keyed on the ids so a parent re-render passing a new array does not refetch.
+    // Keyed on the ids so a parent re-render with a new array does not refetch.
     const idsKey = packs
         .map((p) => p.workshopId)
         .filter(Boolean)
@@ -261,7 +254,7 @@ const PublishAllDialog = ({ packs, onClose }: PublishAllDialogProps) => {
         if (!canPublish) return
         setErrorMessage(null)
 
-        // Mark every eligible row the user unchecked as skipped before kicking off so the running view shows them.
+        // Mark unchecked rows as skipped so the running view shows them.
         const deselectedIds = new Set(eligible.filter((r) => !r.selected).map((r) => r.workshopId))
         if (deselectedIds.size > 0) {
             setRows((prev) => prev.map((r) => (deselectedIds.has(r.workshopId) ? { ...r, status: "skipped", reason: "not selected" } : r)))
@@ -427,9 +420,8 @@ const PublishAllDialog = ({ packs, onClose }: PublishAllDialogProps) => {
     )
 }
 
-/** Props for StatusBadge. */
+/** Props for `StatusBadge`. */
 interface StatusBadgeProps {
-    /** The row whose status drives the badge color and label. */
     row: ModRow
 }
 
@@ -442,11 +434,10 @@ const BADGE_COLORS: Record<ModStatus, { bg: string; fg: string; label: string }>
 }
 
 /**
- * Color-coded badge that surfaces a mod's lifecycle status along with terminal details (exit code / duration / reason)
- * once the row reaches a terminal state.
+ * Color-coded status badge, with exit code, duration, or reason once the row finishes.
  *
- * @param row The row whose status drives the badge color and label.
- * @returns The badge element.
+ * @param row Row whose status drives the badge.
+ * @returns The badge.
  */
 const StatusBadge = ({ row }: StatusBadgeProps) => {
     const style = BADGE_COLORS[row.status]

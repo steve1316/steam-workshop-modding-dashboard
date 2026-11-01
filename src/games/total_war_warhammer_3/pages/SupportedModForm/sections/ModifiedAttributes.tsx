@@ -5,23 +5,19 @@ import Panel from "../../../../../ui/Panel"
 
 /** Props for `ModifiedAttributesSection`. */
 interface Props {
-    /** Current attribute list. */
     value: string[]
-    /** Suggestions for the autocomplete (top-level `SUPPORTED_EFFECTS` keys). */
+    /** Top-level `SUPPORTED_EFFECTS` keys. */
     suggestions: string[]
-    /** Called with the next list on add/remove. */
     onChange: (next: string[]) => void
 }
 
 /**
- * Section 2 of the SupportedModForm. Renders the current attributes as
- * removable chips and a text input that adds a new attribute when Enter is
- * pressed. Suggestions appear in a `<datalist>` for autocomplete.
+ * Section 2 of the SupportedModForm: removable attribute chips and an input that adds one on Enter, with `<datalist>` suggestions.
  *
- * @param value Current attribute list.
+ * @param value Current attributes.
  * @param suggestions Autocomplete suggestions.
  * @param onChange Called with the next list.
- * @returns The rendered section.
+ * @returns The section.
  */
 const ModifiedAttributesSection = ({ value, suggestions, onChange }: Props) => {
     const [draft, setDraft] = useState("")

@@ -2,27 +2,22 @@ import Panel from "../../../../../ui/Panel"
 
 /** One pattern -> faction mapping row. */
 export interface PatternOverrideRow {
-    /** Pattern key (e.g. `"*"`). */
     pattern: string
-    /** Faction code (e.g. `"vmp"`). */
     faction: string
 }
 
 /** Props for `PatternOverridesSection`. */
 interface Props {
-    /** Current rows. */
     value: PatternOverrideRow[]
-    /** Called with the next rows on edit/add/remove. */
     onChange: (next: PatternOverrideRow[]) => void
 }
 
 /**
- * Section 3 of the SupportedModForm. Repeating row editor for the `pattern_overrides` dict.
- * The submitted payload serializes to `{ "pattern": "faction", ... }` (an empty list -> field omitted).
+ * Section 3 of the SupportedModForm: a row editor for the `pattern_overrides` dict, serialized as `{ "pattern": "faction" }` and omitted when empty.
  *
  * @param value Current rows.
  * @param onChange Called with the next rows.
- * @returns The rendered section.
+ * @returns The section.
  */
 const PatternOverridesSection = ({ value, onChange }: Props) => {
     const update = (idx: number, patch: Partial<PatternOverrideRow>) => onChange(value.map((row, i) => (i === idx ? { ...row, ...patch } : row)))

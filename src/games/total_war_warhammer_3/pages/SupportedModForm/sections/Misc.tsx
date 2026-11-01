@@ -2,18 +2,16 @@ import Panel from "../../../../../ui/Panel"
 
 /** Props for `MiscSection`. */
 interface Props {
-    /** Current `ignore_generation` value. */
     ignoreGeneration: boolean
-    /** Called with the next value. */
     onChange: (next: boolean) => void
 }
 
 /**
- * Section 5 of the SupportedModForm. Currently just the `ignore_generation` checkbox. Reserved as the home for any future single-field flags.
+ * Section 5 of the SupportedModForm: the `ignore_generation` checkbox, and home for future single-field flags.
  *
- * @param ignoreGeneration Current value of the flag.
+ * @param ignoreGeneration Current flag value.
  * @param onChange Called with the next value.
- * @returns The rendered section.
+ * @returns The section.
  */
 const MiscSection = ({ ignoreGeneration, onChange }: Props) => (
     <Panel as="fieldset" title="Misc">

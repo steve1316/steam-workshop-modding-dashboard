@@ -2,40 +2,32 @@ import Panel from "../../../../../ui/Panel"
 
 /** One character entry inside `allowed_lords` or `allowed_heroes`. */
 export interface CharacterRow {
-    /** TW3 `land_unit` id. */
     land_unit: string
-    /** TW3 `agent_subtype` id. */
     agent_subtype: string
-    /** Optional comma-separated skill ids. */
+    /** Comma-separated skill ids. */
     skill_overrides: string
 }
 
-/** A single faction section with its allowed_lords and allowed_heroes lists. */
+/** One faction section with its allowed lord and hero lists. */
 export interface FactionEntry {
-    /** Faction code (`vmp`, `tomb_kings`, ...). */
+    /** Faction code such as `vmp`. */
     faction: string
-    /** Allowed lords. */
     allowed_lords: CharacterRow[]
-    /** Allowed heroes. */
     allowed_heroes: CharacterRow[]
 }
 
 /** Props for `CharacterOverridesSection`. */
 interface Props {
-    /** Current faction entries. */
     value: FactionEntry[]
-    /** Called with the next entries on edit/add/remove. */
     onChange: (next: FactionEntry[]) => void
 }
 
 /**
- * Section 4 of the SupportedModForm. Nested editor: faction sections, each
- * with two sub-lists (allowed_lords, allowed_heroes), each containing rows
- * of `land_unit` / `agent_subtype` / `skill_overrides`.
+ * Section 4 of the SupportedModForm: a nested editor of factions, each with allowed lord and hero rows.
  *
  * @param value Current faction entries.
  * @param onChange Called with the next entries.
- * @returns The rendered section.
+ * @returns The section.
  */
 const CharacterOverridesSection = ({ value, onChange }: Props) => {
     const updateFaction = (idx: number, patch: Partial<FactionEntry>) => onChange(value.map((f, i) => (i === idx ? { ...f, ...patch } : f)))

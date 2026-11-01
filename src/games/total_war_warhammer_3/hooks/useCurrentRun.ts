@@ -35,10 +35,9 @@ export function kickPoll() {
 }
 
 /**
- * Returns the latest known TW3 run state. The poll is shared across all callers via a module-level
- * subscriber set, so 10 mounted hooks still produce only one `GET /run` request per `INTERVAL_MS`.
+ * Latest TW3 run state. The poll is shared across callers, so many mounted hooks still make one `GET /run` per `INTERVAL_MS`.
  *
- * @returns The latest known `RunState`. Defaults to `{status: "idle"}` until the first poll completes.
+ * @returns The run state, idle until the first poll completes.
  */
 export function useCurrentRun(): RunState {
     const [state, setState] = useState<RunState>(currentState)
@@ -46,8 +45,7 @@ export function useCurrentRun(): RunState {
     useEffect(() => {
         subscribers.add(setState)
         if (subscribers.size === 1) startPolling()
-        // Push the latest known state into this subscriber on subscribe so it does not have to wait
-        // up to INTERVAL_MS for the first update.
+        // Avoid waiting up to INTERVAL_MS for the first update.
         setState(currentState)
         return () => {
             subscribers.delete(setState)

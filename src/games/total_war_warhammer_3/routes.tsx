@@ -7,9 +7,9 @@ import SupportedModsPage from "./pages/SupportedMods"
 import TranslationDetailsPage from "./pages/TranslationDetails"
 
 /**
- * Routes contributed by the Total War: Warhammer III game manifest.
+ * Routes contributed by the TW3 game manifest.
  *
- * @returns A `Routes` element with all TW3 page routes.
+ * @returns The TW3 page routes.
  */
 export function TotalWarWarhammer3Routes() {
     return (

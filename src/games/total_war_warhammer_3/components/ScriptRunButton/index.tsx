@@ -6,25 +6,20 @@ import StepIndicator from "../StepIndicator"
 
 /** Props for `ScriptRunButton`. */
 interface Props {
-    /** Script id from the backend `SCRIPT_REGISTRY`. */
     scriptId: string
-    /** Display label. */
     label: string
-    /** Optional inline style overrides applied to the rendered button. */
     style?: React.CSSProperties
-    /** Extra classes appended to the button (e.g. `btn-compact`). */
     className?: string
 }
 
 /**
- * Button that posts to `/run/{scriptId}` and navigates to the Runner page.
- * Disabled while another run is in flight, or replaced by a `StepIndicator` while the `update` pipeline rebuilds this script.
+ * Button that posts to `/run/{scriptId}` and navigates to the Runner page. Disabled during another run, or replaced by a `StepIndicator` while `update` rebuilds this script.
  *
- * @param scriptId Backend script id to run.
- * @param label Button label shown when idle.
- * @param style Optional inline style overrides for the button element.
- * @param className Extra classes appended after `btn btn-primary`.
- * @returns A `button` element wired up to start a TW3 script run, or the pipeline step indicator for this script.
+ * @param scriptId Backend script id.
+ * @param label Idle button label.
+ * @param style Inline style overrides.
+ * @param className Extra classes after `btn btn-primary`.
+ * @returns The button, or the pipeline step indicator.
  */
 export default function ScriptRunButton({ scriptId, label, style, className }: Props) {
     const run = useCurrentRun()

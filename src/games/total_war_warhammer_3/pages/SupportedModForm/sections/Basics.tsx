@@ -4,21 +4,19 @@ import type { BasicsState } from "./basicsState"
 
 /** Props for `BasicsSection`. */
 interface Props {
-    /** Current state. */
     value: BasicsState
-    /** Called with the next state on any field change. */
     onChange: (next: BasicsState) => void
-    /** When true, the `package_name` input is read-only (used in edit mode). */
+    /** Makes `package_name` read-only, as in edit mode. */
     lockPackageName: boolean
 }
 
 /**
- * Section 1 of the SupportedModForm. Owns Name, Package name, Workshop ID, the Custom-path advanced toggle, and the live preview image.
+ * Section 1 of the SupportedModForm: Name, Package name, Workshop ID, the Custom-path toggle, and the preview image.
  *
- * @param value Current Basics state.
+ * @param value Current state.
  * @param onChange Called with the next state.
- * @param lockPackageName Disables the `package_name` input when editing.
- * @returns The rendered section.
+ * @param lockPackageName Disables `package_name` when editing.
+ * @returns The section.
  */
 const BasicsSection = ({ value, onChange, lockPackageName }: Props) => {
     const previewUrl = value.workshop_id ? `${API_BASE}/games/total_war_warhammer_3/packs/${value.workshop_id}/preview` : null

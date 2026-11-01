@@ -10,7 +10,7 @@ const COLUMNS: GlossaryColumn[] = [
 ]
 
 /**
- * Displays the WH3 base-game terminology glossary in a searchable, filterable table.
+ * WH3 base-game terminology glossary in a searchable table.
  *
  * @returns The glossary page.
  */

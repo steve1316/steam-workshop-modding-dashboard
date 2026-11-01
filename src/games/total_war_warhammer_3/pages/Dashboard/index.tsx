@@ -30,13 +30,12 @@ const PACKS: PackEntry[] = [
 ]
 
 /**
- * TW3 Dashboard: a searchable header with Rebuild All and Publish All, an intro panel, then the pack cards and the translation mod cards.
- * Last-run timestamps are session-only.
+ * TW3 Dashboard: searchable header with Rebuild All and Publish All, an intro panel, then pack and translation mod cards. Last-run timestamps are session-only.
  *
- * @returns The WH3 dashboard page.
+ * @returns The dashboard page.
  */
 export default function DashboardPage() {
-    // `null` until the list request settles, so the section can show a skeleton instead of an empty grid.
+    // Null until the list request settles, so the section shows a skeleton instead of an empty grid.
     const [translationMods, setTranslationMods] = useState<WH3TranslationModSummary[] | null>(null)
     const [loadError, setLoadError] = useState<string | null>(null)
     const [refreshError, setRefreshError] = useState<string | null>(null)
@@ -44,21 +43,20 @@ export default function DashboardPage() {
     const [publishAllOpen, setPublishAllOpen] = useState(false)
     const [search, setSearch] = useState("")
     const gridWrapperRef = useRef<HTMLDivElement>(null)
-    // True once a translation list has arrived. After that a failed refresh keeps the cards and shows a banner instead.
+    // After the first list arrives, a failed refresh keeps the cards and shows a banner.
     const hasLoadedRef = useRef(false)
     const rescans = useRescanAll()
     const refreshing = listing || rescans.running
 
     /**
-     * Lists the translation mods, then rescans each one in turn so the cards fill in with fresh counts. Runs on open, on Refresh and on Retry.
-     * Rescans that fail are counted into the error banner, and those cards keep their previous numbers.
+     * Lists the translation mods, then rescans each in turn for fresh counts. Failed rescans are counted into the error banner and keep their old numbers.
      */
     const refresh = async () => {
         setListing(true)
         setRefreshError(null)
         try {
             const mods = await listTranslationMods()
-            // Read the ids before storing the list, so a malformed response fails here instead of while rendering.
+            // Read the ids first so a malformed response fails here, not while rendering.
             const ids = mods.map((mod) => mod.workshop_id)
             hasLoadedRef.current = true
             setTranslationMods(mods)
@@ -74,13 +72,12 @@ export default function DashboardPage() {
         }
     }
 
-    /** Clears the load error, which brings the skeleton back, and tries the first load again. */
+    /** Clears the load error (bringing the skeleton back) and retries the first load. */
     const retryLoad = () => {
         setLoadError(null)
         refresh()
     }
 
-    // Load and rescan once on open.
     useEffect(() => {
         refresh()
         // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on open
@@ -91,7 +88,7 @@ export default function DashboardPage() {
     const visibleMods = useMemo(() => (translationMods ?? []).filter((mod) => matchesSearch(search, mod.display_name, mod.workshop_id)), [translationMods, search])
     const cardWidth = useCardWidth(gridWrapperRef, visiblePacks.length + visibleMods.length)
 
-    // Scroll back to the translation mod the user opened once the list is on screen.
+    // Scroll back to the mod the user opened once the list is on screen.
     useScrollRestore(translationMods !== null)
 
     return (
