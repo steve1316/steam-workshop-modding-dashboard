@@ -8,6 +8,7 @@ Keys only in the translation are `orphan`. Keys only in the parent, or with empt
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
@@ -93,7 +94,7 @@ def compute_drift(
     *,
     parent: dict[str, dict[str, LocRow]],
     translation: dict[str, dict[str, LocRow]],
-    snapshot: dict[str, dict[str, str | dict]],
+    snapshot: Mapping[str, Mapping[str, str | dict]],
 ) -> list[DriftRow]:
     """Compute per-row drift status.
 
@@ -118,8 +119,8 @@ def compute_drift(
             p_row = parent_rows.get(key)
             t_row = translation_rows.get(key)
 
-            if p_row is None and t_row is not None:
-                rows.append(DriftRow(filename, key, None, t_row.text, "orphan"))
+            if p_row is None:
+                rows.append(DriftRow(filename, key, None, t_row.text if t_row else None, "orphan"))
                 continue
 
             if t_row is None:

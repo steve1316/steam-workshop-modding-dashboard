@@ -194,6 +194,8 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 
     for key, loc_str in untranslated.items():
         source_lang = adapter.detect_source_language(loc_str)
+        if source_lang is None:
+            continue
         source_text = loc_str.translations.get(source_lang, "")
 
         cached = tm.lookup(source_text)

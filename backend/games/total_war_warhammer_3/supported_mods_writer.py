@@ -149,7 +149,7 @@ def _entry_package_name(dict_node: cst.Dict) -> str | None:
         key = element.key
         if isinstance(key, cst.SimpleString) and key.evaluated_value == "package_name":
             value = element.value
-            if isinstance(value, cst.SimpleString):
+            if isinstance(value, cst.SimpleString) and isinstance(value.evaluated_value, str):
                 return value.evaluated_value
     return None
 

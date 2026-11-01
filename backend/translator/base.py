@@ -168,6 +168,9 @@ class TranslationProvider(ABC):
     # Output format section shown in the system prompt. Providers that request a JSON schema override it to match.
     output_format_template: str = DICT_OUTPUT_FORMAT
 
+    # Per-call raw API records, set by providers that log them. Callers reset it before a run.
+    last_raw_responses: list[dict]
+
     @property
     @abstractmethod
     def name(self) -> str:

@@ -159,7 +159,7 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
     entries: list[tuple[str, str]] = []
     revisions: dict[str, Revision] = {}
     for row in _t._overlay_translations(drift, _t.store.load_translations_raw(mod_id)):
-        if row.status != "stale" or not (row.parent_text or "").strip() or not row.translation_text:
+        if row.status != "stale" or not row.parent_text or not row.parent_text.strip() or not row.translation_text:
             continue
         entries.append((row.key, row.parent_text))
         revisions[row.key] = Revision(old_source=entry_text(snapshot.get(row.source_filename, {}).get(row.key)), previous_translation=row.translation_text)

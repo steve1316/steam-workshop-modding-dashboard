@@ -78,7 +78,8 @@ def provider_call_fields(raw_responses: list[dict], error: str | None = None) ->
 
     def total(field: str):
         values = [r.get(field) for r in raw_responses]
-        return sum(values) if values and all(v is not None for v in values) else None
+        known = [v for v in values if v is not None]
+        return sum(known) if values and len(known) == len(values) else None
 
     texts = [r.get("raw_text") or "" for r in raw_responses]
     if len(texts) > 1:

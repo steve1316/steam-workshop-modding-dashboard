@@ -3,11 +3,12 @@
 import logging
 import subprocess
 from pathlib import Path
+from typing import TextIO
 
 logger = logging.getLogger(__name__)
 
 # Module-level registry: name -> (Popen, stdout_file, stderr_file)
-_processes: dict[str, tuple[subprocess.Popen, object, object]] = {}
+_processes: dict[str, tuple[subprocess.Popen, TextIO, TextIO]] = {}
 
 
 def is_managed(name: str) -> bool:

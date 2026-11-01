@@ -183,7 +183,7 @@ def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list
     """
     overlaid: list[DriftRow] = []
     for row in drift:
-        entry = raw_translations.get(row.key)
+        entry = raw_translations.get(row.key) or {}
         has_override = isinstance(entry, dict) and "text" in entry
         if has_override and entry["text"]:
             override_provider = entry.get("provider") or "manual"
@@ -719,7 +719,9 @@ def clear_translations(mod_id: str) -> dict:
     now = datetime.now(UTC).isoformat()
     cleared: dict[str, dict] = {}
     for key in keys_with_english:
-        existing = raw.get(key) if isinstance(raw.get(key), dict) else {}
+        existing = raw.get(key)
+        if not isinstance(existing, dict):
+            existing = {}
         cleared[key] = {
             "text": "",
             "created_at": existing.get("created_at") or now,
@@ -951,7 +953,9 @@ def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new
         new_text, count = replace_whole_term(row.translation_text, old_english, new_english)
         if count == 0:
             continue
-        existing = raw.get(row.key) if isinstance(raw.get(row.key), dict) else {}
+        existing = raw.get(row.key)
+        if not isinstance(existing, dict):
+            existing = {}
         raw[row.key] = {"text": new_text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": existing.get("provider") or row.provider or "manual"}
         changed += 1
     if changed:

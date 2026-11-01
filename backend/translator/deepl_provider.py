@@ -82,6 +82,10 @@ class DeepLProvider(TranslationProvider):
                 preserve_formatting=True,
             )
 
+            # A list input always comes back as a list.
+            if isinstance(translations, deepl.TextResult):
+                translations = [translations]
+
             for key, translation in zip(keys, translations, strict=False):
                 results[key] = translation.text
 

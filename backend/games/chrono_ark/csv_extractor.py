@@ -186,7 +186,7 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
             (len(row) < 3 and last_entry)
         )
 
-        if is_continuation:
+        if is_continuation and last_entry is not None:
             # Append from `current_col_offset` (or 3 = Korean) onward.
             for i, val in enumerate(row):
                 target_idx = current_col_offset + i

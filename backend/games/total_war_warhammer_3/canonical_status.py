@@ -23,7 +23,7 @@ def to_status_rows(drift: list[DriftRow], raw_translations: dict) -> list[Status
     """
     rows: list[StatusRow] = []
     for row in drift:
-        entry = raw_translations.get(row.key)
+        entry = raw_translations.get(row.key) or {}
         has_override = isinstance(entry, dict) and "text" in entry
         loc_text = row.translation_text or ""
         target_text = entry["text"] if has_override else row.translation_text
