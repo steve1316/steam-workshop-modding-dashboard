@@ -10,8 +10,8 @@ from pathlib import Path
 
 from backend.core.json_store import write_json
 from backend.core.paths import game_storage_path
+from backend.games.total_war_warhammer_3 import GAME_ID
 
-GAME_ID = "total_war_warhammer_3"
 MAX_ENTRIES = 20
 
 

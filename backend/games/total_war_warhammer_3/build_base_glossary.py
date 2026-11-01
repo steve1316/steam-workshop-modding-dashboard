@@ -13,8 +13,7 @@ from pathlib import Path
 
 from backend.core.paths import glossary_path
 from backend.data.glossary_manager import save_glossary
-
-GAME_ID = "total_war_warhammer_3"
+from backend.games.total_war_warhammer_3 import GAME_ID
 
 # Strips `[[...]]` markup tokens and `{{...}}` substitution tokens.
 _MARKUP = re.compile(r"\[\[[^\]]*\]\]|\{\{[^}]*\}\}")

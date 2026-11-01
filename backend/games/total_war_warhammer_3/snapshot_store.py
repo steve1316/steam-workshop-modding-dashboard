@@ -15,8 +15,8 @@ from pathlib import Path
 
 from backend.core.json_store import write_json, write_text_atomic
 from backend.core.paths import game_storage_path, safe_child
+from backend.games.total_war_warhammer_3 import GAME_ID
 
-GAME_ID = "total_war_warhammer_3"
 MAX_SNAPSHOTS = 20
 
 

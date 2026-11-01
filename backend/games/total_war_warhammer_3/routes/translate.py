@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from backend.core.settings import settings
 from backend.data import mod_settings, suggestion_manager, translation_store
+from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes import translation as _t
@@ -23,8 +24,6 @@ from backend.games.total_war_warhammer_3.translation_drift import entry_text
 from backend.providers.base import Revision
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.translation.orchestrator import chunk_entries, run_batch
-
-GAME_ID = "total_war_warhammer_3"
 
 # WH3 colour and icon tags such as `[[col:red]]` and `[[img:ui/x.png]][[/img]]`, left out of name terms.
 _MARKUP_RE = re.compile(r"\[\[[^\]]*\]\]")

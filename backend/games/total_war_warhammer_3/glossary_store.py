@@ -13,8 +13,7 @@ from pathlib import Path
 from backend.core.json_store import write_json
 from backend.core.paths import game_storage_path, glossary_path
 from backend.data import glossary_manager as gm
-
-GAME_ID = "total_war_warhammer_3"
+from backend.games.total_war_warhammer_3 import GAME_ID
 
 
 def _root() -> Path:
