@@ -1,9 +1,4 @@
-"""
-llama.cpp (llama-server) translation provider.
-
-Translates source language text to English using a locally-running llama-server
-instance via its OpenAI-compatible /v1/chat/completions endpoint. No API key or cost.
-"""
+"""llama.cpp provider for a local llama-server via its OpenAI-compatible /v1/chat/completions endpoint. No API key or cost."""
 
 import json
 import time
@@ -15,24 +10,14 @@ from backend.translator.base import TranslationProvider
 
 
 class LlamaCppProvider(TranslationProvider):
-    """Translation provider using a local llama-server instance.
-
-    Uses llama-server's OpenAI-compatible /v1/chat/completions endpoint to
-    translate game mod text from a source language to English. Supports
-    streaming, glossary enforcement, style examples, character context,
-    and automatic glossary term suggestions.
-
-    Attributes:
-        _base_url: llama-server base URL.
-        _model: Display-only model name (llama-server ignores this field).
-    """
+    """Translation provider using a local llama-server instance. The model name is display-only because llama-server ignores it."""
 
     def __init__(self, base_url: Optional[str] = None, model: Optional[str] = None):
         """Initialize the llama.cpp provider.
 
         Args:
-            base_url: llama-server base URL. Defaults to config value.
-            model: Display-only model name. Defaults to config value.
+            base_url: Server base URL, defaulting to the config value.
+            model: Display-only model name, defaulting to the config value.
         """
         self._base_url = base_url or config.LLAMACPP_BASE_URL
         self._model = model or config.LLAMACPP_MODEL
@@ -67,20 +52,16 @@ class LlamaCppProvider(TranslationProvider):
         """Translate a batch of strings via llama-server.
 
         Args:
-            entries: List of (key, source_text) tuples to translate.
-            source_lang: Name of the source language (e.g. `"Korean"`).
-            glossary_prompt: Formatted glossary context for the LLM.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name, e.g. `"Korean"`.
+            glossary_prompt: Formatted glossary context.
             game_context: Game description for the system prompt.
             format_rules: Game-specific formatting preservation rules.
-            style_examples: Dict of category -> [(source, english)] pairs.
-            character_context: Character background info dict.
+            style_examples: Category -> [(source, english)] pairs.
+            character_context: Character background dict.
 
         Returns:
-            A tuple of (translations dict mapping key to English text,
-            suggested_terms list of dicts).
-
-        Raises:
-            RuntimeError: If llama-server is unreachable.
+            (key -> translated text, suggested_terms dicts).
         """
         system_prompt, user_message = self.build_prompt(
             entries,
@@ -93,7 +74,7 @@ class LlamaCppProvider(TranslationProvider):
             target_lang=target_lang,
         )
 
-        # Estimate output tokens needed: ~100 tokens per entry for translations + suggestions.
+        # ~100 output tokens per entry for translations plus suggestions.
         estimated_output = max(8192, len(entries) * 100 + 2048)
 
         payload = {
@@ -163,25 +144,21 @@ class LlamaCppProvider(TranslationProvider):
     ) -> Generator[dict, None, None]:
         """Stream translation via llama-server's /v1/chat/completions endpoint.
 
-        Yields progress events every 0.5s with token counts and speed,
-        followed by a single complete event. If `cancel_event` is set
-        mid-stream, the HTTP connection is closed and a cancelled event
-        is yielded.
+        Yields `progress` events every 0.5 s, then one `complete` event. If `cancel_event` is set mid-stream the connection is closed and a
+        `cancelled` event is yielded.
 
         Args:
-            entries: List of (key, source_text) tuples to translate.
-            source_lang: Name of the source language (e.g. `"Korean"`).
-            glossary_prompt: Formatted glossary context for the LLM.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name, e.g. `"Korean"`.
+            glossary_prompt: Formatted glossary context.
             game_context: Game description for the system prompt.
             format_rules: Game-specific formatting preservation rules.
-            style_examples: Dict of category -> [(source, english)] pairs.
-            character_context: Character background info dict.
-            cancel_event: When set, aborts the request and closes the
-                HTTP connection.
+            style_examples: Category -> [(source, english)] pairs.
+            character_context: Character background dict.
+            cancel_event: When set, aborts the request and closes the connection.
 
         Yields:
-            Dicts with a `"type"` key. Types: `"started"`, `"progress"`,
-            `"complete"`, `"cancelled"`, `"error"`, `"retry"`.
+            Dicts with a `"type"` of `"started"`, `"progress"`, `"complete"`, `"cancelled"`, `"error"` or `"retry"`.
         """
         system_prompt, user_message = self.build_prompt(
             entries,
@@ -235,7 +212,7 @@ class LlamaCppProvider(TranslationProvider):
                     if not line:
                         continue
 
-                    # SSE format: "data: {...}" or "data: [DONE]"
+                    # SSE lines look like "data: {...}" or "data: [DONE]".
                     if not line.startswith("data: "):
                         continue
                     data_str = line[6:]
@@ -306,11 +283,11 @@ class LlamaCppProvider(TranslationProvider):
         """Return a zero-cost estimate for local llama.cpp inference.
 
         Args:
-            entries: List of (key, source_text) tuples.
-            **kwargs: Ignored. Accepted for interface compatibility.
+            entries: (key, source_text) tuples.
+            **kwargs: Ignored.
 
         Returns:
-            A dict with `estimated_cost_usd` of 0.0, `model`, and `note`.
+            Dict with `estimated_cost_usd` of 0.0, `model` and `note`.
         """
         return {
             "estimated_cost_usd": 0.0,

@@ -1,8 +1,4 @@
-"""
-Manages pending glossary term suggestions from AI providers.
-
-Stores suggestions per mod until the user accepts or dismisses them.
-"""
+"""Per-mod pending glossary suggestions from AI providers, kept until the user accepts or dismisses them."""
 
 import json
 import re
@@ -18,11 +14,11 @@ def load_suggestions(mod_id: str, storage_path: Optional[Path] = None) -> list[d
     """Load pending suggestions for a mod.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        storage_path: Base storage path override. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        storage_path: Storage root override.
 
     Returns:
-        List of suggestion dictionaries, or an empty list if none exist.
+        Suggestion dicts, empty if none.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "pending_suggestions.json"
@@ -36,9 +32,9 @@ def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Optiona
     """Save pending suggestions for a mod.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        suggestions: List of suggestion dictionaries to persist.
-        storage_path: Base storage path override. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        suggestions: Suggestion dicts to persist.
+        storage_path: Storage root override.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "pending_suggestions.json"
@@ -49,13 +45,12 @@ def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Optiona
 def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Optional[Path] = None) -> None:
     """Append new suggestions, deduplicating by english term.
 
-    Existing suggestions with the same english term are kept (not overwritten).
+    Existing suggestions with the same english term are kept, not overwritten.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        new_suggestions: List of suggestion dicts to add. Each dict should
-            contain at minimum an `english` key.
-        storage_path: Base storage path override. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        new_suggestions: Suggestion dicts, each with at least an `english` key.
+        storage_path: Storage root override.
     """
     existing = load_suggestions(mod_id, storage_path)
     existing_terms = {_TAG_RE.sub("", s["english"]).lower() for s in existing if "english" in s}
@@ -69,12 +64,12 @@ def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Opti
 
 
 def remove_suggestions(mod_id: str, terms: list[str], storage_path: Optional[Path] = None) -> None:
-    """Remove specific suggestions by english term name.
+    """Remove suggestions by english term.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        terms: List of english term strings to remove.
-        storage_path: Base storage path override. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        terms: English terms to remove.
+        storage_path: Storage root override.
     """
     existing = load_suggestions(mod_id, storage_path)
     filtered = [s for s in existing if s.get("english") not in terms]

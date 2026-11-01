@@ -1,10 +1,4 @@
-"""
-Manages history backups for mod translation data.
-
-Creates timestamped snapshots before destructive operations so the user
-can restore previous states. Each backup captures translations.json,
-glossary.json, pending_suggestions.json, and sync state files.
-"""
+"""Timestamped per-mod backups taken before destructive operations, so the user can restore earlier states."""
 
 import json
 import shutil
@@ -20,11 +14,11 @@ def _history_dir(mod_id: str, storage_path: Optional[Path] = None) -> Path:
     """Return the history directory for a mod, which may not exist yet.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        storage_path: Base storage path override. Defaults to `config.STORAGE_PATH`.
+        mod_id: Mod's Workshop id.
+        storage_path: Storage root override.
 
     Returns:
-        Path to the mod's `history/` directory.
+        The mod's `history/` directory.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     return mods_dir / mod_id / "history"
@@ -34,19 +28,17 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
     """Create a timestamped backup of the mod's current state.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        reason: Human-readable description of why the backup was created
-            (e.g. "Before clearing translations", "Before translation run").
-        storage_path: Base storage path override.
-        kind: "auto" for backups taken automatically before destructive ops, "manual" for user-requested save snapshots.
+        mod_id: Mod's Workshop id.
+        reason: Why the backup was created, e.g. "Before clearing translations".
+        storage_path: Storage root override.
+        kind: "auto" before destructive ops, "manual" for user-requested snapshots.
 
     Returns:
-        The backup ID (its folder name), or None if there was nothing to back up.
+        The backup id (its folder name), or None if there was nothing to back up.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     mod_dir = mods_dir / mod_id
 
-    # Only back up if there's meaningful data.
     files_to_backup = [
         "translations.json",
         "glossary.json",
@@ -72,7 +64,6 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
         suffix += 1
     backup_dir.mkdir()
 
-    # Copy files that exist.
     backed_up = False
     for filename in files_to_backup:
         src = mod_dir / filename
@@ -84,7 +75,6 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
         shutil.rmtree(backup_dir)
         return None
 
-    # Collect translation and glossary counts for the snapshot.
     translated_count = 0
     total_count = 0
     glossary_count = 0
@@ -100,7 +90,6 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
             glossary = json.load(gf)
             glossary_count = len(glossary.get("terms", {}))
 
-    # Save metadata
     meta = {
         "timestamp": timestamp,
         "reason": reason,
@@ -113,7 +102,6 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
     }
     write_json(backup_dir / "meta.json", meta)
 
-    # Prune old backups (keep last 20)
     _prune_backups(mod_id, max_backups=20, storage_path=storage_path)
 
     return backup_dir.name
@@ -123,11 +111,11 @@ def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]
     """List all available backups for a mod, newest first.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        storage_path: Base storage path override.
+        mod_id: Mod's Workshop id.
+        storage_path: Storage root override.
 
     Returns:
-        List of backup metadata dicts with id, reason, created_at, and files.
+        Backup metadata dicts with id, reason, created_at and files.
     """
     hist_dir = _history_dir(mod_id, storage_path)
     if not hist_dir.is_dir():
@@ -142,7 +130,7 @@ def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]
                 meta["id"] = entry.name
                 # Backfill the kind for older backups taken before the field existed.
                 meta.setdefault("kind", "auto")
-                # Backfill counts for older backups that lack them.
+                # Backfill counts for older backups.
                 if "translated_count" not in meta:
                     meta["translated_count"] = 0
                     meta["total_count"] = 0
@@ -165,16 +153,15 @@ def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]
 def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = None) -> bool:
     """Restore a mod's state from a backup.
 
-    Creates a backup of the current state first (reason: "Before restore"),
-    then copies all backed-up files into the mod directory.
+    Backs up the current state first, then copies the backed-up files into the mod directory.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        backup_id: The timestamp ID of the backup to restore.
-        storage_path: Base storage path override.
+        mod_id: Mod's Workshop id.
+        backup_id: Id of the backup to restore.
+        storage_path: Storage root override.
 
     Returns:
-        True if the restore was successful, False if the backup was not found.
+        False if the backup was not found.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     try:
@@ -185,7 +172,6 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = N
     if not backup_dir.exists():
         return False
 
-    # Create a backup of current state before restoring
     create_backup(mod_id, f"Before restore to {backup_id}", storage_path)
 
     mod_dir = mods_dir / mod_id
@@ -199,9 +185,7 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = N
             if src.exists():
                 shutil.copy2(src, mod_dir / filename)
 
-        # Always remove sync state files after restore. The export
-        # targets (injector JSONs or mod CSVs) won't match the restored
-        # state, so strings should appear as PENDING, not SYNCED.
+        # The export targets (injector JSONs or mod CSVs) won't match the restored state, so strings must show PENDING, not SYNCED.
         for sync_file in ("synced_keys.json", "last_csv_hash.json", "pre_export_english.json", "last_export.json"):
             target = mod_dir / sync_file
             if target.exists():
@@ -214,12 +198,12 @@ def delete_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = No
     """Delete a specific backup.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        backup_id: The timestamp ID of the backup to delete.
-        storage_path: Base storage path override.
+        mod_id: Mod's Workshop id.
+        backup_id: Id of the backup to delete.
+        storage_path: Storage root override.
 
     Returns:
-        True if the backup was deleted, False if it was not found.
+        False if the backup was not found.
     """
     try:
         backup_dir = safe_child(_history_dir(mod_id, storage_path), backup_id)
@@ -235,9 +219,9 @@ def _prune_backups(mod_id: str, max_backups: int = 20, storage_path: Optional[Pa
     """Remove oldest backups when the total exceeds `max_backups`.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        max_backups: Maximum number of backups to retain.
-        storage_path: Base storage path override. Defaults to `config.STORAGE_PATH`.
+        mod_id: Mod's Workshop id.
+        max_backups: Most backups to keep.
+        storage_path: Storage root override.
     """
     hist_dir = _history_dir(mod_id, storage_path)
     entries = sorted([e for e in hist_dir.iterdir() if e.is_dir()], reverse=True)

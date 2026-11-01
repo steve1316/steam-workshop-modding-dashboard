@@ -1,9 +1,4 @@
-"""Canonical translation status model shared across games.
-
-Defines the six-state `RowStatus` every game adapter maps its rows into,
-`classify_status()` which encodes the shared classification rules, and the
-`StatusRow` response model returned to the frontend strings table.
-"""
+"""Six-state `RowStatus`, the shared `classify_status()` rules, and the `StatusRow` model for the strings table."""
 
 from __future__ import annotations
 
@@ -22,29 +17,20 @@ def classify_status(
     is_untouched: bool = False,
     source_changed: bool = False,
 ) -> RowStatus:
-    """Map a row's building-block flags to the canonical six-state status.
+    """Map a row's flags to the canonical status.
 
-    Rules, in priority order:
-    1. An untranslatable_reason always wins -> 'untranslatable'.
-    2. A translated row whose source text drifted since it was last synced or
-       translated is 'changed' and needs re-review or an update. This is a shared rule for every game (WH3 'stale' folds in here).
-    3. A synced row with no source drift -> 'synced'.
-    4. A row whose target text shipped with the mod and was never edited -> 'untouched'.
-    5. Any other row that has a translation -> 'pending'.
-    6. Everything else (no translation) -> 'missing'.
-
-    WH3 'orphan' rows (a translation with no parent source) are mapped to 'missing'
-    by the WH3 adapter before this function is reached.
+    Priority: untranslatable reason, then translated with source drift ('changed', which also covers WH3 'stale'), synced, untouched, pending,
+    missing. WH3 'orphan' rows are mapped to 'missing' by the adapter before this is called.
 
     Args:
         untranslatable_reason: Non-empty when the row cannot be translated.
-        has_translation: True when the row has target-language text.
-        is_synced: True when the translation was written to the game's real files.
-        is_untouched: True when the target text shipped with the mod and was never edited.
-        source_changed: True when the source text drifted since the last sync/translate.
+        has_translation: Row has target-language text.
+        is_synced: Translation was written to the game's real files.
+        is_untouched: Target text shipped with the mod and was never edited.
+        source_changed: Source text drifted since the last sync/translate.
 
     Returns:
-        One of 'synced', 'untouched', 'pending', 'changed', 'missing', 'untranslatable'.
+        The `RowStatus`.
     """
     if untranslatable_reason:
         return "untranslatable"
@@ -60,18 +46,7 @@ def classify_status(
 
 
 class StatusRow(BaseModel):
-    """One row in the unified strings table, shared by all games.
-
-    Attributes:
-        key: Localization key.
-        source_file: File the key belongs to. Empty string when not applicable.
-        source_text: Source-language text, or None when absent (orphan rows).
-        target_text: Target-language (translated) text, or None when missing.
-        status: Canonical six-state status from `classify_status`.
-        provider: Who produced the translation ('claude', 'manual', ...), or None.
-        original_target: Target text that shipped with the mod, for the prev-translation hint.
-        untranslatable_reason: User-facing reason the row cannot be translated, when applicable.
-    """
+    """One row in the unified strings table, shared by all games."""
 
     key: str
     source_file: str = ""

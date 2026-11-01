@@ -1,9 +1,4 @@
-"""
-Ollama local LLM translation provider.
-
-Translates source language text to English using a locally-running Ollama
-instance via its native /api/chat endpoint. No API key or cost.
-"""
+"""Ollama provider for a local Ollama instance via its native /api/chat endpoint. No API key or cost."""
 
 import json
 import time
@@ -15,23 +10,14 @@ from backend.translator.base import TranslationProvider
 
 
 class OllamaProvider(TranslationProvider):
-    """Translation provider using a local Ollama instance.
-
-    Uses Ollama's native /api/chat endpoint to translate game mod text from a
-    source language to English. Supports glossary enforcement, style
-    examples, character context, and automatic glossary term suggestions.
-
-    Attributes:
-        _base_url: Ollama server base URL.
-        _model: Ollama model name to use for requests.
-    """
+    """Translation provider using a local Ollama instance."""
 
     def __init__(self, base_url: Optional[str] = None, model: Optional[str] = None):
         """Initialize the Ollama provider.
 
         Args:
-            base_url: Ollama server base URL. Defaults to config value.
-            model: Ollama model name. Defaults to config value.
+            base_url: Server base URL, defaulting to the config value.
+            model: Model name, defaulting to the config value.
         """
         self._base_url = base_url or config.OLLAMA_BASE_URL
         self._model = model or config.OLLAMA_MODEL
@@ -69,20 +55,16 @@ class OllamaProvider(TranslationProvider):
         """Translate a batch of strings via Ollama's /api/chat endpoint.
 
         Args:
-            entries: List of (key, source_text) tuples to translate.
-            source_lang: Name of the source language (e.g. `"Korean"`).
-            glossary_prompt: Formatted glossary context for the LLM.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name, e.g. `"Korean"`.
+            glossary_prompt: Formatted glossary context.
             game_context: Game description for the system prompt.
             format_rules: Game-specific formatting preservation rules.
-            style_examples: Dict of category -> [(source, english)] pairs.
-            character_context: Character background info dict.
+            style_examples: Category -> [(source, english)] pairs.
+            character_context: Character background dict.
 
         Returns:
-            A tuple of (translations dict mapping key to English text,
-            suggested_terms list of dicts).
-
-        Raises:
-            RuntimeError: If Ollama is unreachable.
+            (key -> translated text, suggested_terms dicts).
         """
         system_prompt, user_message = self.build_prompt(
             entries,
@@ -95,9 +77,7 @@ class OllamaProvider(TranslationProvider):
             target_lang=target_lang,
         )
 
-        # Estimate token count to set an adequate context window.
-        # Ollama defaults to a small num_ctx (2048-4096) which silently
-        # truncates the prompt for large batches.
+        # Ollama defaults to a small num_ctx (2048-4096) that silently truncates the prompt for large batches.
         prompt_chars = len(system_prompt) + len(user_message)
         estimated_tokens = int(prompt_chars / 3) + 8192  # headroom for output
         num_ctx = max(8192, ((estimated_tokens + 1023) // 1024) * 1024)
@@ -171,25 +151,21 @@ class OllamaProvider(TranslationProvider):
     ) -> Generator[dict, None, None]:
         """Stream translation via Ollama's `/api/chat` endpoint.
 
-        Yields `progress` events every 0.5 s with token counts and speed,
-        followed by a single `complete` event.  If `cancel_event` is set
-        mid-stream, the HTTP connection to Ollama is closed immediately and
-        a `cancelled` event is yielded.
+        Yields `progress` events every 0.5 s, then one `complete` event. If `cancel_event` is set mid-stream the connection is closed and a
+        `cancelled` event is yielded.
 
         Args:
-            entries: List of (key, source_text) tuples to translate.
-            source_lang: Name of the source language (e.g. `"Korean"`).
-            glossary_prompt: Formatted glossary context for the LLM.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name, e.g. `"Korean"`.
+            glossary_prompt: Formatted glossary context.
             game_context: Game description for the system prompt.
             format_rules: Game-specific formatting preservation rules.
-            style_examples: Dict of category -> [(source, english)] pairs.
-            character_context: Character background info dict.
-            cancel_event: When set, aborts the request and closes the
-                HTTP connection.
+            style_examples: Category -> [(source, english)] pairs.
+            character_context: Character background dict.
+            cancel_event: When set, aborts the request and closes the connection.
 
         Yields:
-            Dicts with a `"type"` key. Types: `"started"`, `"progress"`,
-            `"complete"`, `"cancelled"`, `"error"`, `"retry"`.
+            Dicts with a `"type"` of `"started"`, `"progress"`, `"complete"`, `"cancelled"`, `"error"` or `"retry"`.
         """
         system_prompt, user_message = self.build_prompt(
             entries,
@@ -314,11 +290,11 @@ class OllamaProvider(TranslationProvider):
         """Return a zero-cost estimate for local Ollama inference.
 
         Args:
-            entries: List of (key, source_text) tuples.
-            **kwargs: Ignored. Accepted for interface compatibility.
+            entries: (key, source_text) tuples.
+            **kwargs: Ignored.
 
         Returns:
-            A dict with `estimated_cost_usd` of 0.0, `model`, and `note`.
+            Dict with `estimated_cost_usd` of 0.0, `model` and `note`.
         """
         return {
             "estimated_cost_usd": 0.0,

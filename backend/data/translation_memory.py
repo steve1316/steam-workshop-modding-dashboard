@@ -1,9 +1,4 @@
-"""
-Translation memory for caching and reusing past translations.
-
-Stores source→English translations keyed by content hash to avoid
-redundant API calls and reduce cost.
-"""
+"""Translation memory: source -> English translations keyed by content hash, to avoid redundant API calls."""
 
 import hashlib
 import json
@@ -15,20 +10,13 @@ from backend.core.json_store import write_json
 
 
 class TranslationMemory:
-    """
-    Persistent cache of source text → English translations.
-
-    Translations are keyed by SHA-256 hash of the source text for
-    efficient lookup regardless of which mod the text came from.
-    """
+    """Persistent cache of source text -> English translations, keyed by SHA-256 of the source so lookups work across mods."""
 
     def __init__(self, path: Optional[Path] = None):
-        """
-        Initialize the translation memory.
+        """Initialize the translation memory.
 
         Args:
-            path: Path to the JSON storage file.
-                Defaults to storage/translation_memory.json.
+            path: JSON storage file, defaulting to the Chrono Ark memory path.
         """
         if path is None:
             path = translation_memory_path("chrono_ark")
@@ -54,26 +42,24 @@ class TranslationMemory:
 
     @staticmethod
     def _hash(text: str) -> str:
-        """
-        Compute SHA-256 hash of the source text.
+        """Compute the SHA-256 hex digest of the source text.
 
         Args:
-            text: Source text to hash.
+            text: Source text.
 
         Returns:
-            Hex digest of the hash.
+            Hex digest.
         """
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def lookup(self, source_text: str) -> Optional[str]:
-        """
-        Look up a cached translation for the given source text.
+        """Look up a cached translation for the source text.
 
         Args:
-            source_text: The original (non-English) text.
+            source_text: Original non-English text.
 
         Returns:
-            The cached English translation, or None if not found.
+            Cached English translation, or None.
         """
         key = self._hash(source_text)
         entry = self._entries.get(key)
@@ -89,13 +75,12 @@ class TranslationMemory:
         translation: str,
         source_lang: str = "",
     ) -> None:
-        """
-        Store a new translation in the memory.
+        """Store a translation in the memory.
 
         Args:
-            source_text: The original (non-English) text.
-            translation: The English translation.
-            source_lang: The source language name.
+            source_text: Original non-English text.
+            translation: English translation.
+            source_lang: Source language name.
         """
         key = self._hash(source_text)
         self._entries[key] = {
@@ -106,11 +91,10 @@ class TranslationMemory:
         }
 
     def get_stats(self) -> dict:
-        """
-        Get translation memory statistics.
+        """Get translation memory statistics.
 
         Returns:
-            Dictionary with total entries, session hits/misses, and hit rate.
+            Total entries, session hits/misses and hit rate.
         """
         total_lookups = self._hits + self._misses
         hit_rate = (self._hits / total_lookups * 100) if total_lookups > 0 else 0.0

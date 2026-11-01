@@ -1,11 +1,4 @@
-"""One-time migration: legacy flat storage -> per-game namespaced storage.
-
-Moves `<STORAGE_PATH>/mods/...`, `<STORAGE_PATH>/glossary.json`, and
-`<STORAGE_PATH>/translation_memory.json` to
-`<STORAGE_PATH>/games/chrono_ark/{mods, glossary.json, translation_memory.json}`.
-Idempotent: writes a marker file once complete and is a no-op when the marker
-is present.
-"""
+"""One-time migration: move legacy flat storage (mods, glossary, translation memory) into `games/chrono_ark/`. Idempotent via a marker file."""
 
 from __future__ import annotations
 
@@ -40,7 +33,7 @@ def run_migration() -> bool:
     """Move legacy storage into the per-game namespace if not already done.
 
     Returns:
-        `True` if the migration ran. `False` if the marker already exists.
+        Whether the migration ran.
     """
     marker = _marker_path()
     if marker.exists():

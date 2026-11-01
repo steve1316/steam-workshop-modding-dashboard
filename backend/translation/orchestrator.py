@@ -1,10 +1,4 @@
-"""Game-agnostic translation orchestration primitives.
-
-These helpers contain the parts of the batch-translation flow that do not depend
-on any game: invoking a translation provider for a single batch and filling in
-keys the provider deduplicated. Game-specific concerns (storage, progress,
-glossary suggestion handling) stay in each game's route layer.
-"""
+"""Game-agnostic batch-translation helpers. Storage, progress and glossary suggestions stay in each game's route layer."""
 
 from __future__ import annotations
 
@@ -15,17 +9,14 @@ from typing import Any
 def fill_duplicate_translations(translations: dict[str, str], entries: list[tuple[str, str]]) -> dict[str, str]:
     """Fill missing keys whose source text matches an already-translated entry.
 
-    LLMs often deduplicate identical source strings and only return one key in
-    the response. This copies the translation to every other key that shares the
-    same source text so nothing is left untranslated.
+    LLMs often deduplicate identical source strings and return only one key.
 
     Args:
-        translations: Mutable dict of key -> target text returned by the provider.
-            Modified in-place to include any missing duplicate keys.
+        translations: Provider's key -> target text, modified in place.
         entries: Original (key, source_text) tuples sent to the provider.
 
     Returns:
-        The same `translations` dict, modified in place.
+        The same `translations` dict.
     """
     source_to_translation: dict[str, str] = {}
     for key, source_text in entries:
@@ -42,8 +33,7 @@ def fill_duplicate_translations(translations: dict[str, str], entries: list[tupl
 def chunk_entries(entries: list[tuple[str, str]], max_keys: int, max_chars: int) -> list[list[tuple[str, str]]]:
     """Split entries into batches capped by key count and by total source characters.
 
-    The character cap keeps batches of long strings small enough that the model's reply fits its output token limit. An entry longer than
-    `max_chars` on its own still gets a batch of its own.
+    The character cap keeps the model's reply within its output token limit. An entry longer than `max_chars` still gets a batch of its own.
 
     Args:
         entries: (key, source_text) tuples in translation order.
@@ -80,25 +70,21 @@ async def run_batch(
     character_context: dict[str, str] | None,
     target_lang: str,
 ) -> tuple[dict[str, str], list[Any]]:
-    """Translate one batch via `provider`, off the event loop, filling duplicates.
-
-    Runs the (blocking) provider call in the default executor so the event loop
-    stays responsive, then fills any keys the provider deduplicated. Exceptions
-    from the provider propagate to the caller.
+    """Translate one batch via `provider` in the default executor, then fill deduplicated keys.
 
     Args:
-        provider: A translation provider exposing `translate_batch(...)`.
-        entries: (key, source_text) tuples to translate.
-        source_lang: Source language name (e.g. `"Chinese"`).
-        glossary_prompt: Combined base + mod glossary section for the prompt.
-        game_context: Game-specific prose context for the prompt.
+        provider: Provider exposing `translate_batch(...)`.
+        entries: (key, source_text) tuples.
+        source_lang: Source language name, e.g. `"Chinese"`.
+        glossary_prompt: Combined base + mod glossary section.
+        game_context: Game-specific prose context.
         format_rules: Per-line format-preservation rules.
-        style_examples: Source-language to (input, output) example pairs.
-        character_context: Optional character/mod context, or None.
-        target_lang: Language being translated into (e.g. `"English"`).
+        style_examples: Source language to (input, output) example pairs.
+        character_context: Optional character/mod context.
+        target_lang: Target language name, e.g. `"English"`.
 
     Returns:
-        Tuple of (translations dict keyed by key, suggestion objects).
+        (translations keyed by key, suggestion objects).
     """
     loop = asyncio.get_running_loop()
     translations, suggestions = await loop.run_in_executor(

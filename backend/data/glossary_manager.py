@@ -1,11 +1,4 @@
-"""
-Glossary manager for consistent English terminology.
-
-Builds and maintains a glossary of official English game terms extracted
-from the base game's localization files. The glossary maps source language
-terms to their canonical English translations. Supports per-mod glossaries
-that overlay the base game glossary.
-"""
+"""Glossary of canonical English game terms built from the base game's localization, with per-mod glossaries layered on top."""
 
 import json
 import re
@@ -18,23 +11,18 @@ from backend.models import LocString
 from backend.core.json_store import write_json
 
 
-# Common game terms to auto-extract from the base game.
 _NAME_KEY_SUFFIXES = ("_Name", "_name", "_PassiveName", "_SkinName")
 
-# Key patterns that yield mechanic terms. Each entry is a prefix; the
-# English value of matching keys is used as the term name.
+# Prefixes of keys whose English value is a mechanic term name.
 _MECHANIC_PREFIXES = ("Battle/Keyword/", "Battle/SkillTooltip/")
 
-# Exact keys that map to a specific mechanic term.
 _MECHANIC_EXACT_KEYS: dict[str, str] = {
     "System/Debuff": "Debuff",
     "UI/CharStat/PartyStat_MP": "Mana",
     "UI/Battle/Buff/Barrier": "Barrier",
 }
 
-# Manual mechanic terms that appear within other strings but have no
-# dedicated key. Each entry maps the English term to its known source
-# language translations.
+# Mechanic terms that appear inside other strings with no dedicated key, mapped to their source language forms.
 _MANUAL_MECHANIC_TERMS: dict[str, dict[str, str]] = {
     "Exchange": {"Chinese": "交换", "Korean": "교환", "Japanese": "交換"},
     "Action Count": {"Chinese": "行动次数", "Korean": "행동 횟수", "Japanese": "行動回数"},
@@ -46,7 +34,7 @@ _MANUAL_MECHANIC_TERMS: dict[str, dict[str, str]] = {
     "stacks": {"Chinese": "layers", "Korean": "layers", "Japanese": "layers"},
 }
 
-# Mechanic-pattern keys to skip (not actual mechanic terms).
+# Keys matching the mechanic prefixes that are not real mechanic terms.
 _MECHANIC_IGNORED_KEYS = {
     "Battle/Keyword/Autodelete",
     "Battle/Keyword/CutScene",
@@ -54,11 +42,10 @@ _MECHANIC_IGNORED_KEYS = {
     "Battle/Keyword/Quick_Desc_Casual",
 }
 
-# Regex to strip sprite tags and stat placeholders from System/StatDesc values.
+# Strips sprite tags and stat placeholders from System/StatDesc values.
 _STAT_DESC_CLEANUP = re.compile(r"<sprite[^>]*>|\{0\}%?")
 
 
-# Suffix-to-category mapping for mod name-key auto-detection.
 _SUFFIX_CATEGORY: dict[str, str] = {
     "_PassiveName": "passives",
     "_SkinName": "other",
@@ -73,19 +60,14 @@ _IGNORED_NAME_KEY_PREFIXES = ("SkillExtended/",)
 def _mechanic_english(key: str, english: str) -> str | None:
     """Return the cleaned mechanic term name if the key is a mechanic pattern.
 
-    Mechanic patterns:
-    - `Battle/Keyword/xxx` (excluding `_Desc` suffixes)
-    - `Battle/SkillTooltip/xxx`
-    - `System/StatDesc/xxx` (cleaned of sprite tags and placeholders)
-    - Exact keys in `_MECHANIC_EXACT_KEYS`
+    Patterns are `Battle/Keyword/*` (not `_Desc`), `Battle/SkillTooltip/*`, `System/StatDesc/*` and `_MECHANIC_EXACT_KEYS`.
 
     Args:
-        key: The localization key to classify.
-        english: The raw English value from the localization data.
+        key: Localization key.
+        english: Raw English value.
 
     Returns:
-        The cleaned English term name, or None if the key is not a
-        mechanic pattern.
+        The English term name, or None if the key is not a mechanic pattern.
     """
     if key in _MECHANIC_IGNORED_KEYS:
         return None
@@ -105,14 +87,14 @@ def _mechanic_english(key: str, english: str) -> str | None:
 
 
 def _matches_prefix(key: str, prefix: str | list[str]) -> bool:
-    """Check if a key starts with any of the given prefix(es).
+    """Check if a key starts with any of the given prefixes.
 
     Args:
-        key: The localization key to test.
-        prefix: A single prefix string or a list of prefix strings.
+        key: Localization key.
+        prefix: One prefix or a list of them.
 
     Returns:
-        True if the key starts with any of the given prefixes.
+        Whether the key matches.
     """
     if isinstance(prefix, list):
         return any(key.startswith(p) for p in prefix)
@@ -124,20 +106,15 @@ def build_glossary_from_base_game(
     term_categories: dict[str, str | list[str]],
     source_languages: list[str],
 ) -> dict[str, dict]:
-    """
-    Auto-build a glossary from the base game's localization data.
-
-    Extracts name entries (keys ending in _Name, _name, _PassiveName, or
-    _SkinName) and mechanic terms from keyword keys, skill tooltip keys,
-    stat description keys, and specific exact keys.
+    """Auto-build a glossary from the base game's name keys and mechanic keys.
 
     Args:
-        base_strings: Dictionary of base game LocString objects.
+        base_strings: Base game `LocString` objects.
         term_categories: Category name -> key prefix mappings.
-        source_languages: List of source language names to include.
+        source_languages: Source language names to include.
 
     Returns:
-        Glossary dictionary.
+        Glossary dict.
     """
     glossary: dict[str, dict] = {"terms": {}}
 
@@ -148,7 +125,6 @@ def build_glossary_from_base_game(
         if not english:
             continue
 
-        # Determine the category and clean up the English term.
         mechanic_term = _mechanic_english(key, english)
         if mechanic_term is not None:
             category = "mechanics"
@@ -161,7 +137,7 @@ def build_glossary_from_base_game(
                 if _matches_prefix(key, prefix):
                     category = cat_name
                     break
-            # Suffix and specific key patterns override prefix-based category.
+            # Suffix and specific key patterns override the prefix-based category.
             if key.endswith("_PassiveName"):
                 category = "passives"
             elif key.endswith("_SkinName"):
@@ -172,7 +148,6 @@ def build_glossary_from_base_game(
         if not english:
             continue
 
-        # Build source language mappings.
         source_mappings = {}
         for lang in source_languages:
             text = loc_str.translations.get(lang, "").strip().split("\n")[0].strip()
@@ -190,7 +165,6 @@ def build_glossary_from_base_game(
             "updated_at": now,
         }
 
-    # Add manual mechanic terms that have no dedicated key.
     now = datetime.now(timezone.utc).isoformat()
     for english, mappings in _MANUAL_MECHANIC_TERMS.items():
         manual_key = f"_manual/{english}"
@@ -217,25 +191,19 @@ def extract_name_key_suggestions(
     mod_glossary: dict,
     term_categories: dict[str, str | list[str]] | None = None,
 ) -> list[dict]:
-    """Extract glossary suggestions from translated name keys.
-
-    Scans the translated keys for entries ending in name suffixes
-    (`_Name`, `_name`, `_PassiveName`, `_SkinName`). Any such entry whose
-    English translation is not already in the mod glossary or pending
-    suggestions is returned as a new suggestion marked as auto-detected.
+    """Suggest glossary terms from just-translated name keys not already in the mod glossary or pending suggestions.
 
     Args:
         translated_keys: Keys that were just translated.
-        strings: Full strings dict mapping key -> LocString.
-        translations: Key -> English translation mapping from the provider.
-        source_lang: Source language name (e.g. `"Korean"`).
-        existing_suggestions: Already-pending suggestion dicts for dedup.
-        mod_glossary: The mod's current glossary dict.
-        term_categories: Optional category name -> key prefix mappings for
-            categorising suggestions (e.g. `{"characters": "Character/"}`).
+        strings: Key -> `LocString`.
+        translations: Key -> English translation from the provider.
+        source_lang: Source language name, e.g. `"Korean"`.
+        existing_suggestions: Pending suggestions, for dedup.
+        mod_glossary: The mod's current glossary.
+        term_categories: Category name -> key prefix mappings, e.g. `{"characters": "Character/"}`.
 
     Returns:
-        List of new suggestion dicts ready to be stored.
+        New suggestion dicts.
     """
     existing_english = {_TAG_PATTERN.sub("", s.get("english", "")).lower() for s in existing_suggestions}
     glossary_terms = {_TAG_PATTERN.sub("", info.get("english", t)).lower() for t, info in mod_glossary.get("terms", {}).items()}
@@ -256,7 +224,6 @@ def extract_name_key_suggestions(
         if not matched_suffix:
             continue
 
-        # Skip prefixes whose _Name fields hold descriptions, not names.
         if any(key.startswith(p) for p in _IGNORED_NAME_KEY_PREFIXES):
             continue
 
@@ -269,7 +236,6 @@ def extract_name_key_suggestions(
         if stripped in existing_english or stripped in glossary_terms:
             continue
 
-        # Determine source text.
         loc_str = strings.get(key)
         source_text = ""
         if loc_str:
@@ -279,7 +245,6 @@ def extract_name_key_suggestions(
         if source_text and source_text in existing_sources:
             continue
 
-        # Determine category from key prefix or suffix default.
         category = _SUFFIX_CATEGORY[matched_suffix]
         for cat_name, prefix in categories.items():
             if _matches_prefix(key, prefix):
@@ -302,10 +267,10 @@ def extract_name_key_suggestions(
     return new_suggestions
 
 
-# Categories whose terms should be title-cased (proper nouns / names).
+# Categories whose terms are proper nouns and get title-cased.
 _TITLE_CASE_CATEGORIES = {"characters", "names", "skills", "passives", "items", "buffs/debuffs"}
 
-# Lowercase words that should stay lowercase in title case (articles, etc.).
+# Minor words kept lowercase in title case unless first.
 _TITLE_CASE_MINOR_WORDS = {"a", "an", "the", "and", "but", "or", "nor", "for", "in", "on", "at", "to", "of", "by", "is"}
 
 
@@ -313,16 +278,13 @@ _TAG_PATTERN = re.compile(r"(<[^>]+>)")
 
 
 def _title_case(text: str) -> str:
-    """Convert text to title case, preserving markup tags like `<color=...>`.
-
-    Tags are kept as-is. Only the text segments between tags are title-cased,
-    with minor words kept lowercase unless they are the first visible word.
+    """Title-case the text between markup tags like `<color=...>`, leaving the tags as-is.
 
     Args:
-        text: The input text to title-case.
+        text: Text to title-case.
 
     Returns:
-        The title-cased text with tags preserved.
+        The title-cased text.
     """
     parts = _TAG_PATTERN.split(text)
     result = []
@@ -347,18 +309,14 @@ def suggest_glossary_edits(
     mod_glossary: dict,
     existing_suggestions: list[dict],
 ) -> list[dict]:
-    """Suggest edits to existing glossary terms, such as title-casing names.
-
-    Scans glossary terms in name-related categories and suggests title-cased
-    versions for terms that aren't already title-cased.
+    """Suggest title-cased versions of existing glossary terms in name-related categories.
 
     Args:
-        mod_glossary: The mod's current glossary dict.
-        existing_suggestions: Already-pending suggestion dicts for dedup.
+        mod_glossary: The mod's current glossary.
+        existing_suggestions: Pending suggestions, for dedup.
 
     Returns:
-        List of edit suggestion dicts with an `edit_of` field referencing
-        the original term.
+        Edit suggestion dicts, each with an `edit_of` field naming the original term.
     """
     existing_english = {s.get("english", "").lower() for s in existing_suggestions}
     terms = mod_glossary.get("terms", {})
@@ -397,14 +355,13 @@ def suggest_glossary_edits(
 
 
 def load_glossary(path: Optional[Path] = None) -> dict:
-    """
-    Load the glossary from a JSON file.
+    """Load the glossary from a JSON file.
 
     Args:
-        path: Path to the glossary file. Defaults to storage/glossary.json.
+        path: Glossary file, defaulting to the Chrono Ark path.
 
     Returns:
-        Glossary dictionary, or empty structure if file doesn't exist.
+        Glossary dict, empty structure if the file doesn't exist.
     """
     if path is None:
         path = glossary_path("chrono_ark")
@@ -417,12 +374,11 @@ def load_glossary(path: Optional[Path] = None) -> dict:
 
 
 def save_glossary(glossary: dict, path: Optional[Path] = None) -> None:
-    """
-    Save the glossary to a JSON file.
+    """Save the glossary to a JSON file.
 
     Args:
-        glossary: The glossary dictionary to save.
-        path: Path to save to. Defaults to storage/glossary.json.
+        glossary: Glossary dict.
+        path: Target file, defaulting to the Chrono Ark path.
     """
     if path is None:
         path = glossary_path("chrono_ark")
@@ -440,25 +396,23 @@ def add_glossary_term(
     source_mappings: Optional[dict[str, str]] = None,
     category: str = "custom",
 ) -> dict:
-    """
-    Add or update a term in the glossary.
+    """Add or update a term in the glossary.
 
     Args:
-        glossary: The glossary dictionary to modify.
-        english_term: The canonical English term.
-        source_mappings: Optional source language mappings.
-        category: Term category (e.g., "characters", "buffs/debuffs", "custom").
+        glossary: Glossary dict, modified in place.
+        english_term: Canonical English term.
+        source_mappings: Source language mappings.
+        category: Term category, e.g. "characters" or "custom".
 
     Returns:
-        The modified glossary dictionary.
+        The modified glossary.
     """
     if "terms" not in glossary:
         glossary["terms"] = {}
 
     now = datetime.now(timezone.utc).isoformat()
 
-    # Use the first source text as the unique key when available,
-    # otherwise fall back to the English term.
+    # Key by the first source text when available, else the English term.
     if source_mappings:
         term_key = next(iter(source_mappings.values()))
     else:
@@ -487,26 +441,19 @@ def get_glossary_prompt(
     exclude_terms: set[str] | None = None,
     target_lang: str = "English",
 ) -> str:
-    """
-    Format the glossary as context for an LLM translation prompt.
+    """Format the glossary as LLM prompt context.
 
-    When translating into English (default), shows English terms bold with
-    source language mappings. When translating from English into a CJK
-    language, reverses the direction: shows the target language term bold
-    with the English source mapping.
+    Into English it shows English terms with source mappings. Into another language the direction is reversed.
 
     Args:
-        glossary: The glossary dictionary.
-        allowed_categories: If provided, only include terms from these categories.
-            Defaults to config.GLOSSARY_CATEGORIES. Pass an empty list to
-            disable category filtering entirely.
-        source_lang: If provided, only include mappings for this language.
-            This significantly reduces prompt size.
-        exclude_terms: If provided, skip any term whose key is in this set.
-        target_lang: The language being translated into. Defaults to `"English"`.
+        glossary: Glossary dict.
+        allowed_categories: Categories to include, defaulting to `config.GLOSSARY_CATEGORIES`. An empty list disables filtering.
+        source_lang: Only include mappings for this language, which shrinks the prompt.
+        exclude_terms: English terms to skip.
+        target_lang: Target language name.
 
     Returns:
-        Formatted string suitable for use as LLM system prompt context.
+        Prompt section, empty if no terms qualify.
     """
     if not glossary.get("terms"):
         return ""
@@ -523,7 +470,6 @@ def get_glossary_prompt(
         "",
     ]
 
-    # Group by category, filtering to allowed categories.
     by_category: dict[str, list[tuple[str, dict]]] = {}
     for term_key, info in glossary["terms"].items():
         english_term = info.get("english", term_key)
@@ -535,12 +481,10 @@ def get_glossary_prompt(
 
         mappings = info.get("source_mappings", {})
         if reverse:
-            # When translating English→CJK, only include terms that have
-            # a mapping for the target language.
+            # Only terms with a target language mapping are usable in reverse.
             if target_lang not in mappings:
                 continue
         elif source_lang:
-            # Only include terms that have a mapping for the source language.
             if source_lang not in mappings:
                 continue
 
@@ -556,7 +500,6 @@ def get_glossary_prompt(
         for english_term, info in sorted(terms, key=lambda x: x[0]):
             mappings = info.get("source_mappings", {})
             if reverse:
-                # Show target-language term bold, English as source.
                 target_term = mappings.get(target_lang, english_term)
                 lines.append(f"- **{target_term}** ← English: {english_term}")
             elif mappings:
@@ -579,22 +522,19 @@ def get_combined_glossary_prompt(
     target_lang: str = "English",
     allowed_categories: list[str] | None = None,
 ) -> str:
-    """
-    Build a glossary prompt from base and mod glossaries.
+    """Build a glossary prompt from the base and mod glossaries.
 
-    Base glossary terms are filtered by config.GLOSSARY_CATEGORIES to control
-    prompt size. Mod glossary terms are always included (user-curated).
-    Mod terms that override base terms appear only once (unfiltered).
+    Base terms are filtered by category to control prompt size. Mod terms are user-curated so always included, and override base terms.
 
     Args:
-        base: The base game glossary.
-        mod: The mod-specific glossary.
-        source_lang: If provided, only include mappings for this language.
-        target_lang: The language being translated into. Defaults to `"English"`.
-        allowed_categories: Base-glossary categories to include. Defaults to config.GLOSSARY_CATEGORIES when None.
+        base: Base game glossary.
+        mod: Mod glossary.
+        source_lang: Only include mappings for this language.
+        target_lang: Target language name.
+        allowed_categories: Base categories to include, defaulting to `config.GLOSSARY_CATEGORIES`.
 
     Returns:
-        Combined formatted glossary prompt string.
+        Combined prompt section.
     """
     mod_term_keys = set(mod.get("terms", {}).keys())
 
@@ -605,11 +545,10 @@ def get_combined_glossary_prompt(
         exclude_terms=mod_term_keys,
         target_lang=target_lang,
     )
-    # Pass empty list to disable category filtering for mod terms.
     mod_prompt = get_glossary_prompt(mod, allowed_categories=[], source_lang=source_lang, target_lang=target_lang)
 
     if base_prompt and mod_prompt:
-        # Strip the duplicate header from the mod prompt and append its terms.
+        # Drop the mod prompt's duplicate header.
         mod_body = mod_prompt.split("\n\n", 2)
         if len(mod_body) > 2:
             return base_prompt + "\n" + mod_body[2]
@@ -618,15 +557,14 @@ def get_combined_glossary_prompt(
 
 
 def load_mod_glossary(mod_id: str, storage_path: Optional[Path] = None) -> dict:
-    """
-    Load a mod-specific glossary.
+    """Load a mod's glossary.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        storage_path: Base storage path. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        storage_path: Storage root override.
 
     Returns:
-        Glossary dictionary, or empty structure if none exists.
+        Glossary dict, empty structure if none exists.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "glossary.json"
@@ -637,13 +575,12 @@ def load_mod_glossary(mod_id: str, storage_path: Optional[Path] = None) -> dict:
 
 
 def save_mod_glossary(mod_id: str, glossary: dict, storage_path: Optional[Path] = None) -> None:
-    """
-    Save a mod-specific glossary.
+    """Save a mod's glossary.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        glossary: The glossary dictionary to save.
-        storage_path: Base storage path. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        glossary: Glossary dict.
+        storage_path: Storage root override.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "glossary.json"
@@ -652,26 +589,24 @@ def save_mod_glossary(mod_id: str, glossary: dict, storage_path: Optional[Path] 
 
 
 def merge_glossaries(base: dict, mod: dict) -> dict:
-    """
-    Merge base game and mod glossaries. Mod terms override base on collision.
+    """Merge base and mod glossaries, with mod terms overriding base on collision.
 
     Args:
-        base: The base game glossary.
-        mod: The mod-specific glossary.
+        base: Base game glossary.
+        mod: Mod glossary.
 
     Returns:
-        Merged glossary dictionary.
+        Merged glossary.
     """
     merged_terms = {**base.get("terms", {}), **mod.get("terms", {})}
     return {"terms": merged_terms}
 
 
 def print_glossary(glossary: dict) -> None:
-    """
-    Print the glossary in a human-readable format.
+    """Print the glossary in a human-readable format.
 
     Args:
-        glossary: The glossary dictionary to display.
+        glossary: Glossary dict.
     """
     terms = glossary.get("terms", {})
     if not terms:
@@ -702,16 +637,16 @@ def print_glossary(glossary: dict) -> None:
 def replace_whole_term(text: str, old_term: str, new_term: str) -> tuple[str, int]:
     """Replace `old_term` with `new_term` wherever it stands alone in `text`.
 
-    A match must not touch a letter, digit or underscore on either side, so `Nangao` is not replaced inside `Nangaoese`. Unlike a plain `\\b` match, this
-    also works for terms that start or end with punctuation, such as `[Lord of Wind] Lidao`.
+    A match must not touch a letter, digit or underscore, so `Nangao` is not replaced inside `Nangaoese`. Unlike a plain `\\b`, this also works
+    for terms starting or ending with punctuation, such as `[Lord of Wind] Lidao`.
 
     Args:
-        text: The text to search.
-        old_term: The term to replace.
-        new_term: The replacement, inserted literally.
+        text: Text to search.
+        old_term: Term to replace.
+        new_term: Replacement, inserted literally.
 
     Returns:
-        The new text and the number of replacements made.
+        The new text and the replacement count.
     """
     pattern = re.compile(r"(?<!\w)" + re.escape(old_term) + r"(?!\w)")
     return pattern.subn(lambda _match: new_term, text)

@@ -1,13 +1,6 @@
-"""One-time migration: consolidate Chrono Ark's split storage.
+"""One-time migration: merge Chrono Ark per-mod sidecars still written to the legacy flat `mods/` tree into the per-game mod dir.
 
-Older route code wrote per-mod sidecars (synced_keys.json, last_csv_hash.json,
-pre_export_english.json, last_api_responses.json, translation_providers.json,
-source.json, last_export.json, original_csvs/, original_gdata/, export/) to the
-legacy flat `<STORAGE_PATH>/mods/<mod>/...` even after v1->v2 moved the bulk data
-to `<STORAGE_PATH>/games/chrono_ark/mods/`. This migration merges every legacy
-file into the per-game mod dir, overwriting (legacy is the freshest copy, since
-the buggy routes wrote there most recently), then removes the empty legacy `mods`
-tree. Idempotent via a marker file.
+Legacy files overwrite the new ones because the buggy routes wrote there most recently. Idempotent via a marker file.
 """
 
 from __future__ import annotations
@@ -38,7 +31,7 @@ def run_migration() -> bool:
     """Merge legacy flat sidecars into the per-game namespace if not already done.
 
     Returns:
-        `True` if the migration ran (marker written). `False` if the marker already exists.
+        Whether the migration ran.
     """
     marker = _marker_path()
     if marker.exists():

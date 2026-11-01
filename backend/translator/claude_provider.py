@@ -1,9 +1,4 @@
-"""
-Anthropic Claude translation provider.
-
-Translates source language text to English using the Claude API
-with glossary enforcement, style examples, and term suggestion.
-"""
+"""Anthropic Claude translation provider."""
 
 import time
 from typing import Optional
@@ -40,8 +35,8 @@ def _object_schema(properties: dict) -> dict:
 
 _STRING = {"type": "string"}
 
-# Structured-output schema for translation replies. The API guarantees the reply parses and matches it, so a stray quote in a translation cannot break
-# the JSON. Objects must be closed, so translations are key/text items instead of a key -> text object.
+# Structured-output schema for replies. The API guarantees a parseable match, so a stray quote cannot break the JSON.
+# Objects must be closed, so translations are key/text items instead of a key -> text object.
 TRANSLATION_SCHEMA = _object_schema(
     {
         "translations": {"type": "array", "items": _object_schema({"key": _STRING, "text": _STRING})},
@@ -52,9 +47,8 @@ TRANSLATION_SCHEMA = _object_schema(
     }
 )
 
-# Extra request fields per model, sent via `extra_body` so they work on SDK versions that predate them. Translation does not need
-# thinking and thinking tokens bill as output. Sonnet 5 can turn it off. The Opus 5 models think by default (Opus 5.5 cannot disable it),
-# so they run at low effort instead. Older models do not think unless asked, so they need nothing.
+# Extra request fields per model, sent via `extra_body` so they work on older SDK versions. Thinking is wasted here and bills as output.
+# Sonnet 5 can turn it off. The Opus 5 models think by default (Opus 5.5 cannot disable it) so they run at low effort. Older models need nothing.
 _MODEL_REQUEST_OPTIONS: dict[str, dict] = {
     "claude-sonnet-5": {"thinking": {"type": "disabled"}},
     "claude-opus-5": {"output_config": {"effort": "low"}},
@@ -63,7 +57,7 @@ _MODEL_REQUEST_OPTIONS: dict[str, dict] = {
 
 
 def _request_extra_body(model: str) -> dict:
-    """Build the `extra_body` fields for a translation request: the model's options plus the structured-output format.
+    """Build the `extra_body` for a translation request: the model's options plus the structured-output format.
 
     Args:
         model: Claude model id.
@@ -77,18 +71,13 @@ def _request_extra_body(model: str) -> dict:
 
 
 def _response_text(response) -> str:
-    """Return the text of the first text block in a Messages API response.
-
-    Models that think return thinking blocks before the answer, so `content[0]` is not always the text.
+    """Return the text of the first text block, since thinking models put thinking blocks before the answer.
 
     Args:
-        response: The Messages API response object.
-
-    Raises:
-        ValueError: If the response contains no text block.
+        response: Messages API response.
 
     Returns:
-        The text of the first text block.
+        The block's text.
     """
     for block in response.content:
         if block.type == "text":
@@ -97,16 +86,7 @@ def _response_text(response) -> str:
 
 
 class ClaudeProvider(TranslationProvider):
-    """Translation provider using Anthropic's Claude API.
-
-    Uses Claude to translate game mod text from a source language to English,
-    with support for glossary enforcement, style examples, character context,
-    and automatic glossary term suggestions.
-
-    Attributes:
-        _api_key: Anthropic API key for authentication.
-        _model: Claude model identifier to use for requests.
-    """
+    """Translation provider using Anthropic's Claude API."""
 
     output_format_template = ITEMS_OUTPUT_FORMAT
 
@@ -114,10 +94,8 @@ class ClaudeProvider(TranslationProvider):
         """Initialize the Claude translation provider.
 
         Args:
-            api_key: Anthropic API key. Falls back to the value from
-                `config.ANTHROPIC_API_KEY` when not provided.
-            model: Claude model identifier. Falls back to
-                `config.CLAUDE_MODEL` when not provided.
+            api_key: Anthropic API key, defaulting to `config.ANTHROPIC_API_KEY`.
+            model: Model id, defaulting to `config.CLAUDE_MODEL`.
         """
         self._api_key = api_key or config.ANTHROPIC_API_KEY
         self._model = model or config.CLAUDE_MODEL
@@ -137,31 +115,22 @@ class ClaudeProvider(TranslationProvider):
         character_context: dict | None = None,
         target_lang: str = "English",
     ) -> tuple[dict[str, str], list[dict]]:
-        """Translate a batch of strings using the Claude API.
+        """Translate a batch of strings with Claude, retrying rate-limit and transient API errors up to 3 times with backoff.
 
-        Sends the entries to Claude with the assembled prompt and parses the
-        JSON response. Retries automatically on rate-limit and transient API
-        errors (up to 3 attempts with exponential backoff). A reply cut off at
-        `MAX_OUTPUT_TOKENS` is retried as two half-size batches.
+        A reply cut off at `MAX_OUTPUT_TOKENS` is retried as two half-size batches.
 
         Args:
-            entries: List of (key, source_text) tuples to translate.
-            source_lang: Name of the source language (e.g., `"Korean"`).
-            glossary_prompt: Pre-formatted glossary section for the prompt.
-            game_context: Game title or description for the system prompt.
-            format_rules: Formatting preservation rules to include.
-            style_examples: Dict of category -> [(source, english)] pairs
-                for few-shot style guidance.
-            character_context: Character background info dict with keys like
-                `"character_name"`, `"source_game"`, and `"background"`.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name, e.g. `"Korean"`.
+            glossary_prompt: Pre-formatted glossary section.
+            game_context: Game title or description.
+            format_rules: Formatting preservation rules.
+            style_examples: Category -> [(source, english)] few-shot pairs.
+            character_context: Dict with `"character_name"`, `"source_game"` and `"background"`.
+            target_lang: Target language name.
 
         Returns:
-            tuple[dict[str, str], list[dict]]: A tuple of (translations dict
-                mapping key to English text, suggested_terms list of dicts).
-
-        Raises:
-            ValueError: If no Anthropic API key is configured, or the response has no parseable translations.
-            RuntimeError: If all retry attempts are exhausted, or a single string alone hits `MAX_OUTPUT_TOKENS`.
+            (key -> translated text, suggested_terms dicts).
         """
         import anthropic
 
@@ -192,7 +161,6 @@ class ClaudeProvider(TranslationProvider):
         raw_text = _response_text(response)
         stop_reason = getattr(response, "stop_reason", None)
 
-        # Store raw response for inspection
         self.last_raw_responses = getattr(self, "last_raw_responses", [])
         in_tok = getattr(response.usage, "input_tokens", None)
         out_tok = getattr(response.usage, "output_tokens", None)
@@ -237,11 +205,8 @@ class ClaudeProvider(TranslationProvider):
         """Send a Messages API request, retrying on rate limits and transient API errors.
 
         Args:
-            client: The Anthropic client.
+            client: Anthropic client.
             request: Keyword arguments for `client.messages.create`.
-
-        Raises:
-            RuntimeError: If all retry attempts are exhausted.
 
         Returns:
             The Messages API response.
@@ -275,25 +240,20 @@ class ClaudeProvider(TranslationProvider):
         character_context: dict | None = None,
         target_lang: str = "English",
     ) -> dict:
-        """Estimate the cost of translating the given entries with Claude.
-
-        Builds the full prompt to get a realistic character count, then
-        estimates token counts using heuristic ratios for CJK vs ASCII
-        characters. Applies the selected model's pricing rates.
+        """Estimate the cost of translating the entries from the full prompts, using heuristic CJK vs ASCII token ratios.
 
         Args:
-            entries: List of (key, source_text) tuples.
-            source_lang: Name of the source language (default: `"Korean"`).
-            glossary_prompt: Pre-formatted glossary section for the prompt.
-            game_context: Game title or description for the system prompt.
-            format_rules: Formatting preservation rules to include.
-            style_examples: Dict of category -> [(source, english)] pairs.
-            character_context: Character background info dict.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name.
+            glossary_prompt: Pre-formatted glossary section.
+            game_context: Game title or description.
+            format_rules: Formatting preservation rules.
+            style_examples: Category -> [(source, english)] pairs.
+            character_context: Character background dict.
+            target_lang: Target language name.
 
         Returns:
-            dict: Cost estimation with keys `"estimated_input_tokens"`,
-                `"estimated_output_tokens"`, `"estimated_cost_usd"`, `"model"`,
-                and `"note"`.
+            Dict with `"estimated_input_tokens"`, `"estimated_output_tokens"`, `"estimated_cost_usd"`, `"model"` and `"note"`.
         """
         from backend import config as _cfg
 

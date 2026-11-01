@@ -1,9 +1,4 @@
-"""
-Manual translation provider.
-
-Exports untranslated strings to a JSON file for the user to translate
-by hand, then reads the completed translations back in.
-"""
+"""Manual provider: exports strings to a JSON file for hand translation, then reads the result back."""
 
 import json
 from pathlib import Path
@@ -14,22 +9,13 @@ from backend.core.json_store import write_json
 
 
 class ManualProvider(TranslationProvider):
-    """Interactive manual translation provider.
-
-    Exports untranslated strings to a JSON file for the user to fill in
-    manually, then reads back the completed translations.
-
-    Attributes:
-        _output_dir: Directory where the manual edit JSON file is written.
-    """
+    """Interactive manual translation provider."""
 
     def __init__(self, output_dir: Optional[Path] = None):
-        """
-        Initialize the manual provider.
+        """Initialize the manual provider.
 
         Args:
-            output_dir: Directory for manual edit files.
-                Defaults to `config.STORAGE_PATH`.
+            output_dir: Directory for the edit file, defaulting to `config.STORAGE_PATH`.
         """
         self._output_dir = output_dir or config.STORAGE_PATH
 
@@ -49,24 +35,18 @@ class ManualProvider(TranslationProvider):
         character_context: dict | None = None,
         target_lang: str = "English",
     ) -> tuple[dict[str, str], list[dict]]:
-        """
-        Export strings for manual translation and wait for user input.
-
-        Writes a JSON file with the source text and empty translation
-        fields. Prompts the user to fill in translations and press Enter
-        to continue.
+        """Export strings to a JSON edit file, then block until the user fills in translations and presses Enter.
 
         Args:
-            entries: List of (key, source_text) tuples.
+            entries: (key, source_text) tuples.
             source_lang: Source language name.
-            glossary_prompt: Ignored (user translates manually).
-            game_context: Ignored (user translates manually).
-            format_rules: Ignored (user translates manually).
+            glossary_prompt: Ignored.
+            game_context: Ignored.
+            format_rules: Ignored.
 
         Returns:
-            Dictionary mapping key to English translation (from user input).
+            Key -> English translation from the user's edits.
         """
-        # Build the edit file.
         edit_data = {}
         for key, source_text in entries:
             edit_data[key] = {
@@ -75,7 +55,6 @@ class ManualProvider(TranslationProvider):
                 "translation": "",
             }
 
-        # Write the file.
         edit_path = self._output_dir / "manual_edit.json"
         edit_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -94,18 +73,16 @@ class ManualProvider(TranslationProvider):
 
         input("\n  Press Enter when finished editing... ")
 
-        # Read back the completed translations.
         return self._read_completed(edit_path)
 
     def _read_completed(self, edit_path: Path) -> dict[str, str]:
-        """
-        Read back completed translations from the manual edit file.
+        """Read back completed translations from the edit file.
 
         Args:
-            edit_path: Path to the manual edit JSON file.
+            edit_path: Edit JSON file.
 
         Returns:
-            Dictionary mapping key to English translation.
+            Key -> English translation, skipping blanks.
         """
         try:
             with open(edit_path, "r", encoding="utf-8") as f:
@@ -127,14 +104,13 @@ class ManualProvider(TranslationProvider):
         return results
 
     def estimate_cost(self, entries: list[tuple[str, str]], **kwargs) -> dict:
-        """
-        Estimate the cost of manual translation (always free).
+        """Estimate the cost of manual translation, which is always free.
 
         Args:
-            entries: List of (key, source_text) tuples.
+            entries: (key, source_text) tuples.
 
         Returns:
-            Cost estimation dictionary.
+            Cost estimation dict.
         """
         total_chars = sum(len(text) for _, text in entries)
 

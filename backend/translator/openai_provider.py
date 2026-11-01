@@ -1,9 +1,4 @@
-"""
-OpenAI GPT translation provider.
-
-Translates source language text to English using the OpenAI API
-with glossary enforcement, style examples, and term suggestion.
-"""
+"""OpenAI GPT translation provider."""
 
 import time
 from typing import Optional
@@ -24,25 +19,14 @@ _DEFAULT_PRICING = OPENAI_MODELS["gpt-4.1"]
 
 
 class OpenAIProvider(TranslationProvider):
-    """Translation provider using OpenAI's GPT API.
-
-    Uses OpenAI chat completions to translate game mod text from a source
-    language to English, with support for glossary enforcement, style
-    examples, character context, and automatic glossary term suggestions.
-
-    Attributes:
-        _api_key: OpenAI API key for authentication.
-        _model: OpenAI model identifier to use for requests.
-    """
+    """Translation provider using OpenAI chat completions."""
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         """Initialize the OpenAI translation provider.
 
         Args:
-            api_key: OpenAI API key. Falls back to the value from
-                `config.OPENAI_API_KEY` when not provided.
-            model: OpenAI model identifier. Falls back to
-                `config.OPENAI_MODEL` when not provided.
+            api_key: OpenAI API key, defaulting to `config.OPENAI_API_KEY`.
+            model: Model id, defaulting to `config.OPENAI_MODEL`.
         """
         self._api_key = api_key or config.OPENAI_API_KEY
         self._model = model or config.OPENAI_MODEL
@@ -62,30 +46,20 @@ class OpenAIProvider(TranslationProvider):
         character_context: dict | None = None,
         target_lang: str = "English",
     ) -> tuple[dict[str, str], list[dict]]:
-        """Translate a batch of strings using the OpenAI API.
-
-        Sends the entries to the OpenAI chat completions endpoint and parses
-        the JSON response. Retries automatically on rate-limit and transient
-        API errors (up to 3 attempts with exponential backoff).
+        """Translate a batch of strings with OpenAI, retrying rate-limit and transient API errors up to 3 times with backoff.
 
         Args:
-            entries: List of (key, source_text) tuples to translate.
-            source_lang: Name of the source language (e.g., `"Korean"`).
-            glossary_prompt: Pre-formatted glossary section for the prompt.
-            game_context: Game title or description for the system prompt.
-            format_rules: Formatting preservation rules to include.
-            style_examples: Dict of category -> [(source, english)] pairs
-                for few-shot style guidance.
-            character_context: Character background info dict with keys like
-                `"character_name"`, `"source_game"`, and `"background"`.
+            entries: (key, source_text) tuples.
+            source_lang: Source language name, e.g. `"Korean"`.
+            glossary_prompt: Pre-formatted glossary section.
+            game_context: Game title or description.
+            format_rules: Formatting preservation rules.
+            style_examples: Category -> [(source, english)] few-shot pairs.
+            character_context: Dict with `"character_name"`, `"source_game"` and `"background"`.
+            target_lang: Target language name.
 
         Returns:
-            tuple[dict[str, str], list[dict]]: A tuple of (translations dict
-                mapping key to English text, suggested_terms list of dicts).
-                Returns `({}, [])` on unrecoverable failure.
-
-        Raises:
-            ValueError: If no OpenAI API key is configured.
+            (key -> translated text, suggested_terms dicts), or `({}, [])` on unrecoverable failure.
         """
         from openai import OpenAI, RateLimitError, APIError
 
@@ -119,7 +93,6 @@ class OpenAIProvider(TranslationProvider):
                 )
                 raw_text = response.choices[0].message.content
                 translations, suggestions = self._parse_response(raw_text, entries)
-                # Store raw response for inspection
                 self.last_raw_responses = getattr(self, "last_raw_responses", [])
                 in_tok = getattr(response.usage, "prompt_tokens", None)
                 out_tok = getattr(response.usage, "completion_tokens", None)
@@ -153,22 +126,14 @@ class OpenAIProvider(TranslationProvider):
         return {}, []
 
     def estimate_cost(self, entries: list[tuple[str, str]], **kwargs) -> dict:
-        """Estimate the cost of translating the given entries with OpenAI.
-
-        Builds the full prompt to get a realistic character count, then
-        estimates token counts using heuristic ratios for CJK vs ASCII
-        characters. Applies GPT-4o pricing rates.
+        """Estimate the cost of translating the entries from the full prompt, using heuristic CJK vs ASCII token ratios.
 
         Args:
-            entries: List of (key, source_text) tuples.
-            **kwargs: Provider-specific context including source_lang,
-                glossary_prompt, game_context, format_rules,
-                style_examples, and character_context.
+            entries: (key, source_text) tuples.
+            **kwargs: Prompt context such as `source_lang`, `glossary_prompt`, `game_context` and `format_rules`.
 
         Returns:
-            dict: Cost estimation with keys `"estimated_input_tokens"`,
-                `"estimated_output_tokens"`, `"estimated_cost_usd"`, `"model"`,
-                and `"note"`.
+            Dict with `"estimated_input_tokens"`, `"estimated_output_tokens"`, `"estimated_cost_usd"`, `"model"` and `"note"`.
         """
         source_lang = kwargs.get("source_lang", "Korean")
         glossary_prompt = kwargs.get("glossary_prompt", "")

@@ -1,9 +1,4 @@
-"""
-Progress tracker for monitoring translation status and detecting changes.
-
-Tracks which strings have been translated, detects additions and
-modifications by comparing content hashes between scans.
-"""
+"""Tracks which strings are translated and detects added/modified ones by comparing content hashes between scans."""
 
 import hashlib
 import json
@@ -18,14 +13,7 @@ from backend.core.json_store import write_json
 
 @dataclass
 class ProgressDiff:
-    """Result of comparing current strings against a stored snapshot.
-
-    Attributes:
-        new_keys: Keys that are entirely new (not in previous snapshot).
-        modified_keys: Keys whose source text has changed since last snapshot.
-        removed_keys: Keys that were in the previous snapshot but are now gone.
-        unchanged_keys: Keys that haven't changed since last snapshot.
-    """
+    """Result of comparing current strings against a stored snapshot."""
 
     new_keys: list[str] = field(default_factory=list)
     modified_keys: list[str] = field(default_factory=list)
@@ -34,20 +22,13 @@ class ProgressDiff:
 
 
 class ProgressTracker:
-    """
-    Tracks translation progress per mod and detects string changes.
-
-    Stores a snapshot of content hashes for each mod's strings to
-    enable change detection between scans.
-    """
+    """Tracks translation progress per mod, storing a snapshot of content hashes for change detection."""
 
     def __init__(self, storage_path: Optional[Path] = None):
-        """
-        Initialize the progress tracker.
+        """Initialize the progress tracker.
 
         Args:
-            storage_path: Root storage directory.
-                Defaults to config.STORAGE_PATH.
+            storage_path: Storage root override.
         """
         self._storage_path = storage_path
 
@@ -55,23 +36,22 @@ class ProgressTracker:
         """Get the path to a mod's progress file.
 
         Args:
-            mod_id: The mod's Workshop ID.
+            mod_id: Mod's Workshop id.
 
         Returns:
-            Path to the mod's progress JSON file.
+            The progress JSON path.
         """
         mods_dir = (self._storage_path / "mods") if self._storage_path else mods_path("chrono_ark")
         return mods_dir / mod_id / "progress.json"
 
     def _load_snapshot(self, mod_id: str) -> dict:
-        """
-        Load the stored snapshot for a mod.
+        """Load the stored snapshot for a mod.
 
         Args:
-            mod_id: The mod's Workshop ID.
+            mod_id: Mod's Workshop id.
 
         Returns:
-            Snapshot dictionary, or empty dict if no snapshot exists.
+            Snapshot dict, empty if none exists.
         """
         path = self._mod_progress_path(mod_id)
         if not path.exists():
@@ -84,12 +64,11 @@ class ProgressTracker:
             return {}
 
     def _save_snapshot(self, mod_id: str, snapshot: dict) -> None:
-        """
-        Save a snapshot for a mod.
+        """Save a snapshot for a mod.
 
         Args:
-            mod_id: The mod's Workshop ID.
-            snapshot: Snapshot dictionary to save.
+            mod_id: Mod's Workshop id.
+            snapshot: Snapshot dict.
         """
         path = self._mod_progress_path(mod_id)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,17 +77,15 @@ class ProgressTracker:
 
     @staticmethod
     def _hash_source_text(loc_string: LocString, source_languages: list[str]) -> str:
-        """
-        Hash the source language text of a localization string.
+        """Hash the source language text of a localization string.
 
         Args:
-            loc_string: The localization string to hash.
-            source_languages: Source languages to check, in priority order.
+            loc_string: String to hash.
+            source_languages: Source languages in priority order.
 
         Returns:
-            SHA-256 hex digest of the source text.
+            SHA-256 hex digest.
         """
-        # Find the first non-empty source language.
         source_lang = None
         for lang in source_languages:
             if lang in loc_string.translations and loc_string.translations[lang]:
@@ -129,17 +106,13 @@ class ProgressTracker:
         source_languages: list[str] | None = None,
         target_lang: str = "English",
     ) -> ProgressDiff:
-        """
-        Update the progress snapshot and compute the diff.
-
-        Compares current strings against the stored snapshot to find
-        new, modified, removed, and unchanged keys.
+        """Update the progress snapshot and diff it against the previous one.
 
         Args:
-            mod_id: The mod's Workshop ID.
+            mod_id: Mod's Workshop id.
             current_strings: Current extracted localization strings.
-            source_languages: Source languages for hashing. If None,
-                uses all non-English translation keys found.
+            source_languages: Source languages for hashing.
+            target_lang: Target language name.
 
         Returns:
             `ProgressDiff` describing what changed.
@@ -152,7 +125,6 @@ class ProgressTracker:
 
         diff = ProgressDiff()
 
-        # Build new hash map and detect empty/untranslatable sources.
         new_hashes = {}
         excluded_keys = set()
         for key, loc_str in current_strings.items():
@@ -163,10 +135,7 @@ class ProgressTracker:
                 excluded_keys.add(key)
                 continue
 
-            # If no source language has content, check for strings that
-            # only have target-language text (e.g. English-authored gdata
-            # mods).  Truly empty strings (no content in any language)
-            # are excluded.
+            # Strings with only target-language text (English-authored gdata mods) still count. Strings empty in every language are excluded.
             has_source = False
             for lang in langs:
                 if lang in loc_str.translations and loc_str.translations[lang].strip():
@@ -177,7 +146,6 @@ class ProgressTracker:
                 if not target_text.strip():
                     excluded_keys.add(key)
 
-        # Compare.
         current_keys = set(new_hashes.keys())
         previous_keys = set(old_hashes.keys())
 
@@ -193,7 +161,6 @@ class ProgressTracker:
         diff.modified_keys.sort()
         diff.unchanged_keys.sort()
 
-        # Save the updated snapshot.
         new_snapshot = {
             "hashes": new_hashes,
             "translated": sorted((old_translated & current_keys) - excluded_keys),
@@ -205,27 +172,22 @@ class ProgressTracker:
         return diff
 
     def set_translated(self, mod_id: str, keys: list[str]) -> None:
-        """
-        Replace the translated key list entirely.
-
-        Unlike mark_translated (which only adds), this sets the exact list
-        so that cleared translations are properly removed.
+        """Replace the translated key list entirely, unlike `mark_translated` which only adds.
 
         Args:
-            mod_id: The mod's Workshop ID.
-            keys: Complete list of keys that are currently translated.
+            mod_id: Mod's Workshop id.
+            keys: Every currently translated key.
         """
         snapshot = self._load_snapshot(mod_id)
         snapshot["translated"] = sorted(keys)
         self._save_snapshot(mod_id, snapshot)
 
     def mark_translated(self, mod_id: str, keys: list[str]) -> None:
-        """
-        Mark keys as having completed translations.
+        """Mark keys as translated.
 
         Args:
-            mod_id: The mod's Workshop ID.
-            keys: List of localization keys that have been translated.
+            mod_id: Mod's Workshop id.
+            keys: Localization keys.
         """
         snapshot = self._load_snapshot(mod_id)
         translated = set(snapshot.get("translated", []))
@@ -234,12 +196,11 @@ class ProgressTracker:
         self._save_snapshot(mod_id, snapshot)
 
     def unmark_translated(self, mod_id: str, keys: list[str]) -> None:
-        """
-        Remove keys from the translated list (e.g. when a translation is cleared).
+        """Remove keys from the translated list, e.g. when a translation is cleared.
 
         Args:
-            mod_id: The mod's Workshop ID.
-            keys: List of localization keys to remove from translated.
+            mod_id: Mod's Workshop id.
+            keys: Localization keys.
         """
         snapshot = self._load_snapshot(mod_id)
         translated = set(snapshot.get("translated", []))
@@ -248,14 +209,13 @@ class ProgressTracker:
         self._save_snapshot(mod_id, snapshot)
 
     def get_status(self, mod_id: str) -> dict:
-        """
-        Get the current translation status for a mod.
+        """Get the current translation status for a mod.
 
         Args:
-            mod_id: The mod's Workshop ID.
+            mod_id: Mod's Workshop id.
 
         Returns:
-            Dictionary with total, translated, untranslated counts and percentage.
+            Total, translated and untranslated counts plus percentage.
         """
         snapshot = self._load_snapshot(mod_id)
         total = snapshot.get("total_keys", 0)

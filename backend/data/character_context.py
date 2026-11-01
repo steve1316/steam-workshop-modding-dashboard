@@ -10,15 +10,14 @@ _DEFAULTS = {"source_game": "", "character_name": "", "background": "", "created
 
 
 def load_character_context(mod_id: str, *, storage_path: Path | None = None) -> dict:
-    """Return character context dict for a mod, with empty-string defaults for missing fields.
+    """Return a mod's character context, with empty-string defaults for missing fields.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        storage_path: Base storage path override. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        storage_path: Storage root override.
 
     Returns:
-        Dictionary with keys `source_game`, `character_name`, and
-        `background`, each defaulting to an empty string if absent.
+        Dict with `source_game`, `character_name` and `background`.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "character_context.json"
@@ -33,16 +32,12 @@ def load_character_context(mod_id: str, *, storage_path: Path | None = None) -> 
 
 
 def save_character_context(mod_id: str, ctx: dict, *, storage_path: Path | None = None) -> None:
-    """Save character context dict for a mod.
-
-    Only the keys defined in `_DEFAULTS` are persisted; extra keys in
-    *ctx* are silently ignored. Sets `created_at` on first save and
-    updates `updated_at` on every save.
+    """Save a mod's character context, persisting only the `_DEFAULTS` keys.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        ctx: Character context dictionary to save.
-        storage_path: Base storage path override. Defaults to config.STORAGE_PATH.
+        mod_id: Mod's Workshop id.
+        ctx: Character context to save.
+        storage_path: Storage root override.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     mod_dir = mods_dir / mod_id
