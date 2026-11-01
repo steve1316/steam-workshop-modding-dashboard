@@ -24,7 +24,7 @@ from backend.routes.helpers import (
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries
-from backend.translation.pipeline import BatchError, BatchJob, record_batch, run_translation_batch
+from backend.translation.pipeline import BatchJob, record_batch, run_translation_batch
 from backend.translation.planning import plan_batches
 from backend.translation.prompt import PromptContext
 
@@ -200,10 +200,7 @@ async def translate_batch(req: BatchTranslationRequest):
         `translations` as `{key: text}`, `suggestions` for review, and the `translated` count.
     """
     job = await _batch_job(req)
-    try:
-        outcome = await asyncio.to_thread(run_translation_batch, job)
-    except BatchError as e:
-        raise HTTPException(status_code=502, detail=str(e)) from e
+    outcome = await asyncio.to_thread(run_translation_batch, job)
     return outcome.response()
 
 

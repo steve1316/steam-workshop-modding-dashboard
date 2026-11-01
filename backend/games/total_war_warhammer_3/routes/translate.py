@@ -30,7 +30,7 @@ from backend.providers.base import Revision
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries
-from backend.translation.pipeline import BatchError, BatchJob, BatchOutcome, PersistHook, run_translation_batch
+from backend.translation.pipeline import BatchJob, BatchOutcome, PersistHook, run_translation_batch
 from backend.translation.planning import batch_plan_entry, plan_batches
 from backend.translation.prompt import PromptContext
 
@@ -361,10 +361,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     context = await asyncio.to_thread(_prompt_context, mod, req.mod_id, req.source_lang, mod.target_language)
     persist = _persist_batch(req.mod_id, provider_name, parent, entries)
     job = BatchJob(mod_id=req.mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=entries, context=context, persist=persist)
-    try:
-        outcome = await asyncio.to_thread(run_translation_batch, job)
-    except BatchError as e:
-        raise HTTPException(status_code=502, detail=str(e)) from e
+    outcome = await asyncio.to_thread(run_translation_batch, job)
     return outcome.response()
 
 

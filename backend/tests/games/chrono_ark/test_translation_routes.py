@@ -182,3 +182,25 @@ def test_batch_stream_saves_and_returns_the_complete_event(fake_ca):
     # The modal gets the saved suggestions, including name-key terms, not the provider's raw (empty) list.
     assert [t["english"] for t in events[0]["suggestions"]] == ["Prueba"]
     assert load_translations(FAKE_MOD.mod_id, game_id="chrono_ark") == {"Buff/B_Test_Name": "Prueba"}
+
+
+def test_preview_answers_404_for_an_unknown_mod(fake_ca):
+    from backend.web_server import app
+
+    res = TestClient(app).post("/api/games/chrono_ark/translate/preview", json={"mod_id": "123"})
+
+    assert res.status_code == 404
+    assert res.json() == {"detail": "Mod not found"}
+
+
+def test_batch_answers_502_with_the_provider_error(fake_ca, monkeypatch):
+    from backend.web_server import app
+
+    def fail(entries, **kwargs):
+        raise RuntimeError("rate limited")
+
+    monkeypatch.setattr(fake_ca, "translate_batch", fail, raising=False)
+    res = TestClient(app).post("/api/games/chrono_ark/translate/batch", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
+
+    assert res.status_code == 502
+    assert res.json() == {"detail": "rate limited"}

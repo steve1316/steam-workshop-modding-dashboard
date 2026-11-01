@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from backend.core.errors import register_error_handler
 from backend.data import suggestion_manager
 from backend.data.glossary_manager import load_mod_glossary
 from backend.data.translation_store import load_translations, save_translations_bulk
@@ -34,6 +35,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     monkeypatch.setattr(glossary_routes, "_source_and_csv_english", lambda mod_id: rows)
     monkeypatch.setattr(glossary_routes, "create_backup", lambda *a, **k: None)
     app = FastAPI()
+    register_error_handler(app)
     app.include_router(glossary_routes.router, prefix="/api/games/chrono_ark")
     return TestClient(app)
 

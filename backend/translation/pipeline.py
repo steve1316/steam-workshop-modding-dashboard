@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from backend.core.errors import UpstreamError
 from backend.data import api_response_log
 from backend.providers.base import TranslationProvider
 from backend.translation.orchestrator import fill_duplicate_translations
@@ -39,7 +40,7 @@ class BatchOutcome:
 PersistHook = Callable[[dict[str, str], list[dict]], BatchOutcome]
 
 
-class BatchError(Exception):
+class BatchError(UpstreamError):
     """The provider call for a batch failed. The message is the provider's error."""
 
 

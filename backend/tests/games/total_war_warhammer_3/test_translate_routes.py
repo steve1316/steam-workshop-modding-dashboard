@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
+from backend.core.errors import register_error_handler
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translate as translate_module
@@ -46,6 +47,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     monkeypatch.setattr(routes_module, "_extract_translation_strings", fake_translation)
 
     app = FastAPI()
+    register_error_handler(app)
     app.include_router(routes_module.router, prefix="/api/games/total_war_warhammer_3")
     app.include_router(translate_module.router, prefix="/api/games/total_war_warhammer_3")
     return TestClient(app)

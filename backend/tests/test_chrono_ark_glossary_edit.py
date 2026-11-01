@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from backend.core.errors import register_error_handler
 from backend.data.glossary_manager import add_glossary_term, load_mod_glossary, save_mod_glossary
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
@@ -33,6 +34,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     monkeypatch.setattr(glossary_routes, "create_backup", lambda *a, **k: None)
     save_mod_glossary(MOD_ID, add_glossary_term({"terms": {}}, "Kali", {"Chinese": "卡莉"}, "characters"), game_id=GAME_ID)
     app = FastAPI()
+    register_error_handler(app)
     app.include_router(glossary_routes.router, prefix="/api/games/chrono_ark")
     return TestClient(app)
 

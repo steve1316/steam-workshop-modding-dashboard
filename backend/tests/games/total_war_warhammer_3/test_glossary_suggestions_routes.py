@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from backend.core.errors import register_error_handler
 from backend.data import suggestion_manager, translation_store
 from backend.data.api_response_log import list_entries
 from backend.games.total_war_warhammer_3 import GAME_ID
@@ -34,6 +35,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     fake_mod = WH3TranslationMod(workshop_id=MOD_ID, display_name="Test Mod", parent_workshop_ids=("p",), local_source_dir=fake_source)
     monkeypatch.setattr(translation_routes, "get_translation_mod", lambda mid: fake_mod if mid == MOD_ID else None)
     app = FastAPI()
+    register_error_handler(app)
     app.include_router(gs_module.router, prefix="/api/games/total_war_warhammer_3")
     return TestClient(app)
 

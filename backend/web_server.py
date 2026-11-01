@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from backend.core.errors import register_error_handler
 from backend.core.settings import settings
 from backend.games.registry import get_adapter, list_games
 from backend.routes import llamacpp, ollama, steamcmd
@@ -30,6 +31,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Steam Workshop Modding Dashboard API", lifespan=lifespan)
+register_error_handler(app)
 
 
 # Only the local dashboard may call the API, so other sites open in the browser cannot read or change mod data.

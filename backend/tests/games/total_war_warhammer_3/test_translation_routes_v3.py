@@ -5,6 +5,7 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
+from backend.core.errors import register_error_handler
 from backend.data.api_response_log import append
 from backend.data.history_manager import list_backups
 from backend.games.total_war_warhammer_3 import GAME_ID
@@ -45,6 +46,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     monkeypatch.setattr(routes_module, "_extract_translation_strings", fake_translation)
 
     app = FastAPI()
+    register_error_handler(app)
     app.include_router(routes_module.router, prefix="/api/games/total_war_warhammer_3")
     return TestClient(app)
 

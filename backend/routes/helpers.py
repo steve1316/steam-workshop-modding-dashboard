@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from backend.models import LocString
 
-from fastapi import HTTPException
 
+from backend.core.errors import NotFoundError
 from backend.core.json_store import write_json
 from backend.core.paths import GameStorage
 from backend.core.settings import settings
@@ -149,7 +149,7 @@ def _filter_suggestions(
 
 
 def _find_mod(mod_id: str):
-    """Find a mod by ID, raising 404 if missing.
+    """Find a mod by ID, raising `NotFoundError` if missing.
 
     Args:
         mod_id: Mod's Workshop id.
@@ -159,7 +159,7 @@ def _find_mod(mod_id: str):
     """
     mod = chrono_ark_adapter().find_mod(mod_id)
     if mod is None:
-        raise HTTPException(status_code=404, detail="Mod not found")
+        raise NotFoundError("Mod not found")
     return mod
 
 

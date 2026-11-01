@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from backend.core.errors import NotFoundError
 from backend.core.os_open import open_path
 from backend.core.settings import settings
 from backend.data import api_response_log, character_context, history_manager, mod_settings, translation_store
@@ -114,7 +115,7 @@ def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, L
 
 
 def _require_mod(mod_id: str) -> WH3TranslationMod:
-    """Look up a mod by id or raise 404.
+    """Look up a mod by id or raise `NotFoundError`.
 
     Args:
         mod_id: Workshop id of the translation mod.
@@ -124,7 +125,7 @@ def _require_mod(mod_id: str) -> WH3TranslationMod:
     """
     mod = get_translation_mod(mod_id)
     if mod is None:
-        raise HTTPException(404, f"WH3 translation mod {mod_id} not registered")
+        raise NotFoundError(f"WH3 translation mod {mod_id} not registered")
     return mod
 
 
