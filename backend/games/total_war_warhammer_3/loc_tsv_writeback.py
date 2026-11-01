@@ -16,6 +16,7 @@ from pathlib import Path
 
 from backend.games.total_war_warhammer_3.loc_extractor import escape_loc_text, normalize_loc_filename
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.core.json_store import write_text_atomic
 
 
 def read_loc_tsv_lines(path: Path) -> list[str]:
@@ -88,7 +89,7 @@ def apply_row_patches(path: Path, patches: dict[str, str]) -> None:
     for key, text in remaining.items():
         lines.append(f"{key}\t{escape_loc_text(text)}\ttrue")
 
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_text_atomic(path, "\n".join(lines) + "\n")
 
 
 def remove_keys_from_loc_tsv(mod: WH3TranslationMod, keys_by_file: dict[str, set[str]]) -> dict[str, int]:
@@ -125,7 +126,7 @@ def remove_keys_from_loc_tsv(mod: WH3TranslationMod, keys_by_file: dict[str, set
                 continue
             kept.append(line)
         if removed:
-            target.write_text("\n".join(kept) + "\n", encoding="utf-8")
+            write_text_atomic(target, "\n".join(kept) + "\n")
             result[str(target)] = removed
     return result
 

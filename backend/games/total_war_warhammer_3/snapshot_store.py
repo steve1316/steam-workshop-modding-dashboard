@@ -20,7 +20,7 @@ from pathlib import Path
 
 from backend.core.paths import safe_child
 from backend.games.storage_paths import game_storage_path
-from backend.core.json_store import write_json
+from backend.core.json_store import write_json, write_text_atomic
 
 GAME_ID = "total_war_warhammer_3"
 MAX_SNAPSHOTS = 20
@@ -197,6 +197,4 @@ def restore_snapshot(mod_id: str, sid: str, *, local_source_dir: Path | None = N
         write_json((mod_dir / "glossary.json"), snapshot["glossary"])
 
     for path_str, body in snapshot.get("loc_tsv_files", {}).items():
-        p = Path(path_str)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(body, encoding="utf-8")
+        write_text_atomic(Path(path_str), body)

@@ -23,6 +23,7 @@ from backend.games.total_war_warhammer_3.supported_mods_writer import (
     remove_entry,
     update_entry,
 )
+from backend.core.json_store import write_text_atomic
 
 router = APIRouter()
 
@@ -71,7 +72,7 @@ def _write_and_reload(new_source: str) -> list[dict]:
         raise HTTPException(status_code=503, detail="data/supported_mods.py not found")
     backup = source_path.with_suffix(".py.bak")
     shutil.copyfile(source_path, backup)
-    source_path.write_text(new_source, encoding="utf-8")
+    write_text_atomic(source_path, new_source)
     try:
         return load_supported_mods(helper_scripts_path())
     except HelperScriptsLoaderError as exc:

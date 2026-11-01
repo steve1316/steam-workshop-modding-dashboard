@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from backend.games.storage_paths import game_storage_path
+from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 FILENAME = "published_times.json"
@@ -43,9 +44,7 @@ def record(workshop_id: str, when: float | None = None) -> None:
     """
     times = _load()
     times[workshop_id] = time.time() if when is None else when
-    path = _path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(times, indent=2), encoding="utf-8")
+    write_json(_path(), times)
 
 
 def get(workshop_id: str) -> float | None:
