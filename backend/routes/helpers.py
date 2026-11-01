@@ -28,7 +28,7 @@ from backend.games.base import GameAdapter
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
-from backend.core.json_store import write_json
+from backend.core.json_store import write_json, write_text_atomic
 
 # ---------------------------------------------------------------------------
 # Module-level state
@@ -467,6 +467,22 @@ def _recalculate_mod_progress(mod_id: str, mod_path: Path) -> None:
     tracker.set_translated(mod_id, translated_keys)
 
 
+def _format_env_value(value: str) -> str:
+    """Quote a .env value only when python-dotenv would otherwise misread it.
+
+    Args:
+        value: The raw setting value.
+
+    Returns:
+        The value as it should appear after `KEY=`.
+    """
+    # Plain values stay unquoted because vite.config.ts reads SWMT_API_PORT with a bare regex.
+    if value == value.strip() and not any(c in value for c in "#$\n\r") and not value.startswith(("'", '"')):
+        return value
+    # Single quotes turn off ${VAR} expansion, and dotenv only unescapes \\ and \' inside them.
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def _update_env_file(updates: dict[str, str]) -> None:
     """Write updated SWMT_* values to the .env file and os.environ.
 
@@ -491,7 +507,7 @@ def _update_env_file(updates: dict[str, str]) -> None:
         if stripped and not stripped.startswith("#"):
             key = stripped.split("=", 1)[0]
             if key in updates:
-                new_lines.append(f"{key}={updates[key]}\n")
+                new_lines.append(f"{key}={_format_env_value(updates[key])}\n")
                 found_keys.add(key)
                 continue
         new_lines.append(line if line.endswith("\n") else line + "\n")
@@ -499,9 +515,9 @@ def _update_env_file(updates: dict[str, str]) -> None:
     # Append any keys that weren't already in the file.
     for key, value in updates.items():
         if key not in found_keys:
-            new_lines.append(f"{key}={value}\n")
+            new_lines.append(f"{key}={_format_env_value(value)}\n")
 
-    _ENV_PATH.write_text("".join(new_lines), encoding="utf-8")
+    write_text_atomic(_ENV_PATH, "".join(new_lines))
 
     # Mirror into os.environ so config reads are consistent within the
     # current process without needing a restart.

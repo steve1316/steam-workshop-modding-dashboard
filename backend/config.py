@@ -12,7 +12,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+# The Settings page writes this file, so values are read literally instead of expanding ${VAR}.
+load_dotenv(Path(__file__).parent / ".env", interpolate=False)
 
 
 # ── Server ────────────────────────────────────────────────────────────────────
