@@ -70,3 +70,25 @@ def test_estimate_all_streams_an_estimate_per_mod(fake_ca):
     assert events[0]["estimates"]["Korean"]["strings"] == 1
     assert events[-1] == {"done": True}
     assert fake_ca.target_langs == ["Spanish"]
+
+
+def test_get_provider_raises_for_unknown_names():
+    from backend.main import get_provider
+
+    with pytest.raises(ValueError, match="nope"):
+        get_provider("nope")
+
+
+def test_get_provider_builds_the_manual_provider():
+    from backend.main import get_provider
+
+    assert get_provider("manual").name == "Manual"
+
+
+@pytest.mark.parametrize("name", ["manual", "nope"])
+def test_web_routes_reject_providers_they_cannot_run(name):
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc:
+        ca_translation._web_provider(name)
+    assert exc.value.status_code == 400

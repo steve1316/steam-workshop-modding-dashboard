@@ -41,15 +41,15 @@ from backend.translator.openai_provider import OpenAIProvider
 from backend.translator.deepl_provider import DeepLProvider
 from backend.translator.ollama_provider import OllamaProvider
 from backend.translator.llamacpp_provider import LlamaCppProvider
+from backend.translator.manual_provider import ManualProvider
 from backend.data.suggestion_manager import add_suggestions
 
 
 def get_provider(provider_name: str) -> TranslationProvider:
-    """
-    Create a translation provider instance by name.
+    """Create a translation provider instance by name.
 
     Args:
-        provider_name: One of `"claude"`, `"openai"`, `"deepl"`, `"manual"`.
+        provider_name: One of `"claude"`, `"openai"`, `"deepl"`, `"ollama"`, `"llamacpp"`, `"manual"`.
 
     Returns:
         The initialized TranslationProvider.
@@ -64,10 +64,9 @@ def get_provider(provider_name: str) -> TranslationProvider:
         return OllamaProvider()
     elif provider_name == "llamacpp":
         return LlamaCppProvider()
-    else:
-        print(f"Unknown provider: {provider_name}")
-        print("Available: claude, openai, deepl, ollama, llamacpp")
-        sys.exit(1)
+    elif provider_name == "manual":
+        return ManualProvider()
+    raise ValueError(f"Unknown provider: {provider_name}. Available: claude, openai, deepl, ollama, llamacpp, manual")
 
 
 def save_extracted_strings(strings: dict, output_path: Path) -> None:
@@ -234,7 +233,11 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
     # Get provider.
     provider_name = args.provider or config.TRANSLATION_PROVIDER
-    provider = get_provider(provider_name)
+    try:
+        provider = get_provider(provider_name)
+    except ValueError as e:
+        print(e)
+        sys.exit(1)
 
     # Get game context for LLM providers.
     game_context = adapter.get_translation_context()

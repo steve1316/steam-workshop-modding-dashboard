@@ -40,6 +40,24 @@ from backend.routes.models import BatchTranslationRequest, TranslationRequest
 router = APIRouter(prefix="/translate")
 
 
+def _web_provider(provider_name: str):
+    """Build a provider for a web request, turning unusable names into a 400.
+
+    Args:
+        provider_name: The provider id from the request or config.
+
+    Returns:
+        The initialized TranslationProvider.
+    """
+    # Manual mode blocks on `input()`, which would hang the server.
+    if provider_name == "manual":
+        raise HTTPException(status_code=400, detail="Manual mode only works from the CLI. Pick another provider in Settings.")
+    try:
+        return get_provider(provider_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/estimate")
 async def estimate_translation(req: TranslationRequest):
     """Estimate cost and time for translating a mod.
@@ -65,7 +83,7 @@ async def estimate_translation(req: TranslationRequest):
         return {"total": 0, "estimates": {}}
 
     provider_name = req.provider or config.TRANSLATION_PROVIDER
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     # Group by language
     lang_override = load_source_language_override(req.mod_id)
@@ -121,7 +139,7 @@ async def estimate_all_translation_costs(request: Request):
     """
     mods = chrono_ark_adapter().scan_mods()
     provider_name = config.TRANSLATION_PROVIDER
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     async def event_stream():
         total = len(mods)
@@ -236,7 +254,7 @@ async def preview_translation(req: TranslationRequest):
         return {"total_strings": 0, "message": "All strings already translated" if not req.retranslate else "No translatable strings found", "previews": {}}
 
     provider_name = req.provider or config.TRANSLATION_PROVIDER
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     base_glossary = load_glossary()
     mod_glossary = load_mod_glossary(req.mod_id)
@@ -335,7 +353,7 @@ async def get_system_prompt(source_lang: str = "Korean", target_lang: str = "Eng
         A dict with `provider`, `source_lang`, and `system_prompt`.
     """
     provider_name = config.TRANSLATION_PROVIDER
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     glossary_prompt = chrono_ark_adapter().get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang)
     game_context = chrono_ark_adapter().get_translation_context()
@@ -393,7 +411,7 @@ async def translate_mod(req: TranslationRequest):
     untranslated = chrono_ark_adapter().get_untranslated(strings)
 
     provider_name = req.provider or config.TRANSLATION_PROVIDER
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     if not untranslated:
         return {"status": "complete", "message": "All strings already translated", "translated": 0, "suggestions": 0}
@@ -561,7 +579,7 @@ async def translate_batch(req: BatchTranslationRequest):
     if provider_name == "llamacpp":
         await _ensure_llamacpp_running()
 
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     # Create backup and reset raw responses only on the first batch.
     if req.is_first_batch:
@@ -724,7 +742,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
     if provider_name == "llamacpp":
         await _ensure_llamacpp_running()
 
-    provider = get_provider(provider_name)
+    provider = _web_provider(provider_name)
 
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run")
