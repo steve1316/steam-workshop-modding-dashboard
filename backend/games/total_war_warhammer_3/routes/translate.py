@@ -29,6 +29,8 @@ from backend.providers.base import Revision
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries, run_batch
+from backend.translation.planning import batch_plan_entry, plan_batches
+from backend.translation.prompt import PromptContext
 
 # WH3 colour and icon tags such as `[[col:red]]` and `[[img:ui/x.png]][[/img]]`, left out of name terms.
 _MARKUP_RE = re.compile(r"\[\[[^\]]*\]\]")
@@ -71,6 +73,21 @@ def _glossary_prompt(mod_id: str, source_lang: str, target_lang: str, mod=None) 
         allowed_categories=tc.BASE_GLOSSARY_PROMPT_CATEGORIES,
     )
     return prompt or "No glossary available."
+
+
+def _prompt_context(mod, mod_id: str, source_lang: str, target_lang: str) -> PromptContext:
+    """Build the prompt context for a WH3 mod's batches, which carry no character background.
+
+    Args:
+        mod: Resolved `WH3TranslationMod`.
+        mod_id: Workshop id of the translation mod.
+        source_lang: Source language name.
+        target_lang: Target language name.
+
+    Returns:
+        The context.
+    """
+    return PromptContext.for_adapter(TotalWarWarhammer3Adapter(), source_lang, target_lang, _glossary_prompt(mod_id, source_lang, target_lang, mod=mod))
 
 
 def _overlaid_rows(mod, mod_id: str) -> tuple[list, dict[str, str]]:
@@ -187,16 +204,8 @@ async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "En
     provider = web_provider(settings.translation_provider)
     adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = adapter.get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang) or "No glossary available."
-    system_prompt, _ = provider.build_prompt(
-        [("example_unit_description", "示例文本")],
-        source_lang,
-        glossary_prompt,
-        game_context=adapter.get_translation_context(),
-        format_rules=adapter.get_format_preservation_rules(),
-        style_examples=adapter.get_style_examples(source_lang),
-        character_context=None,
-        target_lang=target_lang,
-    )
+    context = PromptContext.for_adapter(adapter, source_lang, target_lang, glossary_prompt)
+    system_prompt, _ = provider.build_prompt([("example_unit_description", "示例文本")], **context.provider_kwargs())
     return {"provider": provider.name, "source_lang": source_lang, "system_prompt": system_prompt}
 
 
@@ -245,7 +254,7 @@ async def preview(req: TranslationRequest) -> dict:
                     "label": stage["label"],
                     "categories": stage["categories"],
                     "total_strings": len(stage_entries),
-                    "batch_plan": [{"source_lang": source_lang, "keys": [k for k, _ in c], "size": len(c)} for c in stage_chunks],
+                    "batch_plan": [batch_plan_entry(source_lang, c) for c in stage_chunks],
                 }
             )
         entries = [e for c in chunks for e in c]
@@ -254,54 +263,9 @@ async def preview(req: TranslationRequest) -> dict:
 
     provider = web_provider(req.provider or settings.translation_provider)
     provider.revisions = revisions or None
-    adapter = TotalWarWarhammer3Adapter()
-    glossary_prompt = _glossary_prompt(req.mod_id, source_lang, target_lang, mod=mod)
-    game_context = adapter.get_translation_context()
-    format_rules = adapter.get_format_preservation_rules()
-    style_examples = adapter.get_style_examples(source_lang)
-
-    num_batches = len(chunks)
-    system_prompt = ""
-    user_messages: list[str] = []
-    for batch in chunks:
-        sp, um = provider.build_prompt(
-            batch,
-            source_lang,
-            glossary_prompt,
-            game_context=game_context,
-            format_rules=format_rules,
-            style_examples=style_examples,
-            character_context=None,
-            target_lang=target_lang,
-        )
-        if not system_prompt:
-            system_prompt = sp
-        user_messages.append(um)
-
-    previews = {source_lang: {"system_prompt": system_prompt, "user_messages": user_messages, "strings_in_language": len(entries), "batches": num_batches}}
-    estimates = {
-        source_lang: provider.estimate_cost(
-            entries,
-            source_lang=source_lang,
-            glossary_prompt=glossary_prompt,
-            game_context=game_context,
-            format_rules=format_rules,
-            style_examples=style_examples,
-            character_context=None,
-            target_lang=target_lang,
-        )
-    }
-    batch_plan = [{"source_lang": source_lang, "keys": [k for k, _ in c], "size": len(c)} for c in chunks]
-
-    result = {
-        "total_strings": len(entries),
-        "total_batches": num_batches,
-        "batch_size": batch_size,
-        "provider": provider.name,
-        "previews": previews,
-        "estimates": estimates,
-        "batch_plan": batch_plan,
-    }
+    context = _prompt_context(mod, req.mod_id, source_lang, target_lang)
+    plan = plan_batches(provider, {source_lang: chunks}, lambda _lang: context)
+    result = {"total_strings": len(entries), "batch_size": batch_size, "provider": provider.name, **plan}
     if names_only:
         result["stages"] = stages
     return result
@@ -340,8 +304,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     if not entries:
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
 
-    adapter = TotalWarWarhammer3Adapter()
-    glossary_prompt = _glossary_prompt(req.mod_id, source_lang, target_lang, mod=mod)
+    context = _prompt_context(mod, req.mod_id, source_lang, target_lang)
     provider_name = req.provider or settings.translation_provider
     provider = await ready_web_provider(provider_name)
     provider.revisions = revisions or None
@@ -349,17 +312,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     keys = [k for k, _ in entries]
 
     try:
-        translations, _suggestions = await run_batch(
-            provider,
-            entries,
-            source_lang,
-            glossary_prompt,
-            game_context=adapter.get_translation_context(),
-            format_rules=adapter.get_format_preservation_rules(),
-            style_examples=adapter.get_style_examples(source_lang),
-            character_context=None,
-            target_lang=target_lang,
-        )
+        translations, _suggestions = await run_batch(provider, entries, context)
     except Exception as e:
         api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=keys, raw_responses=provider.last_raw_responses, error=str(e))
         raise HTTPException(status_code=502, detail=str(e)) from e

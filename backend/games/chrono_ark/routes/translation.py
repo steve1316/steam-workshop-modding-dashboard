@@ -10,10 +10,8 @@ from fastapi.responses import StreamingResponse
 from backend.core.paths import glossary_path
 from backend.core.settings import settings
 from backend.data import api_response_log
-from backend.data.character_context import load_character_context
 from backend.data.glossary_manager import (
     extract_name_key_suggestions,
-    get_combined_glossary_prompt,
     load_glossary,
     load_mod_glossary,
 )
@@ -24,6 +22,7 @@ from backend.data.suggestion_manager import add_suggestions, load_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
+from backend.games.chrono_ark.services.translation import prompt_context
 from backend.routes.helpers import (
     _active_translations,
     _fill_duplicate_translations,
@@ -36,6 +35,8 @@ from backend.routes.helpers import (
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries, run_batch
+from backend.translation.planning import plan_batches
+from backend.translation.prompt import PromptContext
 
 router = APIRouter(prefix="/translate")
 
@@ -59,8 +60,6 @@ async def estimate_all_translation_costs(request: Request):
     async def event_stream():
         total = len(mods)
         base_glossary = load_glossary(glossary_path(GAME_ID))
-        game_context = chrono_ark_adapter().get_translation_context()
-        format_rules = chrono_ark_adapter().get_format_preservation_rules()
 
         for i, mod in enumerate(mods):
             if await request.is_disconnected():
@@ -85,24 +84,7 @@ async def estimate_all_translation_costs(request: Request):
                         by_lang[lang] = []
                     by_lang[lang].append((key, loc_str.translations.get(lang, "")))
 
-            estimates = {}
-            if by_lang:
-                mod_glossary = load_mod_glossary(mod.mod_id, game_id=GAME_ID)
-                char_ctx = load_character_context(mod.mod_id, game_id=GAME_ID)
-                character_context = char_ctx if any(char_ctx.values()) else None
-
-                for lang, entries in by_lang.items():
-                    glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang, target_lang=mod_target_lang)
-                    estimates[lang] = provider.estimate_cost(
-                        entries,
-                        source_lang=lang,
-                        glossary_prompt=glossary_prompt,
-                        game_context=game_context,
-                        format_rules=format_rules,
-                        style_examples=chrono_ark_adapter().get_style_examples(lang),
-                        character_context=character_context,
-                        target_lang=mod_target_lang,
-                    )
+            estimates = {lang: provider.estimate_cost(entries, **prompt_context(mod.mod_id, lang, mod_target_lang, base_glossary=base_glossary).provider_kwargs()) for lang, entries in by_lang.items()}
 
             event = {
                 "current": i + 1,
@@ -152,15 +134,7 @@ async def preview_translation(req: TranslationRequest):
     if not target:
         return {"total_strings": 0, "message": "All strings already translated" if not req.retranslate else "No translatable strings found", "previews": {}}
 
-    provider_name = req.provider or settings.translation_provider
-    provider = web_provider(provider_name)
-
-    base_glossary = load_glossary(glossary_path(GAME_ID))
-    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
-    game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
-    character_context = char_ctx if any(char_ctx.values()) else None
-    format_rules = chrono_ark_adapter().get_format_preservation_rules()
+    provider = web_provider(req.provider or settings.translation_provider)
 
     lang_override = load_source_language_override(req.mod_id, game_id=GAME_ID)
     by_lang: dict[str, list] = {}
@@ -171,69 +145,10 @@ async def preview_translation(req: TranslationRequest):
                 by_lang[lang] = []
             by_lang[lang].append((key, loc_str.translations.get(lang, "")))
 
-    batch_size = settings.batch_size
-    previews = {}
-    estimates = {}
-    total_batches = 0
-    for lang, entries in by_lang.items():
-        glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang, target_lang=target_lang)
-        style_examples = chrono_ark_adapter().get_style_examples(lang)
-        batches = chunk_entries(entries, batch_size, settings.batch_max_chars)
-        num_batches = len(batches)
-        total_batches += num_batches
-        user_messages: list[str] = []
-        system_prompt = ""
-        for batch in batches:
-            sp, um = provider.build_prompt(
-                batch,
-                lang,
-                glossary_prompt,
-                game_context=game_context,
-                format_rules=format_rules,
-                style_examples=style_examples,
-                character_context=character_context,
-                target_lang=target_lang,
-            )
-            if not system_prompt:
-                system_prompt = sp
-            user_messages.append(um)
-        previews[lang] = {
-            "system_prompt": system_prompt,
-            "user_messages": user_messages,
-            "strings_in_language": len(entries),
-            "batches": num_batches,
-        }
-        estimates[lang] = provider.estimate_cost(
-            entries,
-            source_lang=lang,
-            glossary_prompt=glossary_prompt,
-            game_context=game_context,
-            format_rules=format_rules,
-            style_examples=style_examples,
-            character_context=character_context,
-            target_lang=target_lang,
-        )
-
-    batch_plan = []
-    for lang, entries in by_lang.items():
-        for batch in chunk_entries(entries, batch_size, settings.batch_max_chars):
-            batch_plan.append(
-                {
-                    "source_lang": lang,
-                    "keys": [key for key, _ in batch],
-                    "size": len(batch),
-                }
-            )
-
-    return {
-        "total_strings": len(target),
-        "total_batches": total_batches,
-        "batch_size": batch_size,
-        "provider": provider.name,
-        "previews": previews,
-        "estimates": estimates,
-        "batch_plan": batch_plan,
-    }
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    chunks_by_lang = {lang: chunk_entries(entries, settings.batch_size, settings.batch_max_chars) for lang, entries in by_lang.items()}
+    plan = plan_batches(provider, chunks_by_lang, lambda lang: prompt_context(req.mod_id, lang, target_lang, base_glossary=base_glossary))
+    return {"total_strings": len(target), "batch_size": settings.batch_size, "provider": provider.name, **plan}
 
 
 @router.get("/system-prompt")
@@ -247,22 +162,10 @@ async def get_system_prompt(source_lang: str = "Korean", target_lang: str = "Eng
     Returns:
         `provider`, `source_lang`, and `system_prompt`.
     """
-    provider_name = settings.translation_provider
-    provider = web_provider(provider_name)
-
-    glossary_prompt = chrono_ark_adapter().get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang)
-    game_context = chrono_ark_adapter().get_translation_context()
-    format_rules = chrono_ark_adapter().get_format_preservation_rules()
-
-    system_prompt, _ = provider.build_prompt(
-        entries=[("Example/Key_Name", "예시 텍스트")],
-        source_lang=source_lang,
-        glossary_prompt=glossary_prompt,
-        game_context=game_context,
-        format_rules=format_rules,
-        style_examples=chrono_ark_adapter().get_style_examples(source_lang),
-        target_lang=target_lang,
-    )
+    provider = web_provider(settings.translation_provider)
+    adapter = chrono_ark_adapter()
+    context = PromptContext.for_adapter(adapter, source_lang, target_lang, adapter.get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang))
+    system_prompt, _ = provider.build_prompt([("Example/Key_Name", "예시 텍스트")], **context.provider_kwargs())
 
     return {
         "provider": provider.name,
@@ -311,30 +214,13 @@ async def translate_batch(req: BatchTranslationRequest):
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
 
-    base_glossary = load_glossary(glossary_path(GAME_ID))
     mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
-    glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=req.source_lang, target_lang=target_lang)
-
-    game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
-    character_context = char_ctx if any(char_ctx.values()) else None
-    format_rules = chrono_ark_adapter().get_format_preservation_rules()
-    style_examples = chrono_ark_adapter().get_style_examples(req.source_lang)
+    context = prompt_context(req.mod_id, req.source_lang, target_lang)
 
     tm = TranslationMemory(game_id=GAME_ID)
 
     try:
-        translations, suggestions = await run_batch(
-            provider,
-            entries,
-            req.source_lang,
-            glossary_prompt,
-            game_context=game_context,
-            format_rules=format_rules,
-            style_examples=style_examples,
-            character_context=character_context,
-            target_lang=target_lang,
-        )
+        translations, suggestions = await run_batch(provider, entries, context)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
@@ -430,15 +316,8 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
 
-    base_glossary = load_glossary(glossary_path(GAME_ID))
     mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
-    glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=req.source_lang, target_lang=target_lang)
-
-    game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
-    character_context = char_ctx if any(char_ctx.values()) else None
-    format_rules = chrono_ark_adapter().get_format_preservation_rules()
-    style_examples = chrono_ark_adapter().get_style_examples(req.source_lang)
+    context = prompt_context(req.mod_id, req.source_lang, target_lang)
 
     tm = TranslationMemory(game_id=GAME_ID)
 
@@ -450,17 +329,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
 
         def run_generator():
             try:
-                for event in provider.translate_batch_stream(
-                    entries,
-                    req.source_lang,
-                    glossary_prompt,
-                    game_context=game_context,
-                    format_rules=format_rules,
-                    style_examples=style_examples,
-                    character_context=character_context,
-                    cancel_event=cancel_event,
-                    target_lang=target_lang,
-                ):
+                for event in provider.translate_batch_stream(entries, cancel_event=cancel_event, **context.provider_kwargs()):
                     if cancel_event.is_set():
                         break
                     loop.call_soon_threadsafe(queue.put_nowait, event)

@@ -22,18 +22,18 @@ from backend.core.settings import settings
 from backend.data.glossary_manager import (
     add_glossary_term,
     build_glossary_from_base_game,
-    get_combined_glossary_prompt,
     load_glossary,
-    load_mod_glossary,
     print_glossary,
     save_glossary,
 )
+from backend.data.mod_settings import load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.suggestion_manager import add_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
+from backend.games.chrono_ark.services.translation import prompt_context
 from backend.games.registry import get_adapter, list_games
 from backend.providers.factory import get_provider
 from backend.translation.orchestrator import chunk_entries
@@ -152,7 +152,8 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 
     print(f"Loading strings for mod {mod_id}...")
     strings, _ = adapter.extract_strings(mod_path)
-    untranslated = adapter.get_untranslated(strings)
+    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
+    untranslated = adapter.get_untranslated(strings, target_lang)
 
     if not untranslated:
         print("All strings already have English translations!")
@@ -160,7 +161,6 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 
     tm = TranslationMemory(game_id=GAME_ID)
     base_glossary = load_glossary(glossary_path(GAME_ID))
-    mod_glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     needs_translation = []
     cached_translations = {}
 
@@ -192,9 +192,6 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         print(e)
         sys.exit(1)
 
-    game_context = adapter.get_translation_context()
-    format_rules = adapter.get_format_preservation_rules()
-
     # Batches are per source language.
     entries_by_lang: dict[str, list[tuple[str, str]]] = {}
     for key, source_text, source_lang in needs_translation:
@@ -207,16 +204,8 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     if args.dry_run:
         print(f"\n  Provider: {provider.name}")
         for lang, entries in entries_by_lang.items():
-            glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang)
-            cost = provider.estimate_cost(
-                entries,
-                source_lang=lang,
-                glossary_prompt=glossary_prompt,
-                game_context=game_context,
-                format_rules=format_rules,
-                style_examples=adapter.get_style_examples(lang),
-            )
-            print(f"\n  {lang} → English ({len(entries)} strings):")
+            cost = provider.estimate_cost(entries, **prompt_context(mod_id, lang, target_lang, base_glossary=base_glossary).provider_kwargs())
+            print(f"\n  {lang} → {target_lang} ({len(entries)} strings):")
             for k, v in cost.items():
                 print(f"    {k}: {v}")
         return
@@ -236,15 +225,9 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         for batch in batches:
             print(f"    Batch {batch_num}/{total_batches} ({len(batch)} strings)...")
 
-            glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang)
-            translations, suggestions = provider.translate_batch(
-                batch,
-                lang,
-                glossary_prompt,
-                game_context=game_context,
-                format_rules=format_rules,
-                style_examples=adapter.get_style_examples(lang),
-            )
+            # Rebuilt per batch so terms added to the mod glossary mid-run apply.
+            context = prompt_context(mod_id, lang, target_lang, base_glossary=base_glossary)
+            translations, suggestions = provider.translate_batch(batch, **context.provider_kwargs())
             all_translations.update(translations)
             all_suggestions.extend(suggestions)
 

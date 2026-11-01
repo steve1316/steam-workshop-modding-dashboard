@@ -3,6 +3,7 @@
 import asyncio
 
 from backend.translation.orchestrator import chunk_entries, fill_duplicate_translations, run_batch
+from backend.translation.prompt import PromptContext
 
 
 def test_fill_duplicate_translations_copies_to_keys_with_shared_source():
@@ -33,19 +34,8 @@ class _FakeProvider:
 def test_run_batch_invokes_provider_then_fills_duplicates():
     provider = _FakeProvider()
     entries = [("k1", "원본"), ("k2", "원본")]
-    translations, suggestions = asyncio.run(
-        run_batch(
-            provider,
-            entries,
-            "Chinese",
-            "GLOSSARY",
-            game_context="CONTEXT",
-            format_rules=["rule"],
-            style_examples={},
-            character_context=None,
-            target_lang="English",
-        )
-    )
+    context = PromptContext(source_lang="Chinese", target_lang="English", glossary_prompt="GLOSSARY", game_context="CONTEXT", format_rules=["rule"])
+    translations, suggestions = asyncio.run(run_batch(provider, entries, context))
     assert translations == {"k1": "Hello", "k2": "Hello"}
     assert suggestions == [{"english": "Hello"}]
     assert provider.called_with["source_lang"] == "Chinese"

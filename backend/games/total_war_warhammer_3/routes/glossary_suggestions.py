@@ -23,6 +23,7 @@ from backend.games.total_war_warhammer_3.translation.name_spacing import glossar
 from backend.providers.base import TranslationProvider
 from backend.routes.models import SuggestionAction
 from backend.routes.web_provider import ready_web_provider
+from backend.translation.prompt import PromptContext
 from backend.translation.suggestions import accepted_suggestions
 
 router = APIRouter(tags=["glossary-suggestions"])
@@ -115,18 +116,9 @@ def _ask_for_terms(provider: TranslationProvider, mod, entries: list[tuple[str, 
     Returns:
         The provider's suggested terms.
     """
-    adapter = TotalWarWarhammer3Adapter()
+    context = PromptContext.for_adapter(TotalWarWarhammer3Adapter(), mod.source_language, mod.target_language, glossary_prompt)
     provider.last_raw_responses = []
-    _, suggestions = provider.translate_batch(
-        entries,
-        mod.source_language,
-        glossary_prompt=glossary_prompt,
-        game_context=adapter.get_translation_context(),
-        format_rules=adapter.get_format_preservation_rules(),
-        style_examples=adapter.get_style_examples(mod.source_language),
-        character_context=None,
-        target_lang=mod.target_language,
-    )
+    _, suggestions = provider.translate_batch(entries, **context.provider_kwargs())
     return suggestions
 
 

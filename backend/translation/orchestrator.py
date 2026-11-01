@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from backend.translation.prompt import PromptContext
+
 
 def fill_duplicate_translations(translations: dict[str, str], entries: list[tuple[str, str]]) -> dict[str, str]:
     """Fill missing keys whose source text matches an already-translated entry.
@@ -58,47 +60,18 @@ def chunk_entries(entries: list[tuple[str, str]], max_keys: int, max_chars: int)
     return chunks
 
 
-async def run_batch(
-    provider: Any,
-    entries: list[tuple[str, str]],
-    source_lang: str,
-    glossary_prompt: str,
-    *,
-    game_context: str,
-    format_rules: list[str],
-    style_examples: dict[str, list[tuple[str, str]]],
-    character_context: dict[str, str] | None,
-    target_lang: str,
-) -> tuple[dict[str, str], list[Any]]:
+async def run_batch(provider: Any, entries: list[tuple[str, str]], context: PromptContext) -> tuple[dict[str, str], list[Any]]:
     """Translate one batch via `provider` in the default executor, then fill deduplicated keys.
 
     Args:
         provider: Provider exposing `translate_batch(...)`.
         entries: (key, source_text) tuples.
-        source_lang: Source language name, e.g. `"Chinese"`.
-        glossary_prompt: Combined base + mod glossary section.
-        game_context: Game-specific prose context.
-        format_rules: Per-line format-preservation rules.
-        style_examples: Source language to (input, output) example pairs.
-        character_context: Optional character/mod context.
-        target_lang: Target language name, e.g. `"English"`.
+        context: Languages, glossary and game rules for the prompt.
 
     Returns:
         (translations keyed by key, suggestion objects).
     """
     loop = asyncio.get_running_loop()
-    translations, suggestions = await loop.run_in_executor(
-        None,
-        lambda: provider.translate_batch(
-            entries,
-            source_lang,
-            glossary_prompt,
-            game_context=game_context,
-            format_rules=format_rules,
-            style_examples=style_examples,
-            character_context=character_context,
-            target_lang=target_lang,
-        ),
-    )
+    translations, suggestions = await loop.run_in_executor(None, lambda: provider.translate_batch(entries, **context.provider_kwargs()))
     fill_duplicate_translations(translations, entries)
     return translations, suggestions
