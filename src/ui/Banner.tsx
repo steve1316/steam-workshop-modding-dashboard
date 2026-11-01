@@ -7,14 +7,13 @@ export type BannerTone = "success" | "error" | "info" | "warning"
 interface BannerProps {
     /** Tone that sets the tint and text color. */
     tone: BannerTone
-    /** Banner content. Plain text keeps its newlines. */
     children: ReactNode
     /** When given, a Dismiss (x) button calls it. */
     onDismiss?: () => void
 }
 
 /**
- * Tinted full-width notice used for results, errors and in-progress states on every page.
+ * Tinted full-width notice for results, errors and in-progress states.
  *
  * @param tone Tint and text color.
  * @param children Banner content.

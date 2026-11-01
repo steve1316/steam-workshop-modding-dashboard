@@ -1,48 +1,42 @@
 import { useMemo, useState } from "react"
 import Modal from "../ui/Modal"
 
-/** One normalized provider API-response record, rendered by the shared modal. Each game maps its own audit-log shape onto this. */
+/** One normalized provider API-response record. Each game maps its own audit-log shape onto this. */
 export interface ApiResponseEntry {
-    /** Stable identifier (React key). */
     id: string
-    /** Optional call kind (e.g. "translate-batch", "scan-terms"). Falls back to a Batch label when absent. */
+    /** Call kind (e.g. "scan-terms"). Falls back to a Batch label. */
     kind?: string
-    /** Optional ISO timestamp of the call. */
+    /** ISO timestamp. */
     timestamp?: string
-    /** Model id that produced the response. */
     model: string
-    /** Prompt (input) token count, when reported. */
+    /** Prompt token count, when reported. */
     inputTokens?: number | null
-    /** Completion (output) token count, when reported. */
+    /** Completion token count, when reported. */
     outputTokens?: number | null
-    /** Estimated USD cost of the call, when available. */
+    /** Estimated USD cost. */
     costUsd?: number | null
-    /** Keys or inputs sent in the call, when recorded. */
+    /** Keys or inputs sent, when recorded. */
     keysOrInputs?: string[]
-    /** Raw response text returned by the provider. */
     rawText: string
 }
 
 /** Props for the shared `ApiResponsesModal`. */
 interface ApiResponsesModalProps {
-    /** Normalized entries, newest first (the caller orders them). */
+    /** Entries, newest first (the caller orders them). */
     entries: ApiResponseEntry[]
-    /** True while the caller is still fetching. */
     loading?: boolean
-    /** Error message to show, if the fetch failed. */
+    /** Fetch error to show. */
     error?: string | null
-    /** Called when the user closes the modal. */
     onClose: () => void
 }
 
 /**
- * Shared tabbed audit-log viewer for recorded provider API calls, used by both games. Presentational: the caller fetches + maps its records to
- * `ApiResponseEntry[]`. A sidebar lists the calls; selecting one shows its metadata + raw response. A total-cost summary spans all entries.
- * @param entries - Normalized API-response records.
+ * Shared audit-log viewer for recorded provider API calls. The caller fetches and maps its records, and a total-cost summary spans all entries.
+ * @param entries - API-response records.
  * @param loading - Whether the caller is still fetching.
- * @param error - Error message to display, if any.
- * @param onClose - Closes the modal.
- * @returns The modal element.
+ * @param error - Error to display.
+ * @param onClose - Close handler.
+ * @returns The modal.
  */
 export function ApiResponsesModal({ entries, loading, error, onClose }: ApiResponsesModalProps) {
     const [activeIdx, setActiveIdx] = useState(0)

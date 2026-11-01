@@ -14,12 +14,9 @@ import { rememberScrollTarget, useScrollRestore } from "../../../../dashboard/us
 import Banner from "../../../../ui/Banner"
 
 /**
- * The dashboard page displays a grid of all mods and their translation progress.
+ * Grid of all mods and their translation progress.
  *
- * Fetches its own mod list from the Chrono Ark game API on mount, re-fetches
- * after any per-mod sync, and navigates to the detail page on selection.
- *
- * @returns A React component that displays a grid of all mods and their translation progress.
+ * @returns The dashboard page.
  */
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate()
@@ -49,12 +46,7 @@ const DashboardPage: React.FC = () => {
     const [showEstimateModal, setShowEstimateModal] = useState(false)
     const estimateAbortRef = useRef<AbortController | null>(null)
 
-    /**
-     * Fetches the list of all mods from the Chrono Ark game API.
-     *
-     * Hits `GET /api/games/chrono_ark/mods` and replaces local state with the returned array of `ModStatus` objects. A failed first load
-     * shows an error with Retry in place of the grid. A failed reload after that keeps the cards and shows an error banner.
-     */
+    /** Load the mod list. A failed first load shows an error with Retry, while later failures keep the cards and show a banner. */
     const fetchMods = async () => {
         try {
             const res = await gameApi("chrono_ark").get("/mods")
@@ -77,20 +69,14 @@ const DashboardPage: React.FC = () => {
         fetchMods()
     }
 
-    // Fetch mods on first mount.
     useEffect(() => {
         fetchMods()
     }, [])
 
     /**
-     * Rescans a mod's workshop folder on disk and updates the backend database.
+     * Rescan a mod's workshop folder, then reload the list.
      *
-     * Hits `POST /api/games/chrono_ark/mods/{modId}/sync`. After a successful
-     * sync the mod list is re-fetched so the dashboard reflects any newly
-     * discovered or removed localization strings.
-     *
-     * Args:
-     *     modId: The unique identifier of the mod to sync.
+     * @param modId - Mod's Workshop id.
      */
     const handleModSync = async (modId: string) => {
         try {
@@ -101,7 +87,7 @@ const DashboardPage: React.FC = () => {
         }
     }
 
-    // Abort any in-flight refresh when the component unmounts (page refresh / navigation).
+    // Abort in-flight streams on unmount.
     useEffect(() => {
         return () => {
             abortRef.current?.abort()
@@ -109,20 +95,8 @@ const DashboardPage: React.FC = () => {
         }
     }, [])
 
-    /**
-     * Deep-refreshes every mod by streaming progress from POST `/api/games/chrono_ark/mods/refresh`.
-     *
-     * The endpoint re-extracts each mod's localization strings and recomputes
-     * translated/total counts from scratch, emitting an SSE progress event per
-     * mod (used to update the button label) and a final event with the complete
-     * results list (which replaces local mod state).
-     *
-     * An AbortController is attached so the request is cancelled automatically
-     * when the component unmounts (navigation / page refresh) or when the user
-     * clicks Refresh again while a previous run is still in progress.
-     */
+    /** Re-extract every mod from scratch, streaming per-mod progress over SSE. A new run aborts the previous one. */
     const handleRefresh = async () => {
-        // Abort a previous refresh if one is still running.
         abortRef.current?.abort()
 
         const controller = new AbortController()
@@ -171,17 +145,7 @@ const DashboardPage: React.FC = () => {
         }
     }
 
-    /**
-     * Estimates translation costs for all mods by streaming progress from POST `/api/games/chrono_ark/translate/estimate-all`.
-     *
-     * The endpoint computes token and cost estimates per mod for each configured
-     * provider, emitting an SSE progress event per mod and a final done event.
-     * Results are accumulated and shown in the EstimateTotalCostModal.
-     *
-     * An AbortController is attached so the request is cancelled automatically
-     * when the component unmounts or when the handler is invoked again while a
-     * previous run is still in progress.
-     */
+    /** Estimate translation cost for every mod, streaming per-mod progress over SSE. A new run aborts the previous one. */
     const handleEstimate = async () => {
         estimateAbortRef.current?.abort()
 
@@ -246,11 +210,9 @@ const DashboardPage: React.FC = () => {
     const cardWidth = useCardWidth(gridWrapperRef, filteredMods.length)
 
     /**
-     * Remembers the selected mod for the dashboard scroll-restore effect, then
-     * routes to the mod detail page.
+     * Remember the clicked mod for scroll restore, then open its detail page.
      *
-     * Args:
-     *     modId: The unique identifier of the mod the user clicked.
+     * @param modId - Mod's Workshop id.
      */
     const handleModSelect = (modId: string) => {
         rememberScrollTarget(modId)

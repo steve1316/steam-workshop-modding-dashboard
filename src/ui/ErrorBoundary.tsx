@@ -5,7 +5,6 @@ import ErrorState from "./ErrorState"
 
 /** Props for ErrorBoundary. */
 interface ErrorBoundaryProps {
-    /** Content to protect. */
     children: ReactNode
 }
 

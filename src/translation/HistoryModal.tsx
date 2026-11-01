@@ -4,15 +4,14 @@ import Modal from "../ui/Modal"
 
 /** One normalized history/snapshot entry rendered by the shared modal. Each game maps its own backup/snapshot shape onto this. */
 export interface HistoryModalEntry {
-    /** Stable identifier used as the React key and passed back to restore/delete handlers. */
+    /** React key, also passed back to the restore and delete handlers. */
     id: string
     /** Primary line: the backup reason (Chrono Ark) or the snapshot label (WH3). */
     title: string
-    /** "auto" for snapshots taken automatically before destructive ops, "manual" for user-requested saves. Drives the kind pill color. */
+    /** "auto" for snapshots taken before destructive ops, "manual" for user saves. Sets the pill color. */
     kind: "auto" | "manual"
-    /** ISO timestamp of when the entry was created. */
     createdAt: string
-    /** Optional secondary metadata line (e.g. Chrono Ark's translated/total + glossary counts). Omitted when a game has nothing extra to show. */
+    /** Secondary metadata line (e.g. translated/total counts). */
     subtitle?: ReactNode
 }
 
@@ -20,34 +19,31 @@ export interface HistoryModalEntry {
 interface HistoryModalProps {
     /** Header text. Defaults to "History Backups"; WH3's Reset action passes "Reset to snapshot". */
     title?: string
-    /** Normalized entries to list, newest first (the parent is responsible for ordering). */
+    /** Entries to list, newest first (the parent orders them). */
     entries: HistoryModalEntry[]
-    /** Create a manual snapshot with the given label. Resolves when persisted; the modal clears its input and the parent re-fetches. */
+    /** Create a manual snapshot. On resolve the modal clears its input and the parent re-fetches. */
     onSave: (label: string) => Promise<void>
-    /** Called when the user clicks Restore on an entry. The parent decides how to confirm (shared ConfirmModal or window.confirm). */
+    /** Restore clicked. The parent decides how to confirm. */
     onRestore: (entry: HistoryModalEntry) => void
-    /** Called when the user clicks Delete on an entry. The parent decides how to confirm. */
+    /** Delete clicked. The parent decides how to confirm. */
     onDelete: (entry: HistoryModalEntry) => void
-    /** Called when the user closes the modal. */
     onClose: () => void
-    /** Message shown when there are no entries. */
     emptyMessage?: string
-    /** Error from the parent's data layer, shown above the list. */
+    /** Parent data-layer error, shown above the list. */
     error?: string | null
 }
 
 /**
- * Shared history/snapshot modal used by both games. Presentational only: it owns the save-label input and saving state, and defers data fetching plus
- * restore/delete confirmation to the parent via callbacks. Each game wraps this with its own API and entry mapping so the two pages share one look.
+ * Shared history/snapshot modal. It owns only the save-label input and saving state, and each game wraps it with its own API and entry mapping.
  * @param title - Header text.
- * @param entries - Normalized entries to render.
- * @param onSave - Persists a manual snapshot with the typed label.
- * @param onRestore - Invoked with the entry to restore.
- * @param onDelete - Invoked with the entry to delete.
- * @param onClose - Closes the modal.
+ * @param entries - Entries to render.
+ * @param onSave - Persists a snapshot with the typed label.
+ * @param onRestore - Restore handler.
+ * @param onDelete - Delete handler.
+ * @param onClose - Close handler.
  * @param emptyMessage - Shown when there are no entries.
- * @param error - Parent data-layer error shown above the list, alongside any save error.
- * @returns The modal element.
+ * @param error - Parent error, shown alongside any save error.
+ * @returns The modal.
  */
 export default function HistoryModal({ title = "History Backups", entries, onSave, onRestore, onDelete, onClose, emptyMessage, error }: HistoryModalProps) {
     const [label, setLabel] = useState("")

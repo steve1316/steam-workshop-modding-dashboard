@@ -3,31 +3,28 @@ import { FaArrowLeft } from "react-icons/fa"
 
 /** Props for PageHeader. */
 interface PageHeaderProps {
-    /** Page title, rendered as the page's h1 in the game accent gradient. Long titles wrap within themselves. */
+    /** Page title, rendered as the h1. Long titles wrap within themselves. */
     title: ReactNode
     /** When given, a back button above the header calls it. */
     onBack?: () => void
     /** Label for the back button. Defaults to "Back to Dashboard". */
     backLabel?: string
-    /** Leading 80x80 image URL, such as a mod preview. Nothing renders when null or undefined. */
+    /** Leading 80x80 image URL, such as a mod preview. */
     image?: string | null
-    /** Alt text for the leading image. */
     imageAlt?: string
-    /** Icons and pills kept on one line beside the title (e.g. Steam link, open folder, pending sync). */
+    /** Icons and pills kept on one line beside the title. */
     adornments?: ReactNode
     /** Dim line under the title, such as "by author". */
     subtitle?: ReactNode
     /** Extra lines under the subtitle, such as language controls and a progress count. */
     meta?: ReactNode
-    /** Action row rendered under the identity block. */
     actions?: ReactNode
-    /** Class for the action row. Defaults to `mod-actions`, the translation toolbar row. Dashboards pass `dashboard-toolbar`. */
+    /** Class for the action row. Defaults to `mod-actions`, and dashboards pass `dashboard-toolbar`. */
     actionsClassName?: string
 }
 
 /**
- * Shared page header: an optional back button, then a leading image, a title that shrinks and wraps instead of pushing its adornments onto a new line,
- * a no-wrap adornment group, subtitle and meta lines, and an action row.
+ * Shared page header. The title shrinks and wraps instead of pushing its adornments onto a new line.
  *
  * @param title Page title.
  * @param onBack Back button handler.

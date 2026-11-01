@@ -7,9 +7,7 @@ import LoadingState from "../../../../ui/LoadingState"
 import PageHeader from "../../../../ui/PageHeader"
 
 /**
- * The statistics page displays the translation memory and global progress.
- *
- * Fetches its own stats from `GET /api/stats` (a cross-game endpoint exposed by the settings router) on open and on Retry.
+ * Translation memory and global progress, from the cross-game `GET /api/stats`.
  *
  * @returns The statistics page, its loading state, or an error with Retry.
  */
@@ -36,7 +34,7 @@ const StatisticsPage: React.FC = () => {
         }
     }, [attempt])
 
-    /** Clears the error, which brings the loading state back, and loads again. */
+    /** Clear the error, which brings the loading state back, and load again. */
     const retry = () => {
         setError(null)
         setAttempt((n) => n + 1)

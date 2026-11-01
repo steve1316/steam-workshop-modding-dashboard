@@ -5,7 +5,6 @@ import Modal from "../../../../ui/Modal"
 
 /** A single row affected by a glossary replacement. */
 interface AffectedRow {
-    /** Localization key. */
     key: string
     /** Current English text. */
     old_text: string
@@ -15,13 +14,12 @@ interface AffectedRow {
 
 /** The preview payload describing a pending glossary replacement. */
 export interface ReplacePreview {
-    /** Old English term being replaced (empty when filling in for the first time). */
+    /** Old English term (empty on first fill-in). */
     oldTerm: string
-    /** New English term to apply. */
     newTerm: string
     /** Source-language text whose rows are targeted. */
     sourceText: string
-    /** When true, the user must type the old English term before rows can be computed. */
+    /** The user must type the old term before rows can be computed. */
     needsInput: boolean
     /** Rows that would change. */
     affected: AffectedRow[]
@@ -29,27 +27,23 @@ export interface ReplacePreview {
 
 /** Props for GlossaryReplacePreviewModal. */
 interface GlossaryReplacePreviewModalProps {
-    /** Initial preview to seed the modal's local state. */
+    /** Seeds the modal's local state. */
     initialPreview: ReplacePreview
-    /** All strings, used to recompute affected rows when the user types an old term. */
     strings: LocString[]
-    /** Mod id whose strings get the replacement written. */
     modId: string
-    /** Called when the modal closes (cancel / backdrop / after apply). */
     onClose: () => void
-    /** Called after a successful apply with a result message so the parent can banner + refresh. */
+    /** Called after a successful apply so the parent can banner and refresh. */
     onApplied: (message: string) => void
 }
 
 /**
- * Modal that previews and applies a glossary-term replacement across a mod's translations, highlighting the before/after diff per row. Holds the preview in
- * local state (the user can refine the old term and dismiss individual rows). Extracted from the Chrono Ark details page so that page can compose the shell.
- * @param initialPreview - Initial preview payload.
- * @param strings - All strings, for recomputing affected rows.
- * @param modId - Mod id whose strings get written.
+ * Preview and apply a glossary-term replacement across a mod's translations, with a before/after diff per row.
+ * @param initialPreview - Initial preview.
+ * @param strings - All strings, to recompute affected rows.
+ * @param modId - Mod's Workshop id.
  * @param onClose - Close handler.
- * @param onApplied - Called with a result message after a successful apply.
- * @returns The modal element.
+ * @param onApplied - Called with a result message after apply.
+ * @returns The modal.
  */
 export default function GlossaryReplacePreviewModal({ initialPreview, strings, modId, onClose, onApplied }: GlossaryReplacePreviewModalProps) {
     const [preview, setPreview] = useState<ReplacePreview>(initialPreview)

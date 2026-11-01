@@ -2,32 +2,28 @@ import EditableCell from "../components/EditableCell"
 
 /** Props for `TranslationCell`. */
 interface TranslationCellProps {
-    /** Current translation text (the editable value). */
     value: string
-    /** Previously-synced/on-disk text; shown struck-through above the editor when it differs from `value`. */
+    /** Synced text, struck through above the editor when it differs from `value`. */
     previous?: string | null
-    /** Whether the row is synced (tints the strikethrough green to match Chrono Ark). */
+    /** Tints the strikethrough green. */
     synced: boolean
-    /** When set, the row cannot be translated; the reason is shown instead of an editor. */
+    /** Shown instead of the editor when the row can't be translated. */
     untranslatableReason?: string
-    /** Placeholder for the editor when empty. */
     placeholder?: string
-    /** Search query to highlight in the displayed translation. */
     highlight?: string
-    /** Persist a new value. */
     onSave: (value: string) => void
 }
 
 /**
- * Shared English/translation table cell for both games: an optional struck-through previous translation above an inline editor, or an untranslatable hint.
- * @param value - Current translation text.
- * @param previous - Previously-synced text (struck through when it differs).
- * @param synced - Whether the row is synced (greens the strikethrough).
- * @param untranslatableReason - When set, shown instead of the editor.
- * @param placeholder - Editor placeholder when empty.
- * @param highlight - Search query to highlight in the displayed translation.
- * @param onSave - Persist a new value.
- * @returns The cell element.
+ * Translation table cell: an inline editor with the previous translation struck through above it, or an untranslatable hint.
+ * @param value - Current text.
+ * @param previous - Synced text.
+ * @param synced - Whether the row is synced.
+ * @param untranslatableReason - Shown instead of the editor.
+ * @param placeholder - Empty-editor placeholder.
+ * @param highlight - Search query to highlight.
+ * @param onSave - Persists a new value.
+ * @returns The cell.
  */
 export function TranslationCell({ value, previous, synced, untranslatableReason, placeholder, highlight, onSave }: TranslationCellProps) {
     if (untranslatableReason) {

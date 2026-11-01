@@ -3,17 +3,16 @@ import { statusToChip } from "./statusChip"
 
 /** Props for StatusBadge. */
 interface StatusBadgeProps {
-    /** The canonical row status to render. */
     status: RowStatus
-    /** Untranslatable reason, shown as a tooltip only when status is "untranslatable". */
+    /** Tooltip, shown only for the "untranslatable" status. */
     reason?: string | null
 }
 
 /**
- * Render a status badge for a strings-table row, shared by every game.
- * @param status - The canonical row status.
- * @param reason - Optional untranslatable reason, surfaced as a tooltip for the "untranslatable" status.
- * @returns The status badge span.
+ * Status badge for a strings-table row.
+ * @param status - Row status.
+ * @param reason - Untranslatable reason, shown as a tooltip.
+ * @returns The badge.
  */
 export function StatusBadge({ status, reason }: StatusBadgeProps) {
     const { label, className } = statusToChip(status)

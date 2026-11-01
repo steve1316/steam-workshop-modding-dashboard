@@ -4,7 +4,6 @@ import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } f
 
 /** One recorded provider API response for a Chrono Ark translation batch. */
 interface CaApiResponse {
-    /** Model id that produced the response. */
     model: string
     /** Prompt token count, when reported. */
     input_tokens?: number | null
@@ -12,23 +11,20 @@ interface CaApiResponse {
     output_tokens?: number | null
     /** Estimated USD cost, when available. */
     cost_usd?: number | null
-    /** Raw response text. */
     raw_text: string
 }
 
 /** Props for ApiResponsesModal. */
 interface ApiResponsesModalProps {
-    /** Mod whose recorded API responses to display. */
     modId: string
-    /** Called when the user closes the modal. */
     onClose: () => void
 }
 
 /**
- * Chrono Ark provider audit-log modal. A thin wrapper: it fetches CA's `api-responses` and maps them onto the shared `ApiResponsesModal`.
- * @param modId - Mod id whose responses to fetch.
- * @param onClose - Called when the user closes the modal.
- * @returns The modal element.
+ * Provider audit-log modal, a wrapper that fetches `api-responses` and maps them onto the shared `ApiResponsesModal`.
+ * @param modId - Mod's Workshop id.
+ * @param onClose - Close handler.
+ * @returns The modal.
  */
 export default function ApiResponsesModal({ modId, onClose }: ApiResponsesModalProps) {
     const [entries, setEntries] = useState<ApiResponseEntry[]>([])

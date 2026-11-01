@@ -7,43 +7,36 @@ import type { ColumnDef } from "./types"
 interface StringsTableProps<Row> {
     /** Rows to display (already filtered/sorted by the caller). */
     rows: Row[]
-    /** Column definitions driving the header and cells. */
     columns: ColumnDef<Row>[]
-    /** Return a stable React key for a row. */
     getRowKey: (row: Row) => string
-    /** The field currently sorted by, or null. */
     sortField: string | null
-    /** The active sort direction, or null for unsorted. */
     sortDirection: "asc" | "desc" | null
-    /** Called with a column field when a sortable header is clicked. */
     onSort: (field: string) => void
-    /** Per-field width overrides. When a field is present here its value wins over the column's default `width`. */
+    /** Per-field width overrides of the column's default `width`. */
     columnWidths?: Record<string, number>
-    /** Called with a field id and new pixel width while the user drags a column resizer. When omitted, columns are not resizable. */
+    /** Called with the new pixel width while dragging a resizer. Omit to make columns fixed. */
     onResizeColumn?: (field: string, width: number) => void
-    /** Optional per-row CSS class (e.g. to tint AI-translated rows). */
+    /** Per-row CSS class (e.g. to tint AI rows). */
     getRowClassName?: (row: Row) => string | undefined
-    /** Optional per-row inline style (e.g. status-based row background). */
+    /** Per-row inline style (e.g. status background). */
     getRowStyle?: (row: Row) => CSSProperties | undefined
-    /** Message shown when there are no rows. */
     emptyMessage?: string
 }
 
 /**
- * Generic sortable strings table shared by every game's translation page. The caller owns filtering/sorting and supplies column definitions, so each
- * game controls its own columns and cell rendering. Columns are resizable when `onResizeColumn` is supplied (the caller persists the widths).
+ * Generic sortable strings table. The caller owns filtering and sorting, and persists widths when `onResizeColumn` is given.
  * @param rows - Rows to display.
  * @param columns - Column definitions.
  * @param getRowKey - Stable row key accessor.
- * @param sortField - Currently sorted field, or null.
- * @param sortDirection - Active sort direction, or null.
+ * @param sortField - Sorted field, or null.
+ * @param sortDirection - Sort direction, or null.
  * @param onSort - Header-click handler.
  * @param columnWidths - Per-field width overrides.
- * @param onResizeColumn - Resize handler; when omitted, columns are not resizable.
- * @param getRowClassName - Optional per-row class accessor.
- * @param getRowStyle - Optional per-row inline-style accessor.
+ * @param onResizeColumn - Resize handler. Omit to make columns fixed.
+ * @param getRowClassName - Per-row class accessor.
+ * @param getRowStyle - Per-row style accessor.
  * @param emptyMessage - Message shown when there are no rows.
- * @returns The table element.
+ * @returns The table.
  */
 export function StringsTable<Row>({
     rows,

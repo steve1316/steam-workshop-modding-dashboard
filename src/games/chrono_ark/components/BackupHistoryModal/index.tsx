@@ -5,15 +5,13 @@ import SharedHistoryModal from "../../../../translation/HistoryModal"
 
 /** One backup history entry for a mod. */
 export interface HistoryEntry {
-    /** Backup identifier. */
     id: string
     /** Why the backup was created (e.g. "Before translation run"). */
     reason: string
-    /** "auto" for backups taken automatically before destructive ops, "manual" for user-requested save snapshots. */
+    /** "auto" for backups taken before destructive ops, "manual" for user saves. */
     kind?: "auto" | "manual"
-    /** ISO timestamp of when the backup was taken. */
+    /** ISO timestamp. */
     created_at: string
-    /** Files captured in the backup. */
     files: string[]
     /** Translated string count at backup time, when recorded. */
     translated_count?: number
@@ -25,22 +23,20 @@ export interface HistoryEntry {
 
 /** Props for BackupHistoryModal. */
 interface BackupHistoryModalProps {
-    /** Mod whose backup history to display. */
     modId: string
-    /** Called when the user closes the modal. */
     onClose: () => void
-    /** Called when the user requests restoring a backup (the parent opens the confirm dialog). */
+    /** Restore requested. The parent opens the confirm dialog. */
     onRestore: (entry: HistoryEntry) => void
-    /** Called when the user requests deleting a backup (the parent opens the confirm dialog). */
+    /** Delete requested. The parent opens the confirm dialog. */
     onDelete: (entry: HistoryEntry) => void
-    /** Bump this to force a re-fetch of the backup list (e.g. after the parent confirms a delete). */
+    /** Bump to re-fetch the list (e.g. after a confirmed delete). */
     refreshKey?: number
 }
 
 /**
- * Builds the Chrono Ark counts subtitle (translated/total strings + glossary terms), or `undefined` when the entry recorded no counts.
- * @param entry - The backup entry whose counts to render.
- * @returns The subtitle node, or `undefined` to omit the line.
+ * Build the counts subtitle (translated/total strings and glossary terms).
+ * @param entry - Backup entry.
+ * @returns The subtitle, or `undefined` when no counts were recorded.
  */
 function renderCounts(entry: HistoryEntry): ReactNode {
     const hasCounts = (entry.total_count ?? 0) > 0
@@ -64,14 +60,13 @@ function renderCounts(entry: HistoryEntry): ReactNode {
 }
 
 /**
- * Chrono Ark backup-history modal. A thin wrapper over the shared `HistoryModal`: it owns the REST fetch/save against the CA history API and maps each
- * backup onto the shared entry shape, while restore/delete defer to the parent's shared confirm dialog via callbacks.
- * @param modId - Mod id whose backups to fetch.
- * @param onClose - Called when the user closes the modal.
- * @param onRestore - Called with the entry the user wants to restore.
- * @param onDelete - Called with the entry the user wants to delete.
- * @param refreshKey - Bump to force a re-fetch.
- * @returns The modal element.
+ * Backup-history modal, a thin wrapper over the shared `HistoryModal` that owns the history API calls.
+ * @param modId - Mod's Workshop id.
+ * @param onClose - Close handler.
+ * @param onRestore - Restore handler.
+ * @param onDelete - Delete handler.
+ * @param refreshKey - Bump to re-fetch.
+ * @returns The modal.
  */
 export default function BackupHistoryModal({ modId, onClose, onRestore, onDelete, refreshKey }: BackupHistoryModalProps) {
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])

@@ -2,11 +2,10 @@ import type { ReactNode } from "react"
 
 /** Props for Field. */
 interface FieldProps {
-    /** Visible label text, rendered in Chrono Ark's small uppercase label style. */
+    /** Visible label text. */
     label: ReactNode
-    /** Id of the control inside `children`, so the label is programmatically linked to it. */
+    /** Id of the control inside `children`, linking the label to it. */
     htmlFor: string
-    /** The form control (an `.input`, `.textarea` or `.select`). */
     children: ReactNode
     /** Extra classes for the wrapper, e.g. a flex sizing class. */
     className?: string

@@ -5,10 +5,9 @@ import GlossaryBrowser, { type GlossaryColumn } from "../../../../glossary/Gloss
 import type { Glossary } from "../../../../shared_types"
 
 /**
- * Loads the Chrono Ark base-game glossary.
+ * Load the base-game glossary.
  *
  * @returns The glossary.
- * @throws Error when the backend answers with a non-2xx status.
  */
 async function loadChronoArkGlossary(): Promise<Glossary> {
     const res = await gameApi("chrono_ark").get("/glossary")
@@ -53,7 +52,7 @@ const COLUMNS: GlossaryColumn[] = [
 ]
 
 /**
- * Displays the Chrono Ark base-game terminology glossary in a searchable, filterable table.
+ * Base-game glossary in a searchable table.
  *
  * @returns The glossary page.
  */

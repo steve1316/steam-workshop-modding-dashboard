@@ -11,39 +11,35 @@ const LANGUAGES = ["Chinese", "Korean", "Japanese"]
 
 /** Props for ChronoArkGlossaryModal. */
 interface ChronoArkGlossaryModalProps {
-    /** The mod's glossary terms (owned by the parent, shared with the toolbar count and suggestion flow). */
+    /** The mod's glossary terms, owned by the parent. */
     glossary: Record<string, GlossaryTerm>
-    /** Mod id for glossary CRUD calls. */
     modId: string
-    /** All strings, used to compute affected rows when applying a term. */
     strings: LocString[]
-    /** Called after the panel changes the glossary so the parent re-fetches it. */
+    /** Glossary changed, so the parent re-fetches it. */
     onChanged: () => void
-    /** Called after a successful replace-apply with a result message (parent banners + refreshes). */
+    /** Replace-apply succeeded. The parent banners and refreshes. */
     onApplied: (message: string) => void
-    /** Called after an edit renamed existing translations, so the page reloads its rows. */
+    /** An edit renamed existing translations, so the page reloads its rows. */
     onTranslationsChanged: () => void
-    /** Called to request deleting all terms (parent opens the shared confirm dialog). */
+    /** Delete-all requested. The parent opens the confirm dialog. */
     onRequestDeleteAll: () => void
-    /** Called after the panel triggers new edit suggestions so the parent re-fetches them. */
+    /** New edit suggestions were triggered, so the parent re-fetches them. */
     onSuggestionsChanged: () => void
-    /** Closes the dialog. */
     onClose: () => void
 }
 
 /**
- * Mod glossary dialog (75% of the screen) for managing a mod's glossary terms. A thin wrapper around the shared `GlossaryEditor`: it maps CA's per-language glossary to/from the
- * editor's shape, wires CA's REST CRUD, and keeps CA's power features (per-term Apply + Apply-All via the replace-preview modal, Suggest Edits, Delete All).
- * @param glossary - The mod's glossary terms.
- * @param modId - Mod id for CRUD calls.
- * @param strings - All strings, for computing affected rows.
- * @param onChanged - Re-fetch the glossary after a change.
- * @param onApplied - Banner + refresh after a replace-apply.
- * @param onTranslationsChanged - Reload rows after an edit renamed existing translations.
- * @param onRequestDeleteAll - Open the shared confirm dialog for delete-all.
- * @param onSuggestionsChanged - Re-fetch suggestions after suggest-edits.
- * @param onClose - Closes the dialog.
- * @returns The glossary dialog, with its replace-preview dialog nested inside.
+ * Mod glossary dialog, a wrapper around the shared `GlossaryEditor` that adds the CRUD calls, per-term Apply, Apply All, Suggest Edits and Delete All.
+ * @param glossary - Mod's glossary terms.
+ * @param modId - Mod's Workshop id.
+ * @param strings - All strings, to compute affected rows.
+ * @param onChanged - Re-fetch the glossary.
+ * @param onApplied - Banner and refresh after a replace-apply.
+ * @param onTranslationsChanged - Reload rows after a rename.
+ * @param onRequestDeleteAll - Open the confirm dialog for delete-all.
+ * @param onSuggestionsChanged - Re-fetch suggestions.
+ * @param onClose - Close handler.
+ * @returns The dialog, with the replace-preview dialog nested inside.
  */
 export default function ChronoArkGlossaryModal({
     glossary,

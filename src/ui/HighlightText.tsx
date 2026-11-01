@@ -1,8 +1,7 @@
 /** Props for HighlightText. */
 interface HighlightTextProps {
-    /** Text to render. */
     text: string
-    /** Search query to highlight. Matching is case-insensitive and ignores surrounding whitespace. Empty means no highlighting. */
+    /** Query to highlight, matched case-insensitively and trimmed. Empty highlights nothing. */
     query: string
 }
 

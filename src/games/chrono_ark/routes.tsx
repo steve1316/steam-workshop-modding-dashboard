@@ -5,13 +5,9 @@ import GlossaryPage from "./pages/Glossary"
 import StatisticsPage from "./pages/Statistics"
 
 /**
- * Routes contributed by the Chrono Ark game manifest.
+ * Chrono Ark routes, mounted under the active-game subtree. Bare `/` redirects to the dashboard.
  *
- * Mounted by the App-level router under the active-game subtree. Bare `/`
- * redirects to the dashboard so the game's namespace always has a default
- * landing page when the user switches games.
- *
- * @returns A `Routes` element with all Chrono Ark page routes.
+ * @returns The routes.
  */
 export function ChronoArkRoutes() {
     return (

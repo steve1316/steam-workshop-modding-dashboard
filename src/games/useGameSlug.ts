@@ -1,9 +1,8 @@
 import { useParams } from "react-router-dom"
 
 /**
- * Return the active game's URL slug from the `:gameSlug` route segment. Pages and components rendered under `/:gameSlug/*` use this to build
- * game-prefixed navigation targets (e.g. `/${slug}/translation/${id}`). Returns "" only when rendered outside a game subtree.
- * @returns The current game slug, or "" when none.
+ * Return the `:gameSlug` route segment, for building game-prefixed links like `/${slug}/translation/${id}`.
+ * @returns The slug, or "" outside a game subtree.
  */
 export function useGameSlug(): string {
     return useParams<{ gameSlug: string }>().gameSlug ?? ""

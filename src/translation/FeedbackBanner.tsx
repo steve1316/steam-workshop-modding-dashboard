@@ -2,20 +2,18 @@ import Banner from "../ui/Banner"
 
 /** Props for FeedbackBanner. */
 interface FeedbackBannerProps {
-    /** Whether this is a success or error notification. */
     type: "success" | "error"
-    /** The message to display. Rendered with whitespace preserved. */
+    /** Message text, with whitespace preserved. */
     message: string
-    /** Called when the user clicks the close button. */
     onDismiss: () => void
 }
 
 /**
- * Dismissible result banner for translation feedback, shared by every game. A thin wrapper over the shared `Banner` with a success or error tone.
- * @param type - Success or error styling.
- * @param message - The message text (whitespace preserved).
+ * Dismissible success or error banner, a thin wrapper over `Banner`.
+ * @param type - Success or error tone.
+ * @param message - Message text.
  * @param onDismiss - Close handler.
- * @returns The banner element.
+ * @returns The banner.
  */
 export function FeedbackBanner({ type, message, onDismiss }: FeedbackBannerProps) {
     return (

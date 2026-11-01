@@ -16,17 +16,15 @@ export interface ContextFields {
 
 /** Props for ContextPanel. */
 interface ContextPanelProps {
-    /** Panel heading, e.g. "Character Context" or "Mod Context". */
     title: string
     /** Help line under the heading. */
     description?: string
-    /** Saved context. The panel edits a draft and resets it whenever one of the three saved fields changes. */
     value: ContextFields
-    /** Persists the edited fields. The panel shows "Saved!" when it resolves, and the error message when it rejects. */
+    /** Persists the edited fields. Shows "Saved!" on resolve and the error message on reject. */
     onSave: (next: ContextFields) => Promise<void>
     /** Per-field placeholder overrides. Fields left out keep Chrono Ark's examples. */
     placeholders?: Partial<ContextFields>
-    /** Game-specific controls shown at the start of the footer, next to Save Context. They save on their own. */
+    /** Game-specific footer controls next to Save Context. They save on their own. */
     extra?: ReactNode
 }
 
@@ -37,24 +35,24 @@ const DEFAULT_PLACEHOLDERS: ContextFields = {
 }
 
 /**
- * Pick the three context fields out of a possibly larger object (WH3's mod context also carries language overrides).
+ * Pick the three context fields out of a larger object (WH3's mod context also carries language overrides).
  *
- * @param value The saved context.
- * @returns Just the three context fields.
+ * @param value - Saved context.
+ * @returns The three fields.
  */
 function fieldsOf(value: ContextFields): ContextFields {
     return { source_game: value.source_game, character_name: value.character_name, background: value.background }
 }
 
 /**
- * Inline context editor shown under the translation toolbar. The page owns the saved value, and the panel owns only the unsaved draft.
+ * Inline context editor under the toolbar. The page owns the saved value and the panel owns only the unsaved draft.
  *
- * @param title Panel heading.
- * @param description Help line.
- * @param value Saved context.
- * @param onSave Persists the draft.
- * @param placeholders Per-field placeholder overrides.
- * @param extra Game-specific footer controls.
+ * @param title - Panel heading.
+ * @param description - Help line.
+ * @param value - Saved context.
+ * @param onSave - Persists the draft.
+ * @param placeholders - Per-field placeholder overrides.
+ * @param extra - Game-specific footer controls.
  * @returns The panel.
  */
 export function ContextPanel({
@@ -85,8 +83,8 @@ export function ContextPanel({
     /**
      * Build a change handler for one field.
      *
-     * @param field The field to update.
-     * @returns The input change handler.
+     * @param field - Field to update.
+     * @returns The change handler.
      */
     const update = (field: keyof ContextFields) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft((prev) => ({ ...prev, [field]: e.target.value }))
 

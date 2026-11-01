@@ -2,18 +2,16 @@ import { FaSearch } from "react-icons/fa"
 
 /** Props for SearchInput. */
 interface SearchInputProps {
-    /** Current search text. */
     value: string
     /** Called with the new text on every keystroke, and with "" when cleared. */
     onChange: (value: string) => void
-    /** Placeholder shown while empty. */
     placeholder: string
-    /** Fixed width (e.g. matched to a card column). When omitted the field grows to fill its row. */
+    /** Fixed width (e.g. one card column). Omit to fill the row. */
     width?: number | string
 }
 
 /**
- * Search field with a leading icon and a Clear search button, shared by the translation, dashboard and glossary pages.
+ * Search field with a leading icon and a Clear button.
  *
  * @param value Current search text.
  * @param onChange Text change handler.

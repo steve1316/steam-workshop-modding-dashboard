@@ -2,15 +2,12 @@ import type { ReactNode } from "react"
 
 /** A button offered by an error state. */
 interface ErrorAction {
-    /** Button label. */
     label: string
-    /** Button handler. */
     onClick: () => void
 }
 
 /** Props for ErrorState. */
 interface ErrorStateProps {
-    /** Short heading naming what went wrong. */
     title: string
     /** What happened and what the user can do. */
     message: ReactNode

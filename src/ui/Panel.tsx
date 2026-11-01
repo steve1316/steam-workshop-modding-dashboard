@@ -10,12 +10,11 @@ interface PanelProps {
     className?: string
     /** Element to render. A `fieldset` names its group of form controls by its legend. Defaults to `section`. */
     as?: "section" | "fieldset"
-    /** Panel body. */
     children?: ReactNode
 }
 
 /**
- * Static glass card used for inline page sections such as the context editor, form sections and the WH3 dashboard intro. It never lifts on hover.
+ * Static glass card for inline page sections. Unlike the dashboard cards it never lifts on hover.
  *
  * @param title Heading.
  * @param help Help line under the heading.

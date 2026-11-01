@@ -8,9 +8,7 @@ import SearchInput from "../ui/SearchInput"
 
 /** One status filter pill. */
 interface StatusFilter {
-    /** Filter value (e.g. "all", "missing"). */
     value: string
-    /** Pill label. */
     label: string
 }
 
@@ -18,83 +16,66 @@ interface StatusFilter {
 interface TranslatingState {
     /** Zero-based current batch index. */
     batchIndex: number
-    /** Total batches in the run. */
     totalBatches: number
-    /** Optional live streaming stats. */
+    /** Live streaming stats. */
     streaming?: { tokensGenerated: number; tokensPerSec: number; elapsedSec: number }
 }
 
 /** Props for the shared TranslationPage shell. */
 interface TranslationPageProps<Row> {
-    /** Mod title shown in the header. */
     title: string
     /** Progress text, e.g. "3 / 10 total strings translated". */
     progressLabel: string
     /** Status filter pills (including the "all" pill). */
     statusFilters: StatusFilter[]
-    /** Currently active filter value. */
     activeFilter: string
-    /** Called with the filter value when a pill is clicked. */
     onFilterChange: (value: string) => void
-    /** Current search text. */
     search: string
-    /** Called with the new search text on input. */
     onSearchChange: (value: string) => void
-    /** Column definitions for the strings table. */
     columns: ColumnDef<Row>[]
     /** Rows to display (already filtered/sorted by the caller). */
     rows: Row[]
-    /** Stable row key accessor. */
     getRowKey: (row: Row) => string
-    /** Currently sorted field, or null. */
     sortField: string | null
-    /** Active sort direction, or null. */
     sortDirection: "asc" | "desc" | null
-    /** Header-click sort handler. */
     onSort: (field: string) => void
-    /** Optional per-field overrides for column widths (resizable columns). When omitted, each column's default `width` is used. */
+    /** Per-field width overrides. Omit to use each column's default `width`. */
     columnWidths?: Record<string, number>
-    /** Called with a field id and new pixel width while the user drags a column resizer. When omitted, columns are not resizable. */
+    /** Called with the new pixel width while dragging a resizer. Omit to make columns fixed. */
     onResizeColumn?: (field: string, width: number) => void
-    /** Optional per-row CSS class (e.g. to tint AI-translated rows). */
+    /** Per-row CSS class (e.g. to tint AI rows). */
     getRowClassName?: (row: Row) => string | undefined
-    /** Optional per-row inline style (e.g. status-based row background). */
+    /** Per-row inline style (e.g. status background). */
     getRowStyle?: (row: Row) => CSSProperties | undefined
-    /** Optional dismissible feedback banner. */
     banner?: { type: "success" | "error"; message: string } | null
-    /** Dismiss handler for the feedback banner. */
     onDismissBanner?: () => void
-    /** Optional in-progress translation state. */
     translating?: TranslatingState | null
-    /** Cancel handler for an in-progress translation. */
     onCancelTranslate?: () => void
-    /** Game-specific action toolbar rendered in the header. */
+    /** Game-specific action toolbar in the header. */
     toolbar?: ReactNode
-    /** Empty-state message for the table. */
     emptyMessage?: string
-    /** Back-navigation handler. When provided, a "Back to Dashboard" button renders above the header. */
+    /** Back handler. Renders a "Back to Dashboard" button when given. */
     onBack?: () => void
-    /** Mod preview image URL. When provided, an 80x80 thumbnail renders left of the title. */
+    /** Preview image URL, shown as an 80x80 thumbnail left of the title. */
     previewImage?: string | null
-    /** Inline elements rendered next to the title (e.g. steam link, open-folder button, pending-sync badge). */
+    /** Inline elements next to the title (e.g. Steam link, pending-sync badge). */
     titleBadges?: ReactNode
-    /** Secondary line under the title (e.g. "by author"). */
+    /** Line under the title (e.g. "by author"). */
     subtitle?: ReactNode
-    /** Source/target language controls rendered in the header identity block. */
+    /** Source/target language controls in the header. */
     languageControls?: ReactNode
-    /** Extra banners rendered below the built-in banners (e.g. a batch-paused / review banner). */
+    /** Extra banners below the built-in ones (e.g. batch paused). */
     extraBanners?: ReactNode
-    /** Inline panels rendered between the banners and the search bar (e.g. an expandable glossary panel or character-context panel). */
+    /** Inline panels between the banners and the search bar (e.g. context panel). */
     panels?: ReactNode
-    /** Game-specific modals/panels rendered at the end of the page. */
+    /** Game-specific modals rendered at the end of the page. */
     modals?: ReactNode
 }
 
 /**
- * Shared translation page shell. Composes the back button, header identity block (preview image, title + badges, subtitle, language controls, progress),
- * action-toolbar slot, feedback/in-progress banners, search + status-filter bar, the strings table, and a game-specific modals slot. Presentational: the
- * caller (each game's container) owns data + state and supplies columns, rows, slots, and handlers.
- * @returns The composed translation page.
+ * Shared translation page shell. Presentational: each game's container owns the data and state and supplies columns, rows, slots and handlers.
+ * @param props - See `TranslationPageProps`.
+ * @returns The translation page.
  */
 export function TranslationPage<Row>(props: TranslationPageProps<Row>) {
     const {

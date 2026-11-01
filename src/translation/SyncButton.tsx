@@ -12,16 +12,16 @@ interface SyncButtonProps {
     state: SyncState
     /** Confirm dialog body for a sync (`resync` false) or a re-sync (`resync` true). */
     confirmMessage: (resync: boolean) => string
-    /** Runs the sync after the user confirms. The button reads "Syncing..." and stays disabled until it settles. */
+    /** Runs the sync after confirming. The button reads "Syncing..." until it settles. */
     onSync: (resync: boolean) => Promise<void>
 }
 
 /**
- * Sync button shared by every translation page. It confirms first, runs `onSync`, and blocks repeat clicks while the sync is running.
+ * Sync button that confirms first, runs `onSync`, and blocks repeat clicks while syncing.
  *
- * @param state Which label and enabled state to show.
- * @param confirmMessage Builds the confirm dialog body.
- * @param onSync Runs the sync.
+ * @param state - Label and enabled state to show.
+ * @param confirmMessage - Builds the confirm dialog body.
+ * @param onSync - Runs the sync.
  * @returns The button and its confirm dialog.
  */
 export function SyncButton({ state, confirmMessage, onSync }: SyncButtonProps) {

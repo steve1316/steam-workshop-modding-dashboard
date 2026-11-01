@@ -2,16 +2,13 @@ import type { ReactNode } from "react"
 
 /** Definition of one column in the shared strings table. */
 export interface ColumnDef<Row> {
-    /** Stable field id, used as the React key and the sort key. */
+    /** Field id, used as the React key and sort key. */
     field: string
-    /** Header label. May be dynamic (e.g. "Original (Chinese)"). */
     label: string
-    /** Default column width in pixels. */
     width: number
-    /** Whether clicking the header sorts by this column. Defaults to false. */
+    /** Whether clicking the header sorts by this column. */
     sortable?: boolean
-    /** Optional CSS class applied to the `<td>` for this column (e.g. "key-cell", "source-cell") so each game keeps its cell typography and wrapping. */
+    /** CSS class on this column's `<td>` (e.g. "key-cell") for typography and wrapping. */
     cellClassName?: string
-    /** Render the cell contents for a given row. */
     render: (row: Row) => ReactNode
 }

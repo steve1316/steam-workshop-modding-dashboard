@@ -4,21 +4,17 @@ import type { ColumnDef } from "./types"
 
 /** One translation-table cell: the row field it sorts by and how it renders. */
 export interface TranslationCellSpec<Row> {
-    /** Row field id, used for sorting and width persistence. */
+    /** Row field id, for sorting and width persistence. */
     field: string
-    /** Renders the cell for a row. */
     render: (row: Row) => ReactNode
 }
 
 /** The six columns every translation page shows, left to right. */
 export interface TranslationColumnSpecs<Row> {
-    /** Status chip. */
     status: TranslationCellSpec<Row>
-    /** Who translated the row (claude, manual, ...). */
+    /** Who translated the row (e.g. claude, manual). */
     mode: TranslationCellSpec<Row>
-    /** Source file link. */
     source: TranslationCellSpec<Row>
-    /** Localization key. */
     key: TranslationCellSpec<Row>
     /** Original source text. */
     original: TranslationCellSpec<Row>
@@ -38,11 +34,11 @@ export interface TranslationColumnLabels {
 export const TRANSLATION_COLUMN_WIDTHS = { status: 120, mode: 100, source: 100, key: 200, original: 400, translation: 500 } as const
 
 /**
- * Build the standard translation-table columns with Chrono Ark's order, widths and cell classes. Each game supplies only its fields and cell renderers.
+ * Build the standard translation-table columns. Each game supplies only its fields and cell renderers.
  *
- * @param specs Field id and renderer per column.
- * @param labels Language-dependent header labels.
- * @returns The column definitions for `StringsTable`.
+ * @param specs - Field id and renderer per column.
+ * @param labels - Language-dependent header labels.
+ * @returns The `StringsTable` columns.
  */
 export function translationColumns<Row>(specs: TranslationColumnSpecs<Row>, labels: TranslationColumnLabels): ColumnDef<Row>[] {
     const w = TRANSLATION_COLUMN_WIDTHS

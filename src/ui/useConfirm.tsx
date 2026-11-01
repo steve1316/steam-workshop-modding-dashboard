@@ -5,9 +5,8 @@ import ConfirmModal from "../components/ConfirmModal"
 
 /** What one confirmation prompt shows. Mirrors `ConfirmModal`'s props without the callbacks. */
 export interface ConfirmOptions {
-    /** Dialog heading text. */
     title: string
-    /** Body content: plain text (newlines preserved) or JSX. */
+    /** Plain text (newlines preserved) or JSX. */
     message: ReactNode
     /** Text for the confirm button. Defaults to "Confirm". */
     confirmLabel?: string

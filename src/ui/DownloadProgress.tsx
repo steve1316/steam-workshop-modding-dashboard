@@ -1,6 +1,5 @@
 /** Props for DownloadProgress. */
 interface DownloadProgressProps {
-    /** Bytes downloaded so far. */
     completed: number
     /** Total bytes. Must be greater than 0. */
     total: number

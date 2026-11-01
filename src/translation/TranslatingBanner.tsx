@@ -1,10 +1,9 @@
 /** Real-time progress from a streaming provider. */
 interface StreamingProgress {
-    /** Tokens generated so far. */
     tokensGenerated: number
-    /** Generation rate in tokens per second. */
+    /** Tokens per second. */
     tokensPerSec: number
-    /** Seconds elapsed for the current batch. */
+    /** Seconds elapsed in the current batch. */
     elapsedSec: number
 }
 
@@ -12,22 +11,19 @@ interface StreamingProgress {
 interface TranslatingBannerProps {
     /** Zero-based index of the batch currently translating. */
     batchIndex: number
-    /** Total number of batches in the run. */
     totalBatches: number
-    /** Live streaming stats, when the provider streams; otherwise omitted. */
+    /** Live stats, only when the provider streams. */
     streaming?: StreamingProgress
-    /** Called when the user clicks Cancel. */
     onCancel: () => void
 }
 
 /**
- * In-progress translation banner, shared by every game. Shows the current batch,
- * streaming throughput when available, and a Cancel button.
- * @param batchIndex - Zero-based current batch index.
- * @param totalBatches - Total batches in the run.
- * @param streaming - Optional live streaming stats.
+ * In-progress banner showing the current batch, streaming throughput when available, and Cancel.
+ * @param batchIndex - Zero-based current batch.
+ * @param totalBatches - Batches in the run.
+ * @param streaming - Live streaming stats.
  * @param onCancel - Cancel handler.
- * @returns The banner element.
+ * @returns The banner.
  */
 export function TranslatingBanner({ batchIndex, totalBatches, streaming, onCancel }: TranslatingBannerProps) {
     const detail = streaming ? `${streaming.tokensGenerated} tokens (${streaming.tokensPerSec} tok/s, ${streaming.elapsedSec}s elapsed)` : "waiting for provider response"

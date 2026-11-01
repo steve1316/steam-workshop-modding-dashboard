@@ -5,9 +5,7 @@ import SearchInput from "../ui/SearchInput"
 
 /** One glossary term in the shared editor's normalized shape. */
 export interface GlossaryEditorTerm {
-    /** Canonical English term (the key). */
     english: string
-    /** Category label. */
     category: string
     /** Language -> source text. Single-source games use one entry (under any key); per-language games key by language name. */
     sourceMappings: Record<string, string>
@@ -15,33 +13,29 @@ export interface GlossaryEditorTerm {
 
 /** Props for the shared `GlossaryEditor` body. */
 interface GlossaryEditorProps {
-    /** Optional heading shown above the list (e.g. "Mod Glossary Terms"). Omit when the container already provides a title. */
+    /** Heading above the list. Omit when the container already has a title. */
     title?: string
-    /** Terms to edit. */
     terms: GlossaryEditorTerm[]
-    /** When true, the add/edit form shows a language dropdown and rows show every `lang: text` mapping; when false, a single source field. */
+    /** Show a language dropdown and every `lang: text` mapping instead of a single source field. */
     perLanguage?: boolean
     /** Language options for the dropdown when `perLanguage`. */
     languages?: string[]
-    /** Category options to render as a dropdown. When omitted, category is a free-text input. */
+    /** Category dropdown options. Omit for a free-text input. */
     categoryOptions?: string[]
-    /** When true, rows are grouped under category headers; otherwise a flat list sorted by English. */
+    /** Group rows under category headers instead of a flat list sorted by English. */
     groupByCategory?: boolean
-    /** Message shown when there are no terms. */
     emptyMessage?: string
-    /** Add a new term. */
     onAdd: (term: GlossaryEditorTerm) => void | Promise<void>
     /** Update a term (the first arg is the old English key, which may be renamed). */
     onUpdate: (oldEnglish: string, term: GlossaryEditorTerm) => void | Promise<void>
-    /** Remove a term by its English key. */
     onRemove: (english: string) => void | Promise<void>
-    /** Optional extra per-row actions (e.g. Chrono Ark's "Apply"), rendered next to Edit/Remove. */
+    /** Extra per-row actions next to Edit/Remove (e.g. "Apply"). */
     renderRowActions?: (term: GlossaryEditorTerm) => ReactNode
-    /** Optional header actions (e.g. Suggest Edits / Apply All / Delete All), rendered next to the title. */
+    /** Header actions next to the title (e.g. Apply All). */
     headerActions?: ReactNode
-    /** Optional footer content (e.g. apply-all inputs or a suggestions section). */
+    /** Footer content below the list. */
     footer?: ReactNode
-    /** When true, the editor fills its container's height and the term list scrolls within it (the list is capped at 300px otherwise). */
+    /** Fill the container's height with the list scrolling inside it. Otherwise the list is capped at 300px. */
     fillHeight?: boolean
 }
 
@@ -53,11 +47,11 @@ function singleSource(t: GlossaryEditorTerm): string {
 }
 
 /**
- * Render a term's source mappings for display, with the search query highlighted in the source text.
- * @param t - The term.
- * @param perLanguage - Whether to prefix each mapping with its language.
- * @param query - Search query to highlight.
- * @returns The rendered summary.
+ * Render a term's source mappings with the search query highlighted.
+ * @param t - Term to render.
+ * @param perLanguage - Prefix each mapping with its language.
+ * @param query - Query to highlight.
+ * @returns The summary.
  */
 function sourceSummary(t: GlossaryEditorTerm, perLanguage: boolean, query: string): ReactNode {
     if (!perLanguage) return <HighlightText text={singleSource(t)} query={query} />
@@ -70,10 +64,10 @@ function sourceSummary(t: GlossaryEditorTerm, perLanguage: boolean, query: strin
 }
 
 /**
- * Check whether a term matches a search query by English text, any source text, or category (case-insensitive).
- * @param t - The term.
- * @param query - Lowercased, trimmed search query.
- * @returns True when the term matches or the query is empty.
+ * Check whether a term matches by English text, any source text, or category.
+ * @param t - Term to check.
+ * @param query - Lowercased, trimmed query.
+ * @returns True when it matches or the query is empty.
  */
 function matchesSearch(t: GlossaryEditorTerm, query: string): boolean {
     if (!query) return true
@@ -81,10 +75,9 @@ function matchesSearch(t: GlossaryEditorTerm, query: string): boolean {
 }
 
 /**
- * Shared glossary editor body used by both games: an add form, a term list with inline edit + remove, and slots for game-specific actions.
- * Presentational - the caller supplies terms + persistence callbacks + capability flags. Each game wraps this in its own container (panel or modal).
+ * Shared glossary editor body: an add form, a term list with inline edit and remove, and slots for game-specific actions.
  * @param props - See `GlossaryEditorProps`.
- * @returns The editor element.
+ * @returns The editor.
  */
 export function GlossaryEditor({
     title,

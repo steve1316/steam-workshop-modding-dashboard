@@ -4,7 +4,6 @@ import { useId } from "react"
 interface LanguageOption {
     /** Stored language value, e.g. "Chinese-TW [zh-tw]". */
     value: string
-    /** Label shown in the dropdown. */
     label: string
 }
 
@@ -22,23 +21,22 @@ const TARGET_LANGUAGES: LanguageOption[] = SOURCE_LANGUAGES.filter((l) => l.valu
 
 /** Props for LanguageControls. */
 interface LanguageControlsProps {
-    /** Selected source language value. */
     source: string
     /** Selected target language value. Only shown when `source` is English. */
     target: string
-    /** Called with the newly selected source language. */
+    /** Source language changed. */
     onSourceChange: (value: string) => void
-    /** Called with the newly selected target language. */
+    /** Target language changed. */
     onTargetChange: (value: string) => void
 }
 
 /**
- * Source language dropdown, plus a target language dropdown when the source is English, shown in the translation page header.
+ * Source language dropdown in the page header, plus a target dropdown when the source is English.
  *
- * @param source Selected source language.
- * @param target Selected target language.
- * @param onSourceChange Source change handler.
- * @param onTargetChange Target change handler.
+ * @param source - Selected source language.
+ * @param target - Selected target language.
+ * @param onSourceChange - Source change handler.
+ * @param onTargetChange - Target change handler.
  * @returns The language controls.
  */
 export function LanguageControls({ source, target, onSourceChange, onTargetChange }: LanguageControlsProps) {

@@ -2,14 +2,13 @@ import { FaExclamationCircle, FaFolderOpen, FaSteam } from "react-icons/fa"
 
 /** Props for SteamLink. */
 interface SteamLinkProps {
-    /** Steam Workshop page URL. */
     href: string
 }
 
 /**
- * Steam icon link to a mod's Workshop page, shown beside the page title.
+ * Steam icon link to the mod's Workshop page.
  *
- * @param href Workshop page URL.
+ * @param href - Workshop page URL.
  * @returns The link.
  */
 export function SteamLink({ href }: SteamLinkProps) {
@@ -22,14 +21,13 @@ export function SteamLink({ href }: SteamLinkProps) {
 
 /** Props for OpenFolderButton. */
 interface OpenFolderButtonProps {
-    /** Opens the mod's local folder in the file explorer. */
     onClick: () => void
 }
 
 /**
- * Folder icon button that opens the mod's local folder, shown beside the page title.
+ * Folder icon button that opens the mod's local folder.
  *
- * @param onClick Click handler.
+ * @param onClick - Click handler.
  * @returns The button.
  */
 export function OpenFolderButton({ onClick }: OpenFolderButtonProps) {
@@ -41,7 +39,7 @@ export function OpenFolderButton({ onClick }: OpenFolderButtonProps) {
 }
 
 /**
- * Amber pill shown beside the title while saved translations have not been synced to the mod's files.
+ * Amber pill shown while saved translations are not yet synced to the mod's files.
  *
  * @returns The pill.
  */

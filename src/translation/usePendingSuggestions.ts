@@ -5,31 +5,27 @@ import type { TermSuggestion } from "../shared_types"
 
 /** A result message for the page's feedback banner. */
 export interface SuggestionsBanner {
-    /** Banner tone. */
     type: "success" | "error"
-    /** Banner text. */
     message: string
 }
 
 /** What `usePendingSuggestions` returns. */
 export interface PendingSuggestions {
-    /** Pending glossary term suggestions for the mod. */
     suggestions: TermSuggestion[]
-    /** Re-fetches the pending list. */
+    /** Re-fetch the pending list. */
     refresh: () => Promise<void>
-    /** Scans the mod for new terms, refreshes the list, and reports the result through the banner callback. */
+    /** Scan the mod for new terms, refresh the list, and report through the banner callback. */
     scan: () => Promise<void>
-    /** True while a scan is running. */
     scanning: boolean
 }
 
 /**
- * Pending glossary suggestions for one mod, shared by every game's translation page. Loads the list on mount and runs the Scan for Terms flow.
+ * Pending glossary suggestions for one mod. Loads on mount and runs the Scan for Terms flow.
  *
- * @param gameId Backend game id, e.g. "chrono_ark".
- * @param modId The mod's id.
- * @param onBanner Receives the scan result or error for the page banner.
- * @returns The list, a refresh function, the scan action, and the scanning flag.
+ * @param gameId - Backend game id, e.g. "chrono_ark".
+ * @param modId - Mod's id.
+ * @param onBanner - Receives the scan result or error.
+ * @returns The list, `refresh`, `scan` and the scanning flag.
  */
 export function usePendingSuggestions(gameId: string, modId: string, onBanner: (banner: SuggestionsBanner) => void): PendingSuggestions {
     const [suggestions, setSuggestions] = useState<TermSuggestion[]>([])

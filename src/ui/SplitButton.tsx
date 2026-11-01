@@ -13,22 +13,19 @@ export interface SplitButtonItem {
 interface SplitButtonProps {
     /** Main button content. */
     label: ReactNode
-    /** Main button click handler. */
     onClick: () => void
-    /** Entries in the chevron's menu. */
     items: SplitButtonItem[]
     /** Accessible name of the chevron button. Defaults to "More options". */
     menuLabel?: string
-    /** Disables the main button. */
     disabled?: boolean
     /** Disables the chevron. Defaults to `disabled`. */
     menuDisabled?: boolean
-    /** Button style. Defaults to `primary`. Use `outline` for a secondary action next to a primary one. */
+    /** Button style. Use `outline` for a secondary action next to a primary one. */
     variant?: "primary" | "outline"
 }
 
 /**
- * Primary button with an attached chevron that opens a small menu of alternative actions. The menu closes on item choice, Escape, or a press outside.
+ * Button with an attached chevron menu of alternative actions. The menu closes on choice, Escape, or an outside press.
  *
  * @param label Main button content.
  * @param onClick Main button handler.

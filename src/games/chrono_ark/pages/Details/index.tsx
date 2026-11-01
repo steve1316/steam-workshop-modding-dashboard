@@ -35,10 +35,7 @@ import type { BatchDescriptor } from "../../../../hooks/useIterativeTranslation"
 /**
  * Detail view for a specific mod, showing all translatable strings.
  *
- * Reads the active mod id from the URL via React Router's `useParams` and
- * uses `useNavigate` to return to the dashboard.
- *
- * @returns The rendered mod detail view.
+ * @returns The mod detail view.
  */
 const ModDetail: React.FC = () => {
     const { modId } = useParams<{ modId: string }>()
@@ -52,7 +49,7 @@ const ModDetail: React.FC = () => {
     const [modUrl, setModUrl] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
-    // Only the first load may replace the page with an error. A failed refresh after an action keeps the page the user is looking at.
+    // Only the first load may replace the page with an error. A failed refresh keeps the page the user is looking at.
     const hasLoadedRef = useRef(false)
 
     const [filter, setFilter] = useState<"all" | "missing" | "untouched" | "pending" | "synced">("all")
@@ -107,7 +104,7 @@ const ModDetail: React.FC = () => {
     /**
      * Persist the character context and adopt it as the saved value.
      *
-     * @param next The edited fields.
+     * @param next - Edited fields.
      */
     const saveCharacterContext = async (next: ContextFields) => {
         const res = await gameApi("chrono_ark").post(`/mods/${modId}/character-context`, next)
@@ -128,7 +125,7 @@ const ModDetail: React.FC = () => {
         entryDate?: string
     } | null>(null)
 
-    /** Callback fired by the iterative translation hook after each batch completes. */
+    /** Merge each finished batch's translations into the table. */
     const handleBatchTranslated = useCallback((translations: Record<string, string>) => {
         setStrings((prev) =>
             prev.map((s) => {
@@ -143,10 +140,8 @@ const ModDetail: React.FC = () => {
 
     const { state: batchState, startTranslation, continueAfterReview, cancel: cancelTranslation } = useIterativeTranslation("chrono_ark", modId ?? "", handleBatchTranslated)
 
-    // React to batch translation phase changes.
     useEffect(() => {
         if (batchState.phase === "reviewing") {
-            // Auto-open the review modal when a batch finishes with suggestions.
             setShowReviewModal(true)
         } else if (batchState.phase === "complete") {
             setShowReviewModal(false)
@@ -164,19 +159,10 @@ const ModDetail: React.FC = () => {
     }, [batchState.phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
     /**
-     * Initiates the translation workflow by fetching a preview from the backend.
+     * Fetch a translation preview, which opens the confirm modal. Confirming starts the batch loop in `useIterativeTranslation`.
      *
-     * The workflow is two-step:
-     *   1. This function calls POST `/api/translate/preview` to get batch counts,
-     *      prompt previews, and cost estimates without actually translating.
-     *   2. If there are strings to translate, the preview data is stored in state
-     *      which triggers the TranslationConfirmModal to open.
-     *   3. The user reviews and confirms, which starts the iterative batch
-     *      translation loop via the `useIterativeTranslation` hook.
-     *
-     * If all strings are already translated, a success banner is shown instead.
-     *
-     * @param provider - The AI provider identifier (e.g. "claude").
+     * @param provider - AI provider id.
+     * @param retranslate - Include already translated rows.
      */
     const handleTranslateClick = async (provider: string, retranslate = false) => {
         if (!modId) return
@@ -189,7 +175,6 @@ const ModDetail: React.FC = () => {
             return
         }
         try {
-            // POST /api/games/chrono_ark/translate/preview — returns { total_strings, total_batches, batch_size, provider, previews, estimates }
             const res = await gameApi("chrono_ark").post("/translate/preview", { mod_id: modId, provider, retranslate })
             const data = await res.json()
             if (!res.ok) {
@@ -200,7 +185,6 @@ const ModDetail: React.FC = () => {
                 setTranslateBanner({ type: "success", message: "All strings are already translated." })
                 return
             }
-            // Store the provider and preview so the confirmation modal can render.
             setPendingProvider(provider)
             setPendingRetranslate(retranslate)
             setTranslationPreview(data)
@@ -210,17 +194,7 @@ const ModDetail: React.FC = () => {
         }
     }
 
-    /**
-     * Ref tracking the active column resize operation. Stores which column field
-     * is being resized, the pointer's starting X position, and the column's width
-     * at the start of the drag. Null when no resize is in progress.
-     */
-
-    /**
-     * Fetches whether there are pending translation changes that can be exported
-     * (synced) to the mod's CSV files.
-     * GET `/api/mods/:modId/export-status` -> `{ has_changes: boolean }`.
-     */
+    /** Check whether there are unsynced changes to export. */
     const fetchExportStatus = async () => {
         if (!modId) return
         try {
@@ -233,11 +207,7 @@ const ModDetail: React.FC = () => {
         } catch {}
     }
 
-    /**
-     * Fetches the mod-specific glossary terms.
-     * GET `/api/mods/:modId/glossary` -> `{ terms: Record<string, { category, source_mappings }> }`.
-     * Called when the glossary panel is opened.
-     */
+    /** Load the mod glossary terms. */
     const fetchModGlossary = async () => {
         if (!modId) return
         try {
@@ -250,8 +220,9 @@ const ModDetail: React.FC = () => {
     }
 
     /**
-     * Fetches the full mod detail including all localization strings, mod metadata,
-     * GET `/api/mods/:modId` -> `{ strings, name, author, preview_image, url }`.
+     * Load the mod's strings and metadata.
+     *
+     * @param silent - Skip the loading state and error page (background refresh).
      */
     const fetchModDetail = async (silent = false) => {
         if (!modId) return
@@ -282,7 +253,7 @@ const ModDetail: React.FC = () => {
 
     const saveSourceLanguage = async (lang: string | null) => {
         setSourceLangOverride(lang)
-        // When switching away from English source, clear target override
+        // A non-English source can't have a target override, so clear it.
         if (lang !== "English" && targetLangOverride) {
             setTargetLangOverride(null)
             gameApi("chrono_ark")
@@ -307,7 +278,6 @@ const ModDetail: React.FC = () => {
         }
     }
 
-    // On mount (or when modId changes), fetch all required data in parallel.
     useEffect(() => {
         fetchModDetail()
         fetchExportStatus()
@@ -319,8 +289,9 @@ const ModDetail: React.FC = () => {
     }, [modId])
 
     /**
-     * Handles sorting when a column header is clicked.
-     * @param field - The field to sort by.
+     * Cycle a column's sort asc -> desc -> none.
+     *
+     * @param field - Column to sort by.
      */
     const handleSort = (field: SortField) => {
         let direction: SortDirection = "asc"
@@ -333,17 +304,10 @@ const ModDetail: React.FC = () => {
     }
 
     /**
-     * Saves a manual translation for a specific string key.
-     * POST `/api/mods/:modId/strings` -> `{ key, english }`.
+     * Save a manual translation and update the table locally.
      *
-     * On success, updates the local `strings` state optimistically so the table
-     * reflects the change immediately. A string is marked as translated if it has
-     * a non-empty English value OR its source text is blank (nothing to translate).
-     *
-     * Also re-fetches export status since the new edit may enable the Sync button.
-     *
-     * @param key - The localization key to update.
-     * @param newValue - The new English translation text.
+     * @param key - Localization key.
+     * @param newValue - New translation text.
      * @returns Whether the save succeeded.
      */
     const handleSaveString = async (key: string, newValue: string): Promise<boolean> => {
@@ -351,7 +315,7 @@ const ModDetail: React.FC = () => {
         try {
             const res = await gameApi("chrono_ark").post(`/mods/${modId}/strings`, { key, english: newValue })
             if (res.ok) {
-                // Optimistic update: mark translated if English is non-empty or source is blank.
+                // A blank source counts as translated since there is nothing to translate.
                 setStrings((prev) =>
                     prev.map((s) =>
                         s.key === key
@@ -368,32 +332,15 @@ const ModDetail: React.FC = () => {
         return false
     }
 
-    // Uses pointer events with setPointerCapture for reliable cross-browser drag
-    // behavior. The resizer div is a narrow handle rendered at the right edge of
-    // each <th>. Minimum column width is clamped to 80px.
-
-    /**
-     * This memoized computation derives the visible rows from the full strings
-     * array. It applies three stages in order:
-     *   1. Filter by translation status (all / translated / untranslated)
-     *   2. Filter by free-text search across key, source, and english fields
-     *   3. Sort by the currently active column + direction
-     *
-     * Note: A string with blank source text is treated as "done" (nothing to
-     * translate), matching the same logic used in `handleSaveString`.
-     */
+    /** Visible rows after the status filter, search and sort. */
     const processedStrings = React.useMemo(() => {
         return sortStrings(filterStrings(strings, filter, search), sortConfig)
     }, [strings, filter, search, sortConfig])
 
     /**
-     * Writes saved translations back to the mod's original CSV files on disk.
-     * POST `/api/mods/:modId/export` -> `{ applied, files_written }`.
+     * Write saved translations back to the mod's files on disk.
      *
-     * On success, reports how many translations were applied and which files were
-     * written.
-     *
-     * @param resync When true, restores the original files first and re-applies every translation.
+     * @param resync - Restore the original files first and re-apply every translation.
      */
     const handleExport = async (resync: boolean) => {
         if (!modId) return
@@ -430,11 +377,7 @@ const ModDetail: React.FC = () => {
         }
     }
 
-    /**
-     * Resets the mod by clearing all translation data and restoring the
-     * original CSV files (if they were backed up before the first export).
-     * POST `/api/mods/:modId/reset`.
-     */
+    /** Ask to confirm resetting the mod, which clears translations and restores the original CSV files. */
     const handleResetConfirm = () => {
         setConfirmModal({
             type: "reset",
@@ -476,14 +419,7 @@ const ModDetail: React.FC = () => {
         }
     }
 
-    /**
-     * Clears only the English translations for all strings in this mod, resetting
-     * them to empty. This allows all rows to be re-sent to the AI provider.
-     * POST `/api/mods/:modId/clear-translations`.
-     *
-     * Unlike `handleClearCache`, this preserves the extracted source strings and
-     * mod metadata — only the English column is wiped.
-     */
+    /** Wipe only the English column so every row can be re-sent, keeping source strings and metadata. */
     const handleClearTranslationsConfirm = () => {
         setConfirmModal({
             type: "clear-translations",
@@ -508,13 +444,7 @@ const ModDetail: React.FC = () => {
         }
     }
 
-    /**
-     * Opens the mod's local folder in the system file explorer.
-     * POST `/api/mods/:modId/open`.
-     *
-     * This is a convenience action so users can inspect or manually edit
-     * the mod's CSV files on disk.
-     */
+    /** Open the mod's folder in the system file explorer. */
     const handleOpenFolder = async () => {
         if (!modId) return
         try {
@@ -701,7 +631,6 @@ const ModDetail: React.FC = () => {
                         />
                     )}
 
-                    {/* --- History Backup Modal --- */}
                     {showHistory && modId && (
                         <BackupHistoryModal
                             modId={modId}
@@ -731,13 +660,8 @@ const ModDetail: React.FC = () => {
                         />
                     )}
 
-                    {/* --- API Response Viewer Modal --- */}
                     {showApiResponses && modId && <ApiResponsesModal modId={modId} onClose={() => setShowApiResponses(false)} />}
 
-                    {/* --- Translation Confirmation Modal ---
-                Shown after handleTranslateClick fetches a preview. Displays
-                prompt previews, batch counts, and cost estimates. On confirm,
-                starts the iterative batch translation loop via the hook. */}
                     {translationPreview && (
                         <TranslationConfirmModal
                             preview={translationPreview}
@@ -752,10 +676,7 @@ const ModDetail: React.FC = () => {
                         />
                     )}
 
-                    {/* --- Batch Translation Review Modal ---
-                Shown automatically when the iterative hook pauses for glossary
-                suggestion review between batches. Closing the modal pauses the
-                process; the user can resume via the paused banner below. */}
+                    {/* Closing this modal pauses the run. The paused banner resumes it. */}
                     {batchState.phase === "reviewing" && showReviewModal && (
                         <GlossarySuggestionModal
                             gameId="chrono_ark"
@@ -775,10 +696,6 @@ const ModDetail: React.FC = () => {
                         />
                     )}
 
-                    {/* --- Confirm Modal ---
-                Single reusable confirmation modal that handles all destructive
-                action confirmations. The `confirmModal` state determines which
-                action to dispatch on confirm. */}
                     {showGlossary && (
                         <ChronoArkGlossaryModal
                             glossary={modGlossary}
