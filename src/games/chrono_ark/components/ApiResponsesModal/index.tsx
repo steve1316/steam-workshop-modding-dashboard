@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
 import { gameApi } from "../../../../api/games"
 import type { ApiLogEntry } from "../../../../shared_types"
-import { ApiResponsesModal as SharedApiResponsesModal, toApiResponseEntry, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
+import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
+import { toApiResponseEntry } from "../../../../translation/apiResponseEntry"
 
 /** Props for ApiResponsesModal. */
 interface ApiResponsesModalProps {

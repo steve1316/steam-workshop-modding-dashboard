@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react"
-import type { ApiLogEntry } from "../shared_types"
 import Modal from "../ui/Modal"
 
 /** One provider API-response record as the modal shows it. */
@@ -19,26 +18,6 @@ export interface ApiResponseEntry {
     /** Keys or inputs sent, when recorded. */
     keysOrInputs?: string[]
     rawText: string
-}
-
-/**
- * Map one backend log entry onto the modal's record.
- * @param e - Entry from `api-responses`.
- * @param index - Position in the list, which keeps ids unique for entries sharing a timestamp.
- * @returns The modal record.
- */
-export function toApiResponseEntry(e: ApiLogEntry, index: number): ApiResponseEntry {
-    return {
-        id: `${e.timestamp}-${index}`,
-        kind: e.kind,
-        timestamp: e.timestamp,
-        model: e.model,
-        inputTokens: e.input_tokens,
-        outputTokens: e.output_tokens,
-        costUsd: e.cost_usd,
-        keysOrInputs: e.keys_or_inputs,
-        rawText: e.raw_response,
-    }
 }
 
 /** Props for the shared `ApiResponsesModal`. */
