@@ -1,5 +1,31 @@
+import os
+
 import pytest
+from backend import config
 from backend.models import LocString
+from backend.routes import helpers
+
+
+@pytest.fixture(autouse=True)
+def isolated_storage(tmp_path, monkeypatch):
+    """Point storage, the models dir and the .env file at a temp folder so no test touches the real ones.
+
+    Args:
+        tmp_path: Per-test temp directory.
+        monkeypatch: Pytest monkeypatch fixture.
+
+    Returns:
+        The temp storage root.
+    """
+    storage = tmp_path / "storage"
+    monkeypatch.setattr(config, "STORAGE_PATH", storage)
+    monkeypatch.setattr(config, "LLAMACPP_MODELS_DIR", storage / "models")
+    monkeypatch.setattr(helpers, "_ENV_PATH", tmp_path / ".env")
+    # The .env writer also sets os.environ, which would leak into later tests.
+    saved_env = dict(os.environ)
+    yield storage
+    os.environ.clear()
+    os.environ.update(saved_env)
 
 
 @pytest.fixture
