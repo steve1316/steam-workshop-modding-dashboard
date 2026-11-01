@@ -10,10 +10,10 @@ interface SidebarProps {
 }
 
 /**
- * Persistent sidebar navigation displayed on every page. Renders, in order: the `GameSwitcher` segmented toggle, an active-game header (gradient title + capability subtitle + hairline divider), then the active game's nav entries (from the registry manifest) and the cross-game Settings link. Each link uses `NavLink` so the current route is highlighted via the `active` class.
+ * Persistent sidebar: the `GameSwitcher`, an active-game header, the active game's manifest nav entries, and the cross-game Settings link.
  *
- * @param activeGameId The currently active game's id, used to look up the manifest and branding.
- * @returns The rendered sidebar JSX.
+ * @param activeGameId Active game's id, used to look up the manifest and branding.
+ * @returns The sidebar.
  */
 const Sidebar: React.FC<SidebarProps> = ({ activeGameId }) => {
     const game = getGame(activeGameId)
@@ -71,10 +71,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeGameId }) => {
 }
 
 /**
- * Converts a snake_case game id (e.g. `"future_game"`) into a Title Case label (e.g. `"Future Game"`). Used as the fallback when a game id has no registered manifest entry.
+ * Convert a snake_case game id to a Title Case label, e.g. `"future_game"` to `"Future Game"`. Fallback for ids with no manifest entry.
  *
- * @param gameId The raw `game_id` string.
- * @returns A human-friendly display name derived from the id.
+ * @param gameId Raw `game_id`.
+ * @returns The display name.
  */
 function humanizeGameId(gameId: string): string {
     return gameId

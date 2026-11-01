@@ -11,9 +11,9 @@ export type SortDirection = "asc" | "desc" | null
 export type SortConfig = { key: SortField; direction: SortDirection }
 
 /**
- * Determine the display status for a string table row.
- * @param s - The localization string to evaluate.
- * @returns The row status used for badge rendering.
+ * Get the display status for a string table row.
+ * @param s - String to evaluate.
+ * @returns Status for the badge.
  */
 export function getRowStatus(s: LocString): RowStatus {
     if (s.untranslatable_reason) return "untranslatable"
@@ -24,9 +24,9 @@ export function getRowStatus(s: LocString): RowStatus {
 }
 
 /**
- * Determine the background style for a string table row.
- * @param s - The localization string to evaluate.
- * @returns A CSS style object with backgroundColor, or undefined for default rows.
+ * Get the background style for a string table row.
+ * @param s - String to evaluate.
+ * @returns A style with `backgroundColor`, or undefined for default rows.
  */
 export function getRowStyle(s: LocString): React.CSSProperties | undefined {
     if (s.untranslatable_reason) return { backgroundColor: "rgba(148, 163, 184, 0.1)" }
@@ -37,12 +37,11 @@ export function getRowStyle(s: LocString): React.CSSProperties | undefined {
 }
 
 /**
- * Filter strings by status tab and free-text search.
- * Rows with empty source text are always hidden.
- * @param strings - All localization strings.
- * @param filter - The active filter tab.
- * @param search - Free-text search query.
- * @returns Filtered array of strings.
+ * Filter strings by status tab and search. Rows with empty source text are always hidden.
+ * @param strings - All strings.
+ * @param filter - Active filter tab.
+ * @param search - Search query.
+ * @returns Matching strings.
  */
 export function filterStrings(strings: LocString[], filter: FilterTab, search: string): LocString[] {
     const q = search.toLowerCase()
@@ -63,21 +62,15 @@ export function filterStrings(strings: LocString[], filter: FilterTab, search: s
         if (!matchesFilter) return false
 
         if (!q) return true
-        return (
-            s.key.toLowerCase().includes(q) ||
-            s.source_file.toLowerCase().includes(q) ||
-            s.source.toLowerCase().includes(q) ||
-            s.english.toLowerCase().includes(q)
-        )
+        return s.key.toLowerCase().includes(q) || s.source_file.toLowerCase().includes(q) || s.source.toLowerCase().includes(q) || s.english.toLowerCase().includes(q)
     })
 }
 
 /**
- * Sort strings by the given column and direction.
- * Returns a new sorted array (does not mutate).
- * @param strings - Array of strings to sort.
+ * Sort strings by column and direction without mutating the input.
+ * @param strings - Strings to sort.
  * @param config - Sort column and direction.
- * @returns Sorted copy of the array. Returns a shallow copy if direction is null.
+ * @returns Sorted copy, or a shallow copy if direction is null.
  */
 export function sortStrings(strings: LocString[], config: SortConfig): LocString[] {
     const result = [...strings]

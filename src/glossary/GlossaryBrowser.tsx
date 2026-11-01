@@ -10,31 +10,28 @@ import { extractCategories, filterGlossaryTerms } from "../utils/glossaryFilters
 
 /** One game-specific column of the glossary table. */
 export interface GlossaryColumn {
-    /** Header text. Also used as the React key, so it must be unique. */
+    /** Also the React key, so it must be unique. */
     header: string
-    /** Fixed width in pixels. Omit to share the remaining width. */
+    /** Pixels. Omit to share the remaining width. */
     width?: number
     /** Classes for the cells, e.g. `cell-dim cell-mono`. */
     className?: string
-    /** Renders one term's cell. */
     render: (termKey: string, term: GlossaryTerm) => ReactNode
 }
 
 /** Props for GlossaryBrowser. */
 interface GlossaryBrowserProps {
-    /** Loads the base-game glossary. Called on open and on Retry. Must be a stable function (module-level), since it is an effect dependency. */
+    /** Called on open and on Retry. Must be a stable (module-level) function, since it is an effect dependency. */
     load: () => Promise<Glossary>
-    /** Width in pixels of the English Term column. */
+    /** Pixels. */
     englishWidth: number
-    /** Width in pixels of the Category column. */
+    /** Pixels. */
     categoryWidth: number
-    /** Game-specific columns shown after English Term and Category. */
     columns: GlossaryColumn[]
 }
 
 /**
- * The base-game glossary page shared by both games: a header with term and category counts, a search field with category pills, and a table
- * of English Term, Category and the game's own columns. Shows a loading state, and an error with Retry when the glossary cannot be loaded.
+ * Base-game glossary page shared by both games: counts, search with category pills, and a table of English Term, Category and game-specific columns.
  *
  * @param load Glossary loader.
  * @param englishWidth English Term column width.
@@ -67,7 +64,7 @@ export default function GlossaryBrowser({ load, englishWidth, categoryWidth, col
     const categories = useMemo(() => extractCategories(terms), [terms])
     const filteredTerms = useMemo(() => filterGlossaryTerms(terms, search, categoryFilter), [terms, search, categoryFilter])
 
-    /** Clears the error, which brings the loading state back, and loads again. */
+    /** Clear the error, which brings back the loading state, and load again. */
     const retry = () => {
         setError(null)
         setAttempt((n) => n + 1)

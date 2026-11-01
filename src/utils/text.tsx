@@ -1,11 +1,10 @@
 import React from "react"
 
 /**
- * Wrap the first substring matching `query` in a highlight span.
- * Returns the original text unchanged when the query is empty or not found.
- * @param text - The full text to search within.
- * @param query - The substring to highlight.
- * @returns A React node with the match wrapped in a styled span, or plain text.
+ * Wrap the first substring matching `query` in a highlight span. Text is unchanged when the query is empty or not found.
+ * @param text - Text to search within.
+ * @param query - Substring to highlight.
+ * @returns The text with the match highlighted.
  */
 export function highlightMatch(text: string, query: string): React.ReactNode {
     if (!query) return text

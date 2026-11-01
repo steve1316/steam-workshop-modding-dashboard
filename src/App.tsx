@@ -23,18 +23,17 @@ function GameSubtree() {
 }
 
 /**
- * App shell: a persistent sidebar plus the routed page area. The active game is the `:gameSlug` URL segment (source of truth). Off-game routes
- * such as `/settings` keep the last game visited, and fall back to the persisted `active_game` setting on a direct visit.
+ * App shell: a persistent sidebar plus the routed page area. The `:gameSlug` URL segment is the source of truth for the active game.
  * @returns The application shell.
  */
 function App() {
     const [defaultGameId, setDefaultGameId] = useState<string>("chrono_ark")
     const [loading, setLoading] = useState(true)
-    // The game of the last game route visited, so /settings stays in the game the user came from.
+    // Keeps /settings in the game the user came from.
     const [lastGameId, setLastGameId] = useState<string | null>(null)
     const location = useLocation()
 
-    // The persisted game id only picks the default redirect target for "/". The URL is the source of truth thereafter.
+    // Only picks the default redirect target for "/".
     useEffect(() => {
         fetch(`${API_BASE}/settings`)
             .then((r) => r.json())
@@ -43,18 +42,17 @@ function App() {
             .finally(() => setLoading(false))
     }, [])
 
-    // Active game comes from the URL slug. Off-slug (e.g. /settings) it is the last game visited, then the persisted default.
+    // Off-slug routes (e.g. /settings) fall back to the last game visited, then the persisted default.
     const match = useMatch("/:gameSlug/*")
     const activeSlug = match?.params.gameSlug
     const routeGameId = activeSlug ? getGameBySlug(activeSlug)?.id : undefined
-    // Remember the route's game while rendering (React's derived-state pattern), so the first /settings render already uses it.
+    // Derived-state pattern, so the first /settings render already uses the route's game.
     if (routeGameId && routeGameId !== lastGameId) setLastGameId(routeGameId)
     const activeGameId = routeGameId || lastGameId || defaultGameId
     const isDetailPage = !!useMatch("/:gameSlug/translation/*")
     const defaultSlug = slugForId(defaultGameId) ?? "chrono_ark"
 
-    // Page titles and active filter pills follow the active game, including on /settings. The variables live on <html> so portaled dialogs
-    // inherit them too.
+    // Set on <html> so portaled dialogs inherit the game's theme variables.
     const branding = getBranding(activeGameId)
     useEffect(() => {
         const root = document.documentElement.style
@@ -62,7 +60,6 @@ function App() {
         root.setProperty("--game-accent-gradient", branding.gradient)
     }, [branding.accent, branding.gradient])
 
-    // The browser tab is named after the active game, e.g. "Warhammer III Translator".
     const gameName = getGame(activeGameId)?.displayName ?? "Chrono Ark"
     useEffect(() => {
         document.title = `${gameName} Translator`
@@ -72,20 +69,16 @@ function App() {
         <>
             <Sidebar activeGameId={activeGameId} />
 
-            {/* Detail pages get the wider container-fluid for the string table. */}
             <main className={isDetailPage ? "container-fluid" : "container"}>
                 {loading ? (
                     <LoadingState message="Loading resources..." />
                 ) : (
                     <ErrorBoundary key={location.pathname}>
                         <Routes>
-                            {/* --- Cross-game Settings: provider configuration, game path --- */}
                             <Route path="/settings" element={<SettingsPage gameId={activeGameId} />} />
 
-                            {/* --- Active game's subtree, namespaced by URL slug --- */}
                             <Route path="/:gameSlug/*" element={<GameSubtree />} />
 
-                            {/* --- Root + unknown paths redirect to the persisted game's dashboard --- */}
                             <Route path="*" element={<Navigate to={`/${defaultSlug}/dashboard`} replace />} />
                         </Routes>
                     </ErrorBoundary>

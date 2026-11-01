@@ -5,19 +5,15 @@ import SearchInput from "../ui/SearchInput"
 
 /** Props for DashboardHeader. */
 interface DashboardHeaderProps {
-    /** Page title, e.g. "Workshop Dashboard". */
+    /** e.g. "Workshop Dashboard". */
     title: string
-    /** Dim line under the title describing the page. */
     tagline: string
-    /** Current search text. */
     search: string
     /** Called with the new search text on every keystroke, and with "" when cleared. */
     onSearchChange: (value: string) => void
-    /** Placeholder for the search field. */
     searchPlaceholder: string
-    /** Width of one card column in pixels, from `useCardWidth`. Falls back to 320px before a card has rendered. */
+    /** Pixels, from `useCardWidth`. Falls back to 320px before a card has rendered. */
     searchWidth?: number
-    /** Buttons shown after the search field, such as Refresh. */
     actions?: ReactNode
 }
 

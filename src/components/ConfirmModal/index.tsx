@@ -4,19 +4,17 @@ import Modal from "../../ui/Modal"
 
 /** Props for ConfirmModal. */
 interface ConfirmModalProps {
-    /** Dialog heading text. */
     title: string
     /** Body content: plain text (newlines preserved) or JSX such as a bullet list. */
     message: string | React.ReactNode
-    /** Text for the confirm button. Defaults to "Confirm". */
+    /** Defaults to "Confirm". */
     confirmLabel?: string
-    /** Text for the cancel button. Defaults to "Cancel". */
+    /** Defaults to "Cancel". */
     cancelLabel?: string
     /** Confirm button tone: red for danger, amber for warning, the accent gradient for default. */
     variant?: "danger" | "warning" | "default"
-    /** Called when the user clicks confirm. */
     onConfirm: () => void
-    /** Called when the user cancels, presses Escape, or clicks the backdrop. */
+    /** Also fires on Escape and backdrop click. */
     onCancel: () => void
 }
 
@@ -27,7 +25,7 @@ const VARIANT_CLASS: Record<NonNullable<ConfirmModalProps["variant"]>, string> =
 }
 
 /**
- * Confirmation dialog that replaces native `window.confirm()`. Built on the shared `Modal`, with danger and warning tones for destructive actions.
+ * Confirmation dialog replacing native `window.confirm()`, built on the shared `Modal`.
  *
  * @param props See `ConfirmModalProps`.
  * @returns The confirmation dialog.

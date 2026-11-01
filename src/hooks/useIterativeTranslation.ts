@@ -35,26 +35,16 @@ const STREAMING_PROVIDERS = new Set(["ollama", "llamacpp"])
 const STOP_AFTER_PROVIDERS = new Set(["llamacpp"])
 
 /**
- * Hook that manages iterative per-batch translation with glossary review
- * between batches.
+ * Manage iterative per-batch translation with glossary review between batches.
  *
- * The frontend drives the loop:
- * 1. Call `startTranslation` with a provider and the batch plan from preview. An optional `mode` of `"update"` revises changed rows.
- * 2. The hook translates one batch at a time via `POST /api/translate/batch`.
- * 3. After each batch, if suggestions exist and it's not the last batch,
- *    the state transitions to "reviewing" so the user can accept/dismiss terms.
- * 4. Call `continueAfterReview` to proceed to the next batch.
- * 5. Repeat until all batches are done or the user cancels.
+ * `startTranslation` takes the preview's batch plan (`mode` `"update"` revises changed rows). A batch with suggestions moves to "reviewing"
+ * until `continueAfterReview` is called.
  *
- * @param gameId - Backend game id used to route translate API calls (e.g. "chrono_ark").
- * @param modId - The mod being translated.
- * @param onBatchTranslated - Callback fired after each batch with the new translations.
+ * @param gameId - Routes translate API calls, e.g. "chrono_ark"
+ * @param modId - Mod being translated
+ * @param onBatchTranslated - Fired after each batch with the new translations
  */
-export function useIterativeTranslation(
-    gameId: string,
-    modId: string,
-    onBatchTranslated: (translations: Record<string, string>) => void,
-) {
+export function useIterativeTranslation(gameId: string, modId: string, onBatchTranslated: (translations: Record<string, string>) => void) {
     const [state, setState] = useState<BatchState>({ phase: "idle" })
     const [batchTranslations, setBatchTranslations] = useState<Record<string, string>>({})
 
@@ -64,7 +54,7 @@ export function useIterativeTranslation(
     const cancelledRef = useRef(false)
     const abortControllerRef = useRef<AbortController | null>(null)
     const totalTranslatedRef = useRef(0)
-    // Ref to break circular dependency between translateBatch <-> handleBatchResult.
+    // Breaks the circular dependency between translateBatch and handleBatchResult.
     const translateBatchRef = useRef<(batchIndex: number) => Promise<void>>(undefined)
 
     /** Stop the llama-server process after translation to free GPU memory. */
@@ -76,12 +66,7 @@ export function useIterativeTranslation(
 
     /** Handle a completed batch result (shared by streaming and non-streaming paths). */
     const handleBatchResult = useCallback(
-        (
-            batchIndex: number,
-            totalBatches: number,
-            newTranslations: Record<string, string>,
-            suggestions: TermSuggestion[],
-        ) => {
+        (batchIndex: number, totalBatches: number, newTranslations: Record<string, string>, suggestions: TermSuggestion[]) => {
             totalTranslatedRef.current += Object.keys(newTranslations).length
             setBatchTranslations((prev) => ({ ...prev, ...newTranslations }))
             onBatchTranslated(newTranslations)
@@ -101,7 +86,7 @@ export function useIterativeTranslation(
                 translateBatchRef.current?.(batchIndex + 1)
             }
         },
-        [onBatchTranslated],
+        [onBatchTranslated]
     )
 
     /** Translate a batch via SSE streaming (real-time progress). */
@@ -122,7 +107,7 @@ export function useIterativeTranslation(
                         source_lang: batch.source_lang,
                         is_first_batch: batchIndex === 0,
                     },
-                    { signal: controller.signal },
+                    { signal: controller.signal }
                 )
 
                 if (cancelledRef.current) return
@@ -168,12 +153,7 @@ export function useIterativeTranslation(
                                 },
                             })
                         } else if (event.type === "complete") {
-                            handleBatchResult(
-                                batchIndex,
-                                totalBatches,
-                                (event.translations as Record<string, string>) || {},
-                                (event.suggestions as TermSuggestion[]) || [],
-                            )
+                            handleBatchResult(batchIndex, totalBatches, (event.translations as Record<string, string>) || {}, (event.suggestions as TermSuggestion[]) || [])
                         } else if (event.type === "error") {
                             setState({ phase: "error", message: event.message as string, completedBatches: batchIndex })
                         }
@@ -188,7 +168,7 @@ export function useIterativeTranslation(
                 })
             }
         },
-        [gameId, modId, handleBatchResult],
+        [gameId, modId, handleBatchResult]
     )
 
     const translateBatch = useCallback(
@@ -201,7 +181,6 @@ export function useIterativeTranslation(
 
             setState({ phase: "translating", batchIndex, totalBatches })
 
-            // Use streaming endpoint for providers that support it.
             if (STREAMING_PROVIDERS.has(providerRef.current)) {
                 return translateBatchStreaming(batchIndex, totalBatches)
             }
@@ -228,12 +207,7 @@ export function useIterativeTranslation(
                     return
                 }
 
-                handleBatchResult(
-                    batchIndex,
-                    totalBatches,
-                    data.translations || {},
-                    data.suggestions || [],
-                )
+                handleBatchResult(batchIndex, totalBatches, data.translations || {}, data.suggestions || [])
             } catch (err) {
                 if (cancelledRef.current) return
                 setState({
@@ -243,10 +217,10 @@ export function useIterativeTranslation(
                 })
             }
         },
-        [gameId, modId, translateBatchStreaming, handleBatchResult],
+        [gameId, modId, translateBatchStreaming, handleBatchResult]
     )
 
-    // Keep ref in sync so handleBatchResult can call translateBatch for auto-advance.
+    // Lets handleBatchResult call translateBatch for auto-advance.
     translateBatchRef.current = translateBatch
 
     const startTranslation = useCallback(
@@ -259,7 +233,7 @@ export function useIterativeTranslation(
             setBatchTranslations({})
             translateBatch(0)
         },
-        [translateBatch],
+        [translateBatch]
     )
 
     const continueAfterReview = useCallback(() => {
@@ -280,7 +254,9 @@ export function useIterativeTranslation(
         abortControllerRef.current?.abort()
         abortControllerRef.current = null
         // Tell the backend to cancel so it closes the active connection.
-        gameApi(gameId).post(`/translate/cancel?mod_id=${encodeURIComponent(modId)}`).catch(() => {})
+        gameApi(gameId)
+            .post(`/translate/cancel?mod_id=${encodeURIComponent(modId)}`)
+            .catch(() => {})
         stopProviderIfNeeded()
         setState({ phase: "idle" })
     }, [gameId, modId, stopProviderIfNeeded])

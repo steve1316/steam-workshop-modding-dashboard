@@ -5,37 +5,32 @@ import WorkshopCard from "../WorkshopCard"
 
 /** One stat box rendered in the `mod-stats` row. */
 export interface ModCardStat {
-    /** Stat value (numeric or short label). */
     value: ReactNode
-    /** Caption rendered below the value. */
     label: ReactNode
 }
 
 /** One segment of the stacked progress bar. */
 export interface ModCardProgressSegment {
-    /** Segment width as a percentage of the bar (0-100). */
+    /** Percentage of the bar, 0-100. */
     widthPercent: number
-    /** CSS `background` value for the segment. */
     background: string
-    /** Optional tooltip text. */
     title?: string
 }
 
 /** Progress section configuration. */
 export interface ModCardProgress {
-    /** Top-left label (e.g. `"75% Translated"` or `"Not yet scanned"`). */
+    /** e.g. `"75% Translated"`. */
     leftLabel: ReactNode
-    /** Top-right label (e.g. `"15 / 20 strings"`). Omit to render only the left label. */
+    /** e.g. `"15 / 20 strings"`. Omit to render only the left label. */
     rightLabel?: ReactNode
-    /** Bar segments rendered left-to-right. Empty array renders an empty bar. */
+    /** Rendered left-to-right. */
     segments: ModCardProgressSegment[]
 }
 
 /** Primary action button or link. Either `to` (Link) or `onClick` (button) must be set, not both. */
 export type ModCardPrimaryAction = {
-    /** Button text. */
     label: ReactNode
-    /** Color variant. Defaults to `"primary"`. */
+    /** Defaults to `"primary"`. */
     variant?: "primary" | "warning"
 } & ({ to: string; onClick?: never } | { onClick: () => void; to?: never })
 
@@ -43,57 +38,47 @@ export type ModCardPrimaryAction = {
 export interface ModCardSecondaryAction {
     /** Button text. */
     label: ReactNode
-    /** Called when the button is clicked. */
     onClick: () => void
-    /** Optional tooltip text. */
     title?: string
 }
 
 /** Props for ModCard. */
 interface ModCardProps {
-    /** Unique mod identifier (used for the `data-mod-id` attribute). */
+    /** Used for the `data-mod-id` attribute. */
     id: string
-    /** Card title rendered as an h3. */
     title: ReactNode
-    /** Badge text rendered to the right of the title (e.g. workshop id). */
+    /** Shown right of the title, e.g. workshop id. */
     idBadge: string
-    /** Optional subtitle line beneath the title (author, language pair, parent link, etc.). */
+    /** Beneath the title, e.g. author or language pair. */
     subtitle?: ReactNode
-    /** Optional preview image URL. Null/missing renders a placeholder. */
+    /** Null or missing renders a placeholder. */
     previewImageUrl?: string | null
-    /** Progress section content. */
     progress: ModCardProgress
-    /** Stat boxes rendered in the `mod-stats` row. */
     stats: ModCardStat[]
-    /** Optional inline badge nodes appended after the stat boxes (e.g. `NeedsSyncBadge`). */
+    /** Appended after the stat boxes, e.g. `NeedsSyncBadge`. */
     badges?: ReactNode
-    /** Primary action - rendered as a `<Link>` when `to` is set, otherwise as a `<button>`. */
+    /** Rendered as a `<Link>` when `to` is set, otherwise a `<button>`. */
     primaryAction: ModCardPrimaryAction
-    /** Optional second button (e.g. `Publish`) rendered next to the primary action. */
+    /** Rendered next to the primary action, e.g. `Publish`. */
     secondaryAction?: ModCardSecondaryAction
-    /** Optional external URL rendered as a Steam icon link. */
+    /** Rendered as a Steam icon link. */
     steamUrl?: string | null
-    /** Optional sync action. When undefined, the sync icon button is hidden. */
+    /** When undefined, the sync icon button is hidden. */
     onSync?: () => void
 }
 
 /**
- * Reusable dashboard card for a single mod. Composes `WorkshopCard` with a progress bar,
- * stat boxes, optional badges, and an action row, all grouped in a footer pinned to the bottom of the card. All variant content is supplied via props
- * so the same component fits both Chrono Ark mods (via `ModGrid`) and WH3 translation mods
- * (via `TranslationModCard`).
- *
- * Wrapped in `React.memo` to avoid unnecessary re-renders when sibling cards update.
+ * Dashboard card for a single mod, shared by Chrono Ark (`ModGrid`) and WH3 (`TranslationModCard`). Memoized so sibling updates do not re-render it.
  *
  * @param props See `ModCardProps`.
- * @returns The rendered mod card.
+ * @returns The mod card.
  */
 const ModCard: React.FC<ModCardProps> = React.memo((props) => {
     const { id, title, idBadge, subtitle, previewImageUrl, progress, stats, badges, primaryAction, secondaryAction, steamUrl, onSync } = props
     const variantClass = primaryAction.variant === "warning" ? "btn-warning" : "btn-primary"
     return (
         <WorkshopCard data-mod-id={id} previewImageUrl={previewImageUrl ?? null} previewAlt={typeof title === "string" ? title : "Mod"} title={title} idBadge={idBadge} subtitle={subtitle}>
-            {/* Footer is pinned to the bottom of the card body so progress, stats, and actions line up across cards with different title lengths. */}
+            {/* Pinned to the bottom so progress, stats, and actions line up across cards with different title lengths. */}
             <div className="mod-card-footer">
                 <div className="progress-section">
                     <div className="progress-info">
@@ -160,10 +145,9 @@ const ModCard: React.FC<ModCardProps> = React.memo((props) => {
 })
 
 /**
- * "Needs Sync" badge used by Chrono Ark mods that have unsynced translation changes.
- * Exported so callers building their `badges` prop can reuse it.
+ * "Needs Sync" badge for Chrono Ark mods with unsynced changes, exported for use in `badges`.
  *
- * @returns The rendered badge.
+ * @returns The badge.
  */
 export const NeedsSyncBadge: React.FC = () => (
     <span

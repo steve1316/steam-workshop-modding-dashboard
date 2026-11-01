@@ -4,23 +4,21 @@ import ModGridSkeleton from "../components/ModGridSkeleton"
 
 /** Props for DashboardSection. */
 interface DashboardSectionProps {
-    /** Section heading, e.g. "Pack Mods". Omit for a dashboard with a single untitled grid. */
+    /** e.g. "Pack Mods". Omit for a single untitled grid. */
     title?: string
-    /** True while the section's list is loading. Shows skeleton cards. */
+    /** Shows skeleton cards. */
     loading: boolean
-    /** Number of skeleton cards. Defaults to the skeleton's own default (6). */
+    /** Defaults to the skeleton's own default (6). */
     skeletonCount?: number
-    /** Accessible label for the skeleton. Defaults to "Loading mods". */
+    /** Defaults to "Loading mods". */
     skeletonLabel?: string
-    /** Load error shown in place of the grid. Set only when there are no cards to show. */
+    /** Shown in place of the grid. Set only when there are no cards. */
     error?: string | null
     /** When given with `error`, a Retry button calls it. */
     onRetry?: () => void
-    /** True when there are no cards to show, after loading. */
     empty: boolean
     /** Line shown when `empty`, e.g. "No mods found." or a no-match message for the current search. */
     emptyMessage: string
-    /** The card grid. */
     children: ReactNode
 }
 

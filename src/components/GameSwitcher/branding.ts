@@ -3,13 +3,13 @@ import wh3Logo from "../../assets/games/wh3.png"
 
 /** Per-game visual identity used by the GameSwitcher pills and the sidebar's active-game header. */
 export interface GameBranding {
-    /** Imported PNG asset URL for the game's square logo. Empty string for the fallback. */
+    /** Square logo PNG URL. Empty for the fallback. */
     logo: string
-    /** Solid accent color used for the active pill's border and outer glow. */
+    /** Active pill's border and outer glow. */
     accent: string
-    /** CSS gradient used for the active pill's background fill and the sidebar's active-game title text. */
+    /** Active pill's background fill and the sidebar's active-game title text. */
     gradient: string
-    /** Short capability label shown as the subtitle under the active game's name. Empty string for the fallback. */
+    /** Subtitle under the active game's name. Empty for the fallback. */
     subtitle: string
 }
 
@@ -37,11 +37,10 @@ const FALLBACK_BRANDING: GameBranding = {
 }
 
 /**
- * Returns branding for a game id, or a neutral fallback when the id is not registered.
- * Lets the switcher and sidebar header keep rendering correctly if a future game adapter is registered without a branding entry.
+ * Get branding for a game id, falling back to a neutral entry so a game registered without branding still renders.
  *
- * @param gameId Backend-supplied `game_id` (e.g. `"chrono_ark"`).
- * @returns The registered `GameBranding`, or `FALLBACK_BRANDING` when no entry exists.
+ * @param gameId Backend `game_id`, e.g. `"chrono_ark"`.
+ * @returns The registered branding, or `FALLBACK_BRANDING`.
  */
 export function getBranding(gameId: string): GameBranding {
     return GAME_BRANDING[gameId] ?? FALLBACK_BRANDING

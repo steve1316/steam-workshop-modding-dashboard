@@ -2,36 +2,23 @@ import React, { useState, useEffect, useRef } from "react"
 
 import HighlightText from "../../ui/HighlightText"
 
-/**
- * Props for the EditableCell component.
- */
+/** Props for EditableCell. */
 interface EditableCellProps {
-    /** The current persisted value displayed in the cell. */
     value: string
-    /** Callback invoked when the user commits a change (blur or Enter). */
     onSave: (val: string) => void
-    /** Placeholder text shown in dim italic when the value is empty. */
+    /** Shown in dim italic when the value is empty. */
     placeholder?: string
-    /** Search query to highlight in display mode. */
     highlight?: string
 }
 
 /**
- * An inline-editable table cell that toggles between display and edit modes.
+ * Inline-editable table cell. Commits on blur or Ctrl+Enter, reverts on Escape, and only calls `onSave` when the value changed.
  *
- * Display mode: shows the value (or placeholder) as plain text. Clicking
- * anywhere in the cell enters edit mode.
- *
- * Edit mode: renders a <textarea> that auto-focuses. The edit is committed on
- * blur or Ctrl+Enter, and cancelled (reverted) on Escape. The `onSave`
- * callback is only called if the value actually changed, avoiding unnecessary
- * API calls.
- *
- * @param value - The current persisted value displayed in the cell.
- * @param onSave - Callback invoked when the user commits a change.
- * @param placeholder - Placeholder text when the value is empty.
- * @param highlight - Search query to highlight in display mode.
- * @returns The rendered editable cell JSX.
+ * @param value - Persisted value.
+ * @param onSave - Called with the committed value.
+ * @param placeholder - Shown when empty.
+ * @param highlight - Search query to highlight.
+ * @returns The editable cell.
  */
 const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, placeholder, highlight = "" }) => {
     const [isEditing, setIsEditing] = useState(false)
@@ -46,9 +33,7 @@ const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, placeholder,
         }
     }, [isEditing])
 
-    /**
-     * Handles focus loss on the input field.
-     */
+    /** Handle focus loss on the input. */
     const handleBlur = () => {
         setIsEditing(false)
         if (tempValue !== value) {

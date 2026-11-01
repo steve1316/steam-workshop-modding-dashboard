@@ -18,11 +18,7 @@ interface KeyState {
     deepl: string
 }
 
-/**
- * Available translation providers. Each entry maps a backend provider ID to
- * its display label, description, and the corresponding API key field name
- * (`null` for providers that don't require credentials).
- */
+/** Available translation providers, mapping a backend provider id to its label, description, and API key field (`null` when no credentials are needed). */
 const PROVIDERS = [
     { id: "claude", label: "Claude", description: "Anthropic", keyField: "anthropic" as const },
     { id: "openai", label: "OpenAI", description: "OpenAI", keyField: "openai" as const },
@@ -92,20 +88,18 @@ const GGUF_TIERS = [
 
 /** Props for SettingsPage. */
 interface SettingsPageProps {
-    /** Game the page is shown for (the one the sidebar shows). The system prompt preview is loaded from this game's backend. */
+    /** Game shown in the sidebar. The system prompt preview loads from its backend. */
     gameId: string
 }
 
 /**
- * Settings page for configuring the active translation provider, API keys,
- * and batch size. Changes are persisted to the backend `.env` file and take
- * effect immediately without a server restart.
+ * Settings page for the translation provider, API keys, and batch size. Changes persist to the backend `.env` and apply without a restart.
  *
  * @param gameId Game whose system prompt the preview loads.
  * @returns The settings page, its loading state, or an error with Retry.
  */
 const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
-    // Prefix for every field id on the page, so each label can point at its control.
+    // Prefixes every field id so each label can point at its control.
     const fieldId = useId()
     const [provider, setProvider] = useState("claude")
     const [originalProvider, setOriginalProvider] = useState("claude")
@@ -135,12 +129,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
     // Bumped by Retry to run the load effect again.
     const [loadAttempt, setLoadAttempt] = useState(0)
 
-    // Ignored mods state
     const [ignoredMods, setIgnoredMods] = useState<string[]>([])
     const [originalIgnoredMods, setOriginalIgnoredMods] = useState<string[]>([])
     const [newIgnoredMod, setNewIgnoredMod] = useState("")
 
-    // TW3 path state
     const [tw3HelperPath, setTw3HelperPath] = useState("")
     const [originalTw3HelperPath, setOriginalTw3HelperPath] = useState("")
     const [tw3RpfmCliPath, setTw3RpfmCliPath] = useState("")
@@ -154,7 +146,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
     const [steamcmdInstalling, setSteamcmdInstalling] = useState(false)
     const [steamcmdInstallError, setSteamcmdInstallError] = useState<string | null>(null)
 
-    // Ollama-specific state
     const [ollamaStatus, setOllamaStatus] = useState<string>("unknown")
     const [ollamaModels, setOllamaModels] = useState<string[]>([])
     const [ollamaBaseUrl, setOllamaBaseUrl] = useState("http://localhost:11434")
@@ -168,12 +159,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
     const [ollamaPullProgress, setOllamaPullProgress] = useState<{ status: string; completed?: number; total?: number } | null>(null)
     const [showOllamaAdvanced, setShowOllamaAdvanced] = useState(false)
 
-    // Ollama process management
     const [ollamaManaged, setOllamaManaged] = useState(false)
     const [ollamaStarting, setOllamaStarting] = useState(false)
     const [ollamaStopping, setOllamaStopping] = useState(false)
 
-    // llama.cpp-specific state
     const [llamacppStatus, setLlamacppStatus] = useState<string>("unknown")
     const [llamacppBaseUrl, setLlamacppBaseUrl] = useState("http://localhost:8080")
     const [originalLlamacppBaseUrl, setOriginalLlamacppBaseUrl] = useState("http://localhost:8080")
@@ -197,7 +186,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
     const [llamacppInstalling, setLlamacppInstalling] = useState(false)
     const [llamacppInstallProgress, setLlamacppInstallProgress] = useState<{ status: string; file?: string; completed?: number; total?: number } | null>(null)
 
-    // System prompt preview state
     const [systemPrompt, setSystemPrompt] = useState("")
     const [promptSourceLang, setPromptSourceLang] = useState("Chinese")
     const [promptLoading, setPromptLoading] = useState(false)
@@ -227,9 +215,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         steamcmdPath !== originalSteamcmdPath ||
         steamUsername !== originalSteamUsername
 
-    // Fetch current settings from the backend on open and on Retry.
-    // Uses AbortController so React StrictMode's double-mount doesn't
-    // let a stale response overwrite user interactions.
+    // The AbortController keeps StrictMode's double-mount from letting a stale response overwrite user interactions.
     useEffect(() => {
         const controller = new AbortController()
         fetch(`${API_BASE}/settings`, { signal: controller.signal })
@@ -286,7 +272,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 setOriginalLlamacppVramTier(data.llamacpp_vram_tier || "")
                 setLoading(false)
 
-                // Fetch Ollama status separately so it doesn't block page load
+                // Separate so it doesn't block page load.
                 fetch(`${API_BASE}/ollama/status`, { signal: controller.signal })
                     .then((r) => r.json())
                     .then((statusData) => {
@@ -296,7 +282,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                     })
                     .catch(() => {})
 
-                // Fetch local GGUF models
                 fetch(`${API_BASE}/llamacpp/models`, { signal: controller.signal })
                     .then((r) => r.json())
                     .then((modelsData) => setLlamacppLocalModels(modelsData.models || []))
@@ -312,14 +297,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         return () => controller.abort()
     }, [loadAttempt])
 
-    /** Clears the load error, shows the loading state again and reloads the settings. */
+    /** Clear the load error and reload the settings. */
     const retryLoad = () => {
         setLoadError(null)
         setLoading(true)
         setLoadAttempt((n) => n + 1)
     }
 
-    // Fetch model catalogs for Claude and OpenAI on open, and again on Retry so a backend that was down fills the Model dropdown.
+    // Refetched on Retry so a backend that was down fills the Model dropdown.
     useEffect(() => {
         fetch(`${API_BASE}/models/claude`)
             .then((r) => r.json())
@@ -331,7 +316,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
             .catch(() => {})
     }, [loadAttempt])
 
-    // Poll Ollama status when the Ollama provider is selected.
     useEffect(() => {
         if (provider !== "ollama") return
         const checkStatus = () => {
@@ -349,8 +333,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         return () => clearInterval(interval)
     }, [provider])
 
-    // Poll llama.cpp status when the llamacpp provider is selected.
-    // Skip polling during install or download to avoid resetting state.
+    // Skipped during install or download to avoid resetting state.
     useEffect(() => {
         if (provider !== "llamacpp") return
         if (llamacppInstalling || llamacppDownloading) return
@@ -368,11 +351,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         return () => clearInterval(interval)
     }, [provider, llamacppBaseUrl, llamacppInstalling, llamacppDownloading])
 
-    /**
-     * Persist changed settings to the backend. Only fields that differ from
-     * their original values are included in the payload so unchanged keys
-     * are not overwritten.
-     */
+    /** Save changed settings. Only fields that differ from their originals are sent, so unchanged keys are not overwritten. */
     const handleSave = async () => {
         setSaving(true)
         setSaveSuccess(false)
@@ -522,7 +501,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                     }
                 }
             }
-            // Refresh model list after pull
             fetch(`${API_BASE}/ollama/status`)
                 .then((r) => r.json())
                 .then((data) => {
@@ -545,7 +523,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
             const data = await res.json()
             if (!res.ok) throw new Error(data.detail)
             setOllamaManaged(data.managed)
-            // Refresh status
             const statusRes = await fetch(`${API_BASE}/ollama/status`)
             const statusData = await statusRes.json()
             setOllamaStatus(statusData.status)
@@ -589,7 +566,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         } else {
             setLlamacppVramTier(tier.tier)
             setLlamacppModel(tier.model)
-            // Auto-set model path if this GGUF is already downloaded and persist to backend
+            // Reuse the model path if this GGUF is already downloaded.
             const local = llamacppLocalModels.find((m) => m.name === tier.filename)
             if (local) {
                 setLlamacppModelPath(local.path)
@@ -631,7 +608,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 const { done, value } = await reader.read()
                 if (done) break
                 buffer += decoder.decode(value, { stream: true })
-                // Process complete lines
                 const lines = buffer.split("\n")
                 buffer = lines.pop() || "" // keep incomplete last line in buffer
                 for (const line of lines) {
@@ -642,7 +618,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                             if (progress.status === "done" && progress.path) {
                                 setLlamacppModelPath(progress.path)
                                 setOriginalLlamacppModelPath(progress.path)
-                                // Auto-save model path + display name to backend
                                 fetch(`${API_BASE}/settings`, {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
@@ -678,7 +653,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
             const res = await fetch(`${API_BASE}/llamacpp/models/${encodeURIComponent(filename)}`, { method: "DELETE" })
             if (!res.ok) return
             refreshLlamacppModels()
-            // Clear model path if it pointed to the deleted file
             const deleted = llamacppLocalModels.find((m) => m.name === filename)
             if (deleted && llamacppModelPath === deleted.path) {
                 setLlamacppModelPath("")
@@ -734,16 +708,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         }
     }
 
-    /** Whether the selected Ollama model has been downloaded. */
     const isModelDownloaded = ollamaModels.some((m) => m === ollamaModel || m === ollamaModel + ":latest" || m + ":latest" === ollamaModel)
 
-    /** Whether the user has manually overridden the model (differs from the VRAM tier default). */
+    // The user overrode the model when it differs from the VRAM tier default.
     const tierDefault = VRAM_TIERS.find((t) => t.tier === ollamaVramTier)?.model || ""
     const isModelOverride = ollamaModel !== "" && ollamaModel !== tierDefault
 
-    /** Status dot tone based on Ollama status. */
     const ollamaTone = ollamaStatus === "running" ? "success" : ollamaStatus === "stopped" ? "warning" : ollamaStatus === "unknown" ? "dim" : "danger"
-    /** Status dot tone for llama.cpp: ready once installed with a model, even before the server starts. */
+    // Ready once installed with a model, even before the server starts.
     const llamacppTone = llamacppStatus === "running" || (llamacppInstalled && llamacppModelPath) ? "success" : llamacppStatus === "unknown" ? "dim" : "danger"
     const statusLabel = ollamaStatus === "running" ? "Running" : ollamaStatus === "stopped" ? "Stopped (not running)" : ollamaStatus === "unknown" ? "Checking..." : "Not Installed"
 
@@ -762,7 +734,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
         <div className="settings-view">
             <PageHeader title="Settings" meta={<p>API Keys and Provider Configuration</p>} />
 
-            {/* System Prompt Preview */}
             <Panel
                 className="settings-panel"
                 title="System Prompt Preview"
@@ -805,7 +776,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 {systemPrompt && <pre className="code-block">{systemPrompt}</pre>}
             </Panel>
 
-            {/* Provider Selection */}
             <Panel className="settings-panel" title="Translation Provider">
                 <div className="provider-cards">
                     {PROVIDERS.map((p) => (
@@ -817,7 +787,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </div>
             </Panel>
 
-            {/* Model Selection for Claude / OpenAI */}
             {(provider === "claude" || provider === "openai") && (
                 <Panel className="settings-panel" title="Model">
                     <select
@@ -835,7 +804,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </Panel>
             )}
 
-            {/* Manual Provider Info */}
             {provider === "manual" && (
                 <Panel className="settings-panel" title="Manual Translation Mode">
                     <div className="settings-prose">
@@ -849,10 +817,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </Panel>
             )}
 
-            {/* Ollama Configuration */}
             {provider === "ollama" && (
                 <Panel className="settings-panel" title="Ollama Configuration">
-                    {/* Status Indicator + Start/Stop */}
                     <div className="status-row">
                         <span className={`status-dot status-dot-${ollamaTone}`} aria-hidden="true" />
                         <span className="status-label">{statusLabel}</span>
@@ -871,7 +837,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         {ollamaStatus === "running" && !ollamaManaged && <span className="note status-action">Started externally</span>}
                     </div>
 
-                    {/* Install Button */}
                     {ollamaStatus === "not_installed" && (
                         <div className="settings-block">
                             <p className="settings-block-help">Ollama is not installed. Click below to download and install it automatically.</p>
@@ -882,7 +847,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         </div>
                     )}
 
-                    {/* VRAM Tier Selector */}
                     <div className="settings-block">
                         <h4 className="settings-subheading">GPU VRAM Tier</h4>
                         <p className="settings-block-help">Select your GPU's VRAM to get the best model recommendation for translation quality.</p>
@@ -898,7 +862,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         </div>
                     </div>
 
-                    {/* Model Status & Download */}
                     {ollamaVramTier && (
                         <div className="settings-block">
                             <div className="settings-selected-row">
@@ -937,10 +900,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         </div>
                     )}
 
-                    {/* Info Note */}
                     <p className="note">Smaller models may produce lower quality translations. Consider reducing batch size for models under 14B parameters.</p>
 
-                    {/* Advanced Section */}
                     <div>
                         <button type="button" className="disclosure-btn" aria-expanded={showOllamaAdvanced} onClick={() => setShowOllamaAdvanced(!showOllamaAdvanced)}>
                             {showOllamaAdvanced ? <FaChevronDown /> : <FaChevronRight />}
@@ -970,7 +931,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                                                 onChange={(e) => {
                                                     const val = e.target.value
                                                     if (val === "") {
-                                                        // Reset to VRAM tier default
                                                         const tierModel = VRAM_TIERS.find((t) => t.tier === ollamaVramTier)?.model || ""
                                                         setOllamaModel(tierModel)
                                                     } else {
@@ -996,10 +956,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </Panel>
             )}
 
-            {/* llama.cpp Configuration */}
             {provider === "llamacpp" && (
                 <Panel className="settings-panel" title="llama.cpp Configuration">
-                    {/* Status Indicator */}
                     <div className="status-row">
                         <span className={`status-dot status-dot-${llamacppTone}`} aria-hidden="true" />
                         <span className="status-label">
@@ -1008,7 +966,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         {llamacppInstalled && llamacppModelPath && llamacppStatus !== "running" && <span className="note status-action">Server starts automatically when translating</span>}
                     </div>
 
-                    {/* Install llama-server */}
                     {!llamacppInstalled && !llamacppInstalling && llamacppStatus !== "running" && (
                         <div className="settings-block">
                             <h4 className="settings-subheading">Install llama-server</h4>
@@ -1047,7 +1004,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         </div>
                     )}
 
-                    {/* VRAM Tier Selector */}
                     <div className="settings-block">
                         <h4 className="settings-subheading">GPU VRAM Tier</h4>
                         <p className="settings-block-help">Select your GPU's VRAM to get the best model recommendation. The model will be downloaded automatically.</p>
@@ -1063,7 +1019,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                         </div>
                     </div>
 
-                    {/* Model Status & Download */}
                     {llamacppVramTier &&
                         (() => {
                             const selectedTier = GGUF_TIERS.find((t) => t.tier === llamacppVramTier)!
@@ -1113,10 +1068,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                             )
                         })()}
 
-                    {/* Info Note */}
                     <p className="note">Smaller models may produce lower quality translations. Consider reducing batch size for models under 14B parameters.</p>
 
-                    {/* Advanced Section */}
                     <div>
                         <button type="button" className="disclosure-btn" aria-expanded={showLlamacppAdvanced} onClick={() => setShowLlamacppAdvanced(!showLlamacppAdvanced)}>
                             {showLlamacppAdvanced ? <FaChevronDown /> : <FaChevronRight />}
@@ -1203,7 +1156,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </Panel>
             )}
 
-            {/* API Keys */}
             {provider !== "manual" && provider !== "ollama" && provider !== "llamacpp" && (
                 <Panel className="settings-panel" title="API Keys">
                     {PROVIDERS.filter((p) => p.keyField !== null).map((p) => {
@@ -1253,7 +1205,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </Panel>
             )}
 
-            {/* Batch Size */}
             <Panel className="settings-panel" title="Batch Size" help="Number of strings sent per API request. Larger batches are more cost-efficient but may hit token limits.">
                 <input
                     type="number"
@@ -1269,7 +1220,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 />
             </Panel>
 
-            {/* Ignored Mods */}
             <Panel
                 className="settings-panel"
                 title="Ignored Mods"
@@ -1317,7 +1267,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 )}
             </Panel>
 
-            {/* Total War: Warhammer III */}
             <Panel className="settings-panel" title="Total War: Warhammer III" help="Paths used by the helper_scripts script runner. Required before triggering rebuilds from the Runner page.">
                 <div className="form-stack">
                     <Field label="helper_scripts directory" htmlFor={`${fieldId}-tw3-helper`}>
@@ -1346,7 +1295,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </div>
             </Panel>
 
-            {/* Steam Account (Publish to Workshop) */}
             <Panel
                 className="settings-panel"
                 title="Steam Account"
@@ -1411,7 +1359,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 </Field>
             </Panel>
 
-            {/* Save */}
             {saveError && (
                 <Banner tone="error" onDismiss={() => setSaveError(null)}>
                     {saveError}

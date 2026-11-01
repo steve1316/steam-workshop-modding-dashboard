@@ -5,23 +5,17 @@ import { gameApi } from "../../api/games"
 import Banner from "../../ui/Banner"
 import Modal from "../../ui/Modal"
 
-/**
- * Props for the {@link GlossarySuggestionModal} component.
- */
+/** Props for {@link GlossarySuggestionModal}. */
 interface GlossarySuggestionModalProps {
-    /** Backend game id used to route glossary API calls (e.g. "chrono_ark"). */
+    /** Routes glossary API calls, e.g. "chrono_ark". */
     gameId: string
-    /** Unique identifier of the mod whose glossary suggestions are being reviewed. */
     modId: string
-    /** Initial list of term suggestions to present for review. */
     suggestions: TermSuggestion[]
-    /** Callback to close the modal (e.g. user clicks backdrop or Close button). */
     onClose: () => void
-    /** Callback fired after any accept/dismiss action so the parent can refresh its data. */
+    /** Fired after any accept/dismiss so the parent can refresh. */
     onUpdated: () => void
-    /** When set, the modal is in batch-mode and shows batch progress. */
+    /** When set, the modal is in batch mode. */
     batchProgress?: { current: number; total: number }
-    /** Callback to continue to the next batch after reviewing suggestions. */
     onContinue?: () => void
     /** Subtitle shown instead of the batch progress, e.g. the Translate Names stage. */
     subtitle?: string
@@ -32,31 +26,19 @@ interface GlossarySuggestionModalProps {
 }
 
 /**
- * Modal dialog for reviewing AI-generated glossary term suggestions for a mod.
+ * Modal for reviewing AI-generated glossary term suggestions. Accept or dismiss terms individually or in bulk, pruning the local list optimistically.
  *
- * Displays a list of suggested terms (each with its English translation, original
- * source text, category, and the AI's reasoning). The user can accept or dismiss
- * terms individually, or act on all terms at once via bulk buttons.
- *
- * Workflow:
- * - "Accept" sends a POST to `/api/mods/{modId}/glossary/suggestions/accept` with
- *   the selected English term(s). The backend adds them to the mod's glossary.
- * - "Dismiss" sends a POST to `/api/mods/{modId}/glossary/suggestions/dismiss`.
- *   When dismissing all, the request body is `{ all: true }` instead of a term list.
- * - After each action, the local `pending` list is pruned optimistically and the
- *   parent is notified via `onUpdated()`.
- *
- * @param gameId - Backend game id used to route glossary API calls
- * @param modId - The mod ID used in API routes
- * @param suggestions - Suggestions to display initially
- * @param onClose - Close handler for the modal
- * @param onUpdated - Refresh callback for the parent component
+ * @param gameId - Routes glossary API calls
+ * @param modId - Mod id used in API routes
+ * @param suggestions - Suggestions to review
+ * @param onClose - Close handler
+ * @param onUpdated - Refresh callback for the parent
  * @param batchProgress - Batch progress shown in batch mode
  * @param onContinue - Continues the run after the review
  * @param subtitle - Subtitle override
  * @param continueLabel - Continue button label override
  * @param onTranslationsChanged - Called when edited English renamed existing translations
- * @returns The rendered suggestion review modal
+ * @returns The suggestion review modal
  */
 const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
     gameId,
@@ -109,14 +91,9 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
     }
 
     /**
-     * Accept one or more suggested terms, adding them to the mod's glossary.
+     * Accept terms into the mod's glossary via POST `/api/mods/{modId}/glossary/suggestions/accept`.
      *
-     * Sends POST `/api/mods/{modId}/glossary/suggestions/accept`
-     * Request body: `{ terms: string[] }`  (list of English term strings)
-     *
-     * On success the accepted terms are removed from the local pending list.
-     *
-     * @param terms - English term strings to accept
+     * @param terms - English terms to accept
      */
     const handleAccept = async (terms: string[]) => {
         setProcessing(true)
@@ -125,7 +102,6 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
             const names = Object.values(renames)
             const res = await gameApi(gameId).post(`/mods/${modId}/glossary/suggestions/accept`, names.length ? { terms, renames } : { terms })
             const body = await res.json().catch(() => ({}))
-            // Optimistically remove accepted terms from the local list.
             setPending((prev) => prev.filter((s) => !terms.includes(s.english)))
             if (names.length) {
                 const replaced = typeof body?.replaced === "number" ? body.replaced : 0
@@ -142,23 +118,14 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
     }
 
     /**
-     * Dismiss one or more suggested terms (or all at once).
+     * Dismiss terms via POST `/api/mods/{modId}/glossary/suggestions/dismiss`. The body is `{ terms }`, or `{ all: true }` to clear every suggestion.
      *
-     * Sends POST `/api/mods/{modId}/glossary/suggestions/dismiss`
-     *
-     * - Request body when dismissing specific terms: `{ terms: string[] }`
-     * - Request body when dismissing all:            `{ all: true }`
-     *
-     * The backend differentiates between the two shapes. When `all` is true the
-     * `terms` parameter is ignored and every remaining suggestion is dismissed.
-     *
-     * @param terms - English term strings to dismiss (ignored when `all` is true)
-     * @param all - If true, dismiss every pending suggestion at once. Defaults to false.
+     * @param terms - English terms to dismiss, ignored when `all` is true
+     * @param all - Dismiss every pending suggestion
      */
     const handleDismiss = async (terms: string[], all: boolean = false) => {
         setProcessing(true)
         try {
-            // When dismissing all, send { all: true } so the backend clears everything.
             await gameApi(gameId).post(`/mods/${modId}/glossary/suggestions/dismiss`, all ? { all: true } : { terms })
             if (all) {
                 setPending([])
@@ -181,11 +148,9 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
                 </Banner>
             )}
             {pending.length === 0 ? (
-                // Empty state shown once all suggestions have been accepted or dismissed.
                 <p style={{ color: "var(--text-dim)", textAlign: "center", padding: "2rem" }}>No pending suggestions.</p>
             ) : (
                 <>
-                    {/* Bulk action buttons: accept all or dismiss all at once. */}
                     <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
                         <button
                             className="btn btn-primary"
@@ -205,13 +170,11 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
                         </button>
                     </div>
 
-                    {/* Individual suggestion cards. */}
                     {pending.map((suggestion) => (
                         <div key={suggestion.english} style={{ padding: "1rem", marginBottom: "0.75rem", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px solid var(--glass-border)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                {/* Left side: term details. flex:1 + minWidth:0 lets long text wrap instead of pushing the buttons off-screen. */}
+                                {/* flex:1 + minWidth:0 lets long text wrap instead of pushing the buttons off-screen. */}
                                 <div data-testid="suggestion-details" style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
-                                    {/* English translation proposed by the AI (or edit showing old → new), editable before Accept. */}
                                     <div className="suggestion-term">
                                         {editing === suggestion.english ? (
                                             <input
@@ -263,13 +226,10 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
                                             was <em>{suggestion.english}</em>
                                         </div>
                                     )}
-                                    {/* Original source text and its language. */}
                                     <div style={{ color: "var(--text-dim)", marginTop: "0.25rem" }}>
                                         {suggestion.source_lang}: {suggestion.source}
                                     </div>
-                                    {/* AI-generated reasoning for why this term should be in the glossary. */}
                                     <div style={{ color: "var(--text-dim)", fontSize: "0.85rem", marginTop: "0.25rem", fontStyle: "italic" }}>{suggestion.reason}</div>
-                                    {/* Category badge (e.g. "skill", "character", "item"). */}
                                     <span
                                         style={{
                                             display: "inline-block",
@@ -285,7 +245,6 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
                                         {suggestion.category}
                                     </span>
                                 </div>
-                                {/* Right side: per-term accept/dismiss buttons. */}
                                 <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
                                     <button
                                         className="btn btn-primary"
@@ -310,7 +269,6 @@ const GlossarySuggestionModal: React.FC<GlossarySuggestionModalProps> = ({
                 </>
             )}
 
-            {/* Batch-mode: Continue to next batch / finish button */}
             {(isBatchMode || continueLabel) && onContinue && (
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--glass-border)" }}>
                     <button className="btn btn-primary" disabled={processing} onClick={onContinue} style={{ padding: "0.5rem 1.5rem", fontSize: "1rem" }}>

@@ -2,18 +2,17 @@ import React from "react"
 
 /** Props for ModGridSkeleton. */
 interface ModGridSkeletonProps {
-    /** Number of placeholder cards to render. Defaults to 6. */
+    /** Defaults to 6. */
     count?: number
-    /** Accessible label announced while loading. Defaults to "Loading mods". */
+    /** Defaults to "Loading mods". */
     label?: string
 }
 
 /**
- * Placeholder grid shown while a dashboard's mod list is loading. Each card mirrors the `ModCard` layout (preview, title, progress,
- * stats, action) with shimmering blocks so the page keeps its shape until the real cards arrive.
+ * Placeholder grid shown while the mod list loads, mirroring the `ModCard` layout so the page keeps its shape.
  *
- * @param count Number of placeholder cards to render.
- * @param label Accessible label announced while loading.
+ * @param count Number of placeholder cards
+ * @param label Accessible loading label
  * @returns A busy `mod-grid` of skeleton cards.
  */
 const ModGridSkeleton: React.FC<ModGridSkeletonProps> = ({ count = 6, label = "Loading mods" }) => {

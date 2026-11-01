@@ -6,16 +6,15 @@ import { slugForId } from "../../games/registry"
 import { getBranding } from "./branding"
 
 interface GameSwitcherProps {
-    /** The currently active game's id. Used to mark the matching pill as `aria-checked` and to skip the POST when re-clicked. */
+    /** Marks the matching pill `aria-checked` and skips the POST when re-clicked. */
     activeGameId: string
 }
 
 /**
- * Two-pill segmented toggle for switching between registered games. Each pill shows the game's square logo (or a single-letter glyph fallback) and is wired as a `role="radio"` inside a `role="radiogroup"`.
- * Selection navigates to the new game's `/{slug}/dashboard` immediately, then POSTs `{ active_game: gameId }` to `/api/settings` in the background.
+ * Segmented toggle for switching between registered games. Navigates to the new game's dashboard at once, then saves `active_game` in the background.
  *
- * @param activeGameId The currently active game's id.
- * @returns The radiogroup of pills, or `null` while the games list is still loading.
+ * @param activeGameId Active game's id.
+ * @returns The radiogroup of pills, or `null` while the games list loads.
  */
 const GameSwitcher = ({ activeGameId }: GameSwitcherProps) => {
     const [games, setGames] = useState<GameMetadata[]>([])
@@ -30,8 +29,7 @@ const GameSwitcher = ({ activeGameId }: GameSwitcherProps) => {
 
     const handleSelect = (gameId: string) => {
         if (gameId === activeGameId) return
-        // Navigate first so the new dashboard (and its loading skeleton) shows at once. The URL is the source of truth for the active
-        // game, and the persisted setting only seeds the "/" redirect, so saving it can finish in the background.
+        // The URL is the source of truth, and the persisted setting only seeds the "/" redirect, so saving can finish in the background.
         navigate(`/${slugForId(gameId) ?? gameId}/dashboard`)
         fetch(`${API_BASE}/settings`, {
             method: "POST",
@@ -103,11 +101,11 @@ const GameSwitcher = ({ activeGameId }: GameSwitcherProps) => {
 }
 
 /**
- * Converts a `#rrggbb` color string to `rgba(r,g,b,alpha)`. Used to derive accent glows from the per-game accent color at runtime. Falls back to a neutral grey on parse failure.
+ * Convert a `#rrggbb` color to `rgba(r,g,b,alpha)`, falling back to a neutral grey on parse failure.
  *
- * @param hex A `#rrggbb` color string.
- * @param alpha Alpha value between 0 and 1.
- * @returns An `rgba(...)` string usable directly in a CSS `box-shadow`.
+ * @param hex `#rrggbb` color.
+ * @param alpha 0-1.
+ * @returns An `rgba(...)` string.
  */
 function hexToRgba(hex: string, alpha: number): string {
     const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
