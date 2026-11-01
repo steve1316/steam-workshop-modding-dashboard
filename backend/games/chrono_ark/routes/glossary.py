@@ -36,7 +36,7 @@ router = APIRouter()
 
 
 @router.get("/glossary")
-async def get_glossary():
+def get_glossary():
     """Get the global glossary.
 
     Returns:
@@ -47,7 +47,7 @@ async def get_glossary():
 
 
 @router.post("/glossary")
-async def update_glossary(term: GlossaryTerm):
+def update_glossary(term: GlossaryTerm):
     """Add or update a glossary term.
 
     Args:
@@ -63,7 +63,7 @@ async def update_glossary(term: GlossaryTerm):
 
 
 @router.get("/mods/{mod_id}/glossary")
-async def get_mod_glossary(mod_id: str):
+def get_mod_glossary(mod_id: str):
     """Get a mod's glossary.
 
     Args:
@@ -76,7 +76,7 @@ async def get_mod_glossary(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/glossary")
-async def update_mod_glossary(mod_id: str, term: ModGlossaryTerm):
+def update_mod_glossary(mod_id: str, term: ModGlossaryTerm):
     """Add or update a term in a mod's glossary.
 
     Args:
@@ -111,7 +111,7 @@ def _find_term_key(terms: dict, term: str) -> str | None:
 
 
 @router.put("/mods/{mod_id}/glossary/{term:path}")
-async def edit_mod_glossary_term(mod_id: str, term: str, entry: ModGlossaryTerm):
+def edit_mod_glossary_term(mod_id: str, term: str, entry: ModGlossaryTerm):
     """Replace a mod glossary term with edited values.
 
     A new English also replaces the old English in every translation whose source contains one of the term's old source texts.
@@ -141,7 +141,7 @@ async def edit_mod_glossary_term(mod_id: str, term: str, entry: ModGlossaryTerm)
 
 
 @router.delete("/mods/{mod_id}/glossary/{term:path}")
-async def delete_mod_glossary_term(mod_id: str, term: str):
+def delete_mod_glossary_term(mod_id: str, term: str):
     """Remove a term from a mod's glossary (no-op if it doesn't exist).
 
     Args:
@@ -161,7 +161,7 @@ async def delete_mod_glossary_term(mod_id: str, term: str):
 
 
 @router.post("/mods/{mod_id}/glossary/delete")
-async def delete_mod_glossary_terms(mod_id: str, action: SuggestionAction):
+def delete_mod_glossary_terms(mod_id: str, action: SuggestionAction):
     """Remove specific terms or all terms from a mod's glossary.
 
     Args:
@@ -192,7 +192,7 @@ async def delete_mod_glossary_terms(mod_id: str, action: SuggestionAction):
 
 
 @router.delete("/mods/{mod_id}/glossary")
-async def delete_all_mod_glossary_terms(mod_id: str):
+def delete_all_mod_glossary_terms(mod_id: str):
     """Remove all terms from a mod's glossary.
 
     Args:
@@ -211,7 +211,7 @@ async def delete_all_mod_glossary_terms(mod_id: str):
 
 
 @router.get("/mods/{mod_id}/glossary/merged")
-async def get_merged_glossary(mod_id: str):
+def get_merged_glossary(mod_id: str):
     """Get the global glossary merged with the mod's, mod terms winning on conflicts.
 
     Args:
@@ -226,7 +226,7 @@ async def get_merged_glossary(mod_id: str):
 
 
 @router.get("/mods/{mod_id}/glossary/suggestions")
-async def get_suggestions(mod_id: str):
+def get_suggestions(mod_id: str):
     """Get pending glossary term suggestions.
 
     Args:
@@ -283,7 +283,7 @@ def _rename_in_translations(mod_id: str, source: str, old_english: str, new_engl
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/accept")
-async def accept_suggestions(mod_id: str, action: SuggestionAction):
+def accept_suggestions(mod_id: str, action: SuggestionAction):
     """Accept suggestions into the mod glossary.
 
     A suggestion with an entry in `action.renames` is saved under the edited English, which also replaces the suggested English in every translation
@@ -315,7 +315,7 @@ async def accept_suggestions(mod_id: str, action: SuggestionAction):
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/dismiss")
-async def dismiss_suggestions(mod_id: str, action: SuggestionAction):
+def dismiss_suggestions(mod_id: str, action: SuggestionAction):
     """Remove suggestions without adding them to the glossary.
 
     Args:
@@ -333,7 +333,7 @@ async def dismiss_suggestions(mod_id: str, action: SuggestionAction):
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/scan")
-async def scan_for_suggestions(mod_id: str):
+def scan_for_suggestions(mod_id: str):
     """Run `extract_name_key_suggestions` over all already-translated strings, without triggering a translation run.
 
     Args:
@@ -389,7 +389,7 @@ async def scan_for_suggestions(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/glossary/suggest-edits")
-async def suggest_edits(mod_id: str):
+def suggest_edits(mod_id: str):
     """Suggest edits for name-category glossary terms that aren't title-cased.
 
     Args:

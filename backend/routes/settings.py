@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/game")
-async def get_game_info():
+def get_game_info():
     """Return metadata about the active game adapter.
 
     Returns:
@@ -30,7 +30,7 @@ async def get_game_info():
 
 
 @router.get("/games")
-async def list_games():
+def list_games():
     """Return chassis metadata for all registered game adapters.
 
     Returns:
@@ -42,7 +42,7 @@ async def list_games():
 
 
 @router.get("/settings")
-async def get_settings():
+def get_settings():
     """Return current settings with API keys masked.
 
     Returns:
@@ -81,7 +81,7 @@ async def get_settings():
 
 
 @router.post("/settings")
-async def update_settings(payload: SettingsUpdate):
+def update_settings(payload: SettingsUpdate):
     """Update any provided settings and persist them to .env."""
     env_updates: dict[str, str] = {}
 
@@ -191,11 +191,11 @@ async def update_settings(payload: SettingsUpdate):
     if env_updates:
         update_env_file(env_updates)
 
-    return await get_settings()
+    return get_settings()
 
 
 @router.get("/models/{provider_id}")
-async def get_provider_models(provider_id: str):
+def get_provider_models(provider_id: str):
     """Return the available models and pricing for a given provider.
 
     Args:
@@ -216,7 +216,7 @@ async def get_provider_models(provider_id: str):
 
 
 @router.get("/stats")
-async def get_stats():
+def get_stats():
     """Get global statistics for translation memory and progress.
 
     Returns:

@@ -1,9 +1,11 @@
 """llama.cpp-related API endpoints for the Steam Workshop Modding Dashboard."""
 
 import asyncio
+import io
 import json
 import os
 import shutil
+import zipfile
 from pathlib import Path
 
 import httpx
@@ -144,9 +146,6 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
     bin_dir = settings.storage_path / "bin"
 
     async def event_stream():
-        import io
-        import zipfile
-
         try:
             yield f"data: {json.dumps({'status': 'fetching_release'})}\n\n"
 
@@ -193,23 +192,7 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                         yield f"data: {json.dumps({'status': 'downloading', 'file': cudart_asset['name'], 'completed': len(cudart_data), 'total': cudart_total})}\n\n"
 
             yield f"data: {json.dumps({'status': 'extracting'})}\n\n"
-            bin_dir.mkdir(parents=True, exist_ok=True)
-
-            with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
-                for member in zf.namelist():
-                    if member.endswith((".exe", ".dll")):
-                        filename = os.path.basename(member)
-                        target = bin_dir / filename
-                        target.write_bytes(zf.read(member))
-
-            if cudart_data:
-                with zipfile.ZipFile(io.BytesIO(cudart_data)) as zf:
-                    for member in zf.namelist():
-                        if member.endswith(".dll"):
-                            filename = os.path.basename(member)
-                            target = bin_dir / filename
-                            if not target.exists():
-                                target.write_bytes(zf.read(member))
+            await asyncio.to_thread(_extract_binaries, bin_dir, bytes(zip_data), bytes(cudart_data) if cudart_data else None)
 
             binary_path = str(bin_dir / "llama-server.exe")
             settings.llamacpp_binary_path = binary_path
@@ -223,6 +206,27 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
             yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+def _extract_binaries(bin_dir: Path, zip_data: bytes, cudart_data: bytes | None) -> None:
+    """Unpack the release's executables and DLLs, then any CUDA runtime DLLs the release didn't already ship, flat into `bin_dir`.
+
+    Args:
+        bin_dir: Install folder.
+        zip_data: The llama.cpp release zip.
+        cudart_data: The CUDA runtime zip, for CUDA builds.
+    """
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+        for member in zf.namelist():
+            if member.endswith((".exe", ".dll")):
+                (bin_dir / os.path.basename(member)).write_bytes(zf.read(member))
+    if cudart_data:
+        with zipfile.ZipFile(io.BytesIO(cudart_data)) as zf:
+            for member in zf.namelist():
+                target = bin_dir / os.path.basename(member)
+                if member.endswith(".dll") and not target.exists():
+                    target.write_bytes(zf.read(member))
 
 
 @router.post("/start")
@@ -252,7 +256,7 @@ async def stop_llamacpp():
 
 
 @router.get("/models")
-async def list_llamacpp_models():
+def list_llamacpp_models():
     """List GGUF model files in the local models directory.
 
     Returns:
@@ -353,7 +357,7 @@ async def cancel_gguf_download(req: GGUFDownloadRequest):
 
 
 @router.delete("/models/{filename}")
-async def delete_llamacpp_model(filename: str):
+def delete_llamacpp_model(filename: str):
     """Delete a downloaded GGUF model file.
 
     Args:

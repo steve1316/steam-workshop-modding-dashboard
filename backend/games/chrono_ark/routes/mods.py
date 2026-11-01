@@ -1,5 +1,6 @@
 """Chrono Ark mod API endpoints for the Steam Workshop Modding Dashboard."""
 
+import asyncio
 import json
 import shutil
 
@@ -25,6 +26,7 @@ from backend.data.translation_store import (
     load_translations,
     update_single_translation,
 )
+from backend.games.base import ModInfo
 from backend.games.chrono_ark import GAME_ID
 from backend.main import save_extracted_strings
 from backend.routes.helpers import (
@@ -47,7 +49,7 @@ router = APIRouter()
 
 
 @router.get("/mods")
-async def get_mods():
+def get_mods():
     """List all workshop mods with their translation status.
 
     Returns:
@@ -94,6 +96,43 @@ async def get_mods():
     return results
 
 
+def _refresh_mod(mod: ModInfo, tracker: ProgressTracker) -> dict:
+    """Recalculate one mod's progress from disk and build its row for the mods table.
+
+    Args:
+        mod: The mod.
+        tracker: Progress tracker shared across the refresh.
+
+    Returns:
+        The mod's summary row.
+    """
+    _recalculate_mod_progress(mod.mod_id, mod.path)
+    status = tracker.get_status(mod.mod_id)
+    preview_img = _find_mod_preview_image(mod.path)
+
+    saved = load_translations(mod.mod_id, game_id=GAME_ID)
+    has_changes = bool(saved) and _compute_export_snapshot(mod.mod_id, mod.path, mod.name) != _load_last_export_hash(mod.mod_id)
+    user_translated = sum(1 for v in saved.values() if v)
+
+    return {
+        "id": mod.mod_id,
+        "name": mod.name,
+        "author": mod.author,
+        "has_csv": mod.has_loc_files,
+        "has_dll": mod.has_dll,
+        "total": status["total"],
+        "translated": status["translated"],
+        "untranslated": status["untranslated"],
+        "user_translated": user_translated,
+        "untouched": max(0, status["translated"] - user_translated),
+        "percentage": status["percentage"],
+        "last_updated": status["last_updated"],
+        "url": chrono_ark_adapter().get_mod_url(mod.mod_id),
+        "preview_image": f"/workshop/{mod.mod_id}/{preview_img.name}" if preview_img else None,
+        "has_changes": has_changes,
+    }
+
+
 @router.post("/mods/refresh")
 async def refresh_mods(request: Request):
     """Rescan all mods and recalculate progress from disk, streaming a `progress` event (`current`/`total`/mod name) per mod.
@@ -103,7 +142,7 @@ async def refresh_mods(request: Request):
     Returns:
         `StreamingResponse` of `text/event-stream` events.
     """
-    mods = chrono_ark_adapter().scan_mods()
+    mods = await asyncio.to_thread(chrono_ark_adapter().scan_mods)
 
     async def event_stream():
         tracker = ProgressTracker(game_id=GAME_ID)
@@ -114,40 +153,7 @@ async def refresh_mods(request: Request):
             if await request.is_disconnected():
                 return
 
-            _recalculate_mod_progress(mod.mod_id, mod.path)
-
-            status = tracker.get_status(mod.mod_id)
-            preview_img = _find_mod_preview_image(mod.path)
-
-            saved = load_translations(mod.mod_id, game_id=GAME_ID)
-            if saved:
-                current_hash = _compute_export_snapshot(mod.mod_id, mod.path, mod.name)
-                last_hash = _load_last_export_hash(mod.mod_id)
-                has_changes = current_hash != last_hash
-            else:
-                has_changes = False
-
-            user_translated = sum(1 for v in saved.values() if v)
-            untouched = max(0, status["translated"] - user_translated)
-
-            mod_result = {
-                "id": mod.mod_id,
-                "name": mod.name,
-                "author": mod.author,
-                "has_csv": mod.has_loc_files,
-                "has_dll": mod.has_dll,
-                "total": status["total"],
-                "translated": status["translated"],
-                "untranslated": status["untranslated"],
-                "user_translated": user_translated,
-                "untouched": untouched,
-                "percentage": status["percentage"],
-                "last_updated": status["last_updated"],
-                "url": chrono_ark_adapter().get_mod_url(mod.mod_id),
-                "preview_image": f"/workshop/{mod.mod_id}/{preview_img.name}" if preview_img else None,
-                "has_changes": has_changes,
-            }
-            results.append(mod_result)
+            results.append(await asyncio.to_thread(_refresh_mod, mod, tracker))
 
             progress_event = {"current": i + 1, "total": total, "mod_name": mod.name}
             yield f"data: {json.dumps(progress_event)}\n\n"
@@ -158,7 +164,7 @@ async def refresh_mods(request: Request):
 
 
 @router.get("/mods/{mod_id}")
-async def get_mod_detail(mod_id: str):
+def get_mod_detail(mod_id: str):
     """Get a mod's metadata and every localization entry.
 
     Args:
@@ -293,7 +299,7 @@ async def get_mod_detail(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/strings")
-async def update_string(mod_id: str, update: TranslationUpdate):
+def update_string(mod_id: str, update: TranslationUpdate):
     """Save a manual translation for a specific key.
 
     Args:
@@ -328,7 +334,7 @@ async def update_string(mod_id: str, update: TranslationUpdate):
 
 
 @router.post("/mods/{mod_id}/sync")
-async def sync_mod(mod_id: str):
+def sync_mod(mod_id: str):
     """Re-scan and extract strings for a mod.
 
     Args:
@@ -353,7 +359,7 @@ async def sync_mod(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/clear-translations")
-async def clear_translations(mod_id: str):
+def clear_translations(mod_id: str):
     """Reset the mod to untranslated by writing empty-string overrides for every key that had English.
 
     Args:
@@ -408,7 +414,7 @@ async def clear_translations(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/reset")
-async def reset_mod(mod_id: str):
+def reset_mod(mod_id: str):
     """Restore the pre-export CSV/gdata backups (if any), clean the Harmony overrides, and delete the mod's translation data.
 
     Args:
@@ -497,7 +503,7 @@ async def reset_mod(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/open")
-async def open_mod_folder(mod_id: str):
+def open_mod_folder(mod_id: str):
     """Open the mod's directory in the system file explorer.
 
     Args:
@@ -518,7 +524,7 @@ async def open_mod_folder(mod_id: str):
 
 
 @router.get("/mods/{mod_id}/export-status")
-async def get_export_status(mod_id: str):
+def get_export_status(mod_id: str):
     """Check whether translation/CSV state differs from the last export snapshot.
 
     Args:
@@ -543,7 +549,7 @@ async def get_export_status(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/export")
-async def export_mod(mod_id: str, resync: bool = False):
+def export_mod(mod_id: str, resync: bool = False):
     """Write saved translations into the mod's CSV/gdata files (or the Harmony override JSONs) and record an export snapshot.
 
     Args:
@@ -734,7 +740,7 @@ async def export_mod(mod_id: str, resync: bool = False):
 
 
 @router.post("/mods/{mod_id}/open-source-file/{filename}")
-async def open_source_file(mod_id: str, filename: str):
+def open_source_file(mod_id: str, filename: str):
     """Open a mod's source file (searched in Localization/, gdata/Add/, then the mod root) in the OS default application.
 
     Args:
@@ -761,7 +767,7 @@ async def open_source_file(mod_id: str, filename: str):
 
 
 @router.post("/open-base-game-file/{filename}")
-async def open_base_game_file(filename: str):
+def open_base_game_file(filename: str):
     """Open Explorer on the base game source file with it selected.
 
     Args:
@@ -786,7 +792,7 @@ async def open_base_game_file(filename: str):
 
 
 @router.get("/mods/{mod_id}/character-context")
-async def get_character_context(mod_id: str):
+def get_character_context(mod_id: str):
     """Return saved character context for a mod.
 
     Args:
@@ -799,7 +805,7 @@ async def get_character_context(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/character-context")
-async def set_character_context(mod_id: str, ctx: CharacterContext):
+def set_character_context(mod_id: str, ctx: CharacterContext):
     """Save character context for a mod.
 
     Args:
@@ -815,7 +821,7 @@ async def set_character_context(mod_id: str, ctx: CharacterContext):
 
 
 @router.get("/mods/{mod_id}/source-language")
-async def get_source_language(mod_id: str):
+def get_source_language(mod_id: str):
     """Return the source language override for a mod.
 
     Args:
@@ -828,7 +834,7 @@ async def get_source_language(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/source-language")
-async def set_source_language(mod_id: str, body: SourceLanguageOverride):
+def set_source_language(mod_id: str, body: SourceLanguageOverride):
     """Save a source language override for a mod.
 
     Args:
@@ -843,7 +849,7 @@ async def set_source_language(mod_id: str, body: SourceLanguageOverride):
 
 
 @router.get("/mods/{mod_id}/target-language")
-async def get_target_language(mod_id: str):
+def get_target_language(mod_id: str):
     """Return the target language override for a mod.
 
     Args:
@@ -856,7 +862,7 @@ async def get_target_language(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/target-language")
-async def set_target_language(mod_id: str, body: TargetLanguageOverride):
+def set_target_language(mod_id: str, body: TargetLanguageOverride):
     """Save a target language override for a mod.
 
     Args:
@@ -871,7 +877,7 @@ async def set_target_language(mod_id: str, body: TargetLanguageOverride):
 
 
 @router.get("/mods/{mod_id}/history")
-async def get_history(mod_id: str):
+def get_history(mod_id: str):
     """List a mod's backup snapshots, newest first.
 
     Args:
@@ -884,7 +890,7 @@ async def get_history(mod_id: str):
 
 
 @router.post("/mods/{mod_id}/history")
-async def create_history_snapshot(mod_id: str, body: HistorySnapshotRequest):
+def create_history_snapshot(mod_id: str, body: HistorySnapshotRequest):
     """Create a manual save-snapshot of the mod's current state.
 
     Args:
@@ -901,7 +907,7 @@ async def create_history_snapshot(mod_id: str, body: HistorySnapshotRequest):
 
 
 @router.post("/mods/{mod_id}/history/{backup_id}/restore")
-async def restore_history(mod_id: str, backup_id: str):
+def restore_history(mod_id: str, backup_id: str):
     """Restore a mod's state from a backup snapshot, backing up the current state first.
 
     Args:
@@ -917,7 +923,7 @@ async def restore_history(mod_id: str, backup_id: str):
 
 
 @router.delete("/mods/{mod_id}/history/{backup_id}")
-async def delete_history(mod_id: str, backup_id: str):
+def delete_history(mod_id: str, backup_id: str):
     """Delete a specific backup snapshot.
 
     Args:
@@ -932,7 +938,7 @@ async def delete_history(mod_id: str, backup_id: str):
 
 
 @router.get("/mods/{mod_id}/api-responses")
-async def get_api_responses(mod_id: str):
+def get_api_responses(mod_id: str):
     """List a mod's API call entries, newest first.
 
     Args:

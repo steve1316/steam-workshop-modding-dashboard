@@ -190,7 +190,7 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
 
 
 @router.get("/system-prompt")
-async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "English") -> dict:
+def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "English") -> dict:
     """Return the system prompt a WH3 translation run would send, for the Settings preview.
 
     Mirrors `preview` with the configured provider, the WH3 game context, format rules, style examples and the base glossary filtered to the prompt categories.
@@ -212,7 +212,7 @@ async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "En
 
 
 @router.post("/preview")
-async def preview(req: TranslationRequest) -> dict:
+def preview(req: TranslationRequest) -> dict:
     """Preview the prompts, cost estimate and batch plan for translating a mod's untranslated rows (or changed rows when `scope == "changed"`).
 
     Args:
@@ -366,7 +366,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
 
 
 @router.post("/name-suggestions")
-async def name_suggestions(req: NameSuggestionsRequest) -> dict:
+def name_suggestions(req: NameSuggestionsRequest) -> dict:
     """Turn the mod's translated name rows into glossary suggestions and persist them for review.
 
     Called after each Translate Names stage (with its `categories`) and by Suggest from Translated Names (no filter).
@@ -388,7 +388,7 @@ async def name_suggestions(req: NameSuggestionsRequest) -> dict:
 
 
 @router.post("/cancel")
-async def cancel(mod_id: str = "") -> dict:
+def cancel(mod_id: str = "") -> dict:
     """Signal cancellation of an in-progress translation run.
 
     WH3 batches are not streamed, so an in-flight batch cannot be aborted and cancellation is driven client-side by stopping the batch loop.

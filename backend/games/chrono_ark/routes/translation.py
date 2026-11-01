@@ -14,8 +14,10 @@ from backend.data.glossary_manager import (
 )
 from backend.data.history_manager import create_backup
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
+from backend.games.base import ModInfo
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.services.translation import batch_entries, load_mod_strings, persist_batch, prompt_context
+from backend.providers.base import TranslationProvider
 from backend.routes.helpers import (
     _active_translations,
     chrono_ark_adapter,
@@ -31,6 +33,33 @@ from backend.translation.prompt import PromptContext
 router = APIRouter(prefix="/translate")
 
 
+def _estimate_mod(provider: TranslationProvider, mod: ModInfo, base_glossary: dict) -> tuple[int, dict]:
+    """Estimate one mod's cost as if every string were untranslated.
+
+    Existing English is ignored. Gdata/DLL strings that only have an English key fall back to English as their source.
+
+    Args:
+        provider: Provider to estimate with.
+        mod: The mod.
+        base_glossary: Already-loaded base glossary.
+
+    Returns:
+        (string count, estimate per source language).
+    """
+    strings, _ = chrono_ark_adapter().extract_strings(mod.path)
+    lang_override = load_source_language_override(mod.mod_id, game_id=GAME_ID)
+    target_lang = load_target_language_override(mod.mod_id, game_id=GAME_ID) or "English"
+    by_lang: dict[str, list[tuple[str, str]]] = {}
+    for key, loc_str in strings.items():
+        lang = resolve_source_language(loc_str, lang_override)
+        if lang is None and loc_str.translations.get("English", "").strip():
+            lang = "English"
+        if lang is not None:
+            by_lang.setdefault(lang, []).append((key, loc_str.translations.get(lang, "")))
+    estimates = {lang: provider.estimate_cost(entries, **prompt_context(mod.mod_id, lang, target_lang, base_glossary=base_glossary).provider_kwargs()) for lang, entries in by_lang.items()}
+    return sum(len(entries) for entries in by_lang.values()), estimates
+
+
 @router.post("/estimate-all")
 async def estimate_all_translation_costs(request: Request):
     """Estimate translation cost for all mods as if every string were untranslated, streaming one SSE event per mod.
@@ -43,38 +72,18 @@ async def estimate_all_translation_costs(request: Request):
     Returns:
         `StreamingResponse` of `text/event-stream` events.
     """
-    mods = chrono_ark_adapter().scan_mods()
-    provider_name = settings.translation_provider
-    provider = web_provider(provider_name)
+    mods = await asyncio.to_thread(chrono_ark_adapter().scan_mods)
+    provider = web_provider(settings.translation_provider)
 
     async def event_stream():
         total = len(mods)
-        base_glossary = load_glossary(glossary_path(GAME_ID))
+        base_glossary = await asyncio.to_thread(load_glossary, glossary_path(GAME_ID))
 
         for i, mod in enumerate(mods):
             if await request.is_disconnected():
                 return
 
-            strings, _ = chrono_ark_adapter().extract_strings(mod.path)
-
-            # Ignores existing English. Falls back to English for gdata/DLL strings that only have an English key in their translations dict.
-            mod_lang_override = load_source_language_override(mod.mod_id, game_id=GAME_ID)
-            mod_target_lang = load_target_language_override(mod.mod_id, game_id=GAME_ID) or "English"
-            by_lang: dict[str, list[tuple[str, str]]] = {}
-            entry_count = 0
-            for key, loc_str in strings.items():
-                lang = resolve_source_language(loc_str, mod_lang_override)
-                if lang is None:
-                    english = loc_str.translations.get("English", "").strip()
-                    if english:
-                        lang = "English"
-                if lang is not None:
-                    entry_count += 1
-                    if lang not in by_lang:
-                        by_lang[lang] = []
-                    by_lang[lang].append((key, loc_str.translations.get(lang, "")))
-
-            estimates = {lang: provider.estimate_cost(entries, **prompt_context(mod.mod_id, lang, mod_target_lang, base_glossary=base_glossary).provider_kwargs()) for lang, entries in by_lang.items()}
+            entry_count, estimates = await asyncio.to_thread(_estimate_mod, provider, mod, base_glossary)
 
             event = {
                 "current": i + 1,
@@ -130,7 +139,7 @@ def preview_translation(req: TranslationRequest):
 
 
 @router.get("/system-prompt")
-async def get_system_prompt(source_lang: str = "Korean", target_lang: str = "English"):
+def get_system_prompt(source_lang: str = "Korean", target_lang: str = "English"):
     """Return the system prompt the active provider would send (no mod or entries needed).
 
     Args:
@@ -205,7 +214,7 @@ async def translate_batch(req: BatchTranslationRequest):
 
 
 @router.post("/cancel")
-async def translate_cancel(mod_id: str = ""):
+def translate_cancel(mod_id: str = ""):
     """Signal an in-progress streaming translation to stop.
 
     Args:
