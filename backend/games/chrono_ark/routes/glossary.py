@@ -30,6 +30,7 @@ from backend.routes.models import (
     SuggestionAction,
 )
 from backend.translation.rename import rename_term
+from backend.translation.suggestions import accepted_suggestions
 
 router = APIRouter()
 
@@ -295,34 +296,22 @@ async def accept_suggestions(mod_id: str, action: SuggestionAction):
     Returns:
         `status`, the `accepted` count, and the `replaced` translation count.
     """
-    suggestions = load_suggestions(mod_id, game_id=GAME_ID)
+    accepted = accepted_suggestions(load_suggestions(mod_id, game_id=GAME_ID), action)
+    if not accepted:
+        return {"status": "success", "accepted": 0, "replaced": 0}
+    create_backup(mod_id, "Before accepting glossary suggestions", game_id=GAME_ID)
+
     glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
-
-    terms_to_accept = {s["english"] for s in suggestions} if action.all else set(action.terms)
-
-    if terms_to_accept:
-        create_backup(mod_id, "Before accepting glossary suggestions", game_id=GAME_ID)
-
     replaced = 0
-    for suggestion in suggestions:
-        if suggestion.get("english") in terms_to_accept:
-            # An edit suggestion replaces its old term.
-            edit_of = suggestion.get("edit_of")
-            if edit_of and edit_of in glossary.get("terms", {}):
-                del glossary["terms"][edit_of]
-
-            english = (action.renames.get(suggestion["english"]) or "").strip() or suggestion["english"]
-            add_glossary_term(
-                glossary,
-                english,
-                {suggestion.get("source_lang", "unknown"): suggestion.get("source", "")},
-                suggestion.get("category", "custom"),
-            )
-            replaced += _rename_in_translations(mod_id, suggestion.get("source", ""), suggestion["english"], english)
+    for a in accepted:
+        if a.edit_of and a.edit_of in glossary.get("terms", {}):
+            del glossary["terms"][a.edit_of]
+        add_glossary_term(glossary, a.english, {a.source_lang: a.source}, a.category)
+        replaced += _rename_in_translations(mod_id, a.source, a.suggested, a.english)
 
     save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
-    remove_suggestions(mod_id, list(terms_to_accept), game_id=GAME_ID)
-    return {"status": "success", "accepted": len(terms_to_accept), "replaced": replaced}
+    remove_suggestions(mod_id, [a.suggested for a in accepted], game_id=GAME_ID)
+    return {"status": "success", "accepted": len({a.suggested for a in accepted}), "replaced": replaced}
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/dismiss")

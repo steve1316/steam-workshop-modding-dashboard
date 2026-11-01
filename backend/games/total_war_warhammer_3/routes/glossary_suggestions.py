@@ -22,6 +22,7 @@ from backend.games.total_war_warhammer_3.translation.mods import get_translation
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import SuggestionAction
+from backend.translation.suggestions import accepted_suggestions
 
 router = APIRouter(tags=["glossary-suggestions"])
 
@@ -45,9 +46,8 @@ def _require_mod(mod_id: str):
 def accept_suggestions(mod_id: str, action: SuggestionAction) -> dict:
     """Accept pending glossary suggestions into the mod glossary.
 
-    Moves the specified (or all) suggestions into the glossary after an auto-snapshot.
-    A suggestion with an entry in `action.renames` is saved under the
-    edited English, which also replaces the suggested English in every translation whose source contains the term's source.
+    Moves the specified (or all) suggestions into the glossary after an auto-snapshot. A suggestion with an entry in `action.renames` is saved under
+    the edited English, which also replaces the suggested English in every translation whose source contains the term's source.
 
     Args:
         mod_id: Workshop id of the WH3 mod.
@@ -57,25 +57,22 @@ def accept_suggestions(mod_id: str, action: SuggestionAction) -> dict:
         `{"status": "success", "accepted": N, "replaced": M}`, where M counts translations the renames changed.
     """
     mod = _require_mod(mod_id)
-    suggestions = suggestion_manager.load_suggestions(mod_id, game_id=GAME_ID)
-    terms_to_accept = {s["english"] for s in suggestions if "english" in s} if action.all else set(action.terms)
+    accepted = accepted_suggestions(suggestion_manager.load_suggestions(mod_id, game_id=GAME_ID), action)
+    if not accepted:
+        return {"status": "success", "accepted": 0, "replaced": 0}
+    snapshot_store.create_snapshot(mod_id, label="pre-accept glossary suggestions", kind="auto", local_source_dir=mod.local_source_dir)
 
     replaced = 0
-    if terms_to_accept:
-        snapshot_store.create_snapshot(mod_id, label="pre-accept glossary suggestions", kind="auto", local_source_dir=mod.local_source_dir)
-        for s in suggestions:
-            if s.get("english") in terms_to_accept:
-                english = (action.renames.get(s["english"]) or "").strip() or s["english"]
-                entry = {"english": english, "source": s.get("source", ""), "category": s.get("category", "custom")}
-                edit_of = s.get("edit_of")
-                if edit_of and edit_of in glossary_store.load_glossary(mod_id):
-                    glossary_store.update_term(mod_id, edit_of, entry)
-                else:
-                    glossary_store.add_term(mod_id, entry)
-                replaced += _tr._rename_in_translations(mod, mod_id, s.get("source", ""), s["english"], english)
-        suggestion_manager.remove_suggestions(mod_id, list(terms_to_accept), game_id=GAME_ID)
+    for a in accepted:
+        entry = {"english": a.english, "source": a.source, "category": a.category}
+        if a.edit_of and a.edit_of in glossary_store.load_glossary(mod_id):
+            glossary_store.update_term(mod_id, a.edit_of, entry)
+        else:
+            glossary_store.add_term(mod_id, entry)
+        replaced += _tr._rename_in_translations(mod, mod_id, a.source, a.suggested, a.english)
 
-    return {"status": "success", "accepted": len(terms_to_accept), "replaced": replaced}
+    suggestion_manager.remove_suggestions(mod_id, [a.suggested for a in accepted], game_id=GAME_ID)
+    return {"status": "success", "accepted": len({a.suggested for a in accepted}), "replaced": replaced}
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/dismiss")
