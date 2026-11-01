@@ -45,7 +45,7 @@ class ManualProvider(TranslationProvider):
             format_rules: Ignored.
 
         Returns:
-            Key -> English translation from the user's edits.
+            Key -> English translation from the user's edits, and no suggestions.
         """
         edit_data = {}
         for key, source_text in entries:
@@ -73,7 +73,7 @@ class ManualProvider(TranslationProvider):
 
         input("\n  Press Enter when finished editing... ")
 
-        return self._read_completed(edit_path)
+        return self._read_completed(edit_path), []
 
     def _read_completed(self, edit_path: Path) -> dict[str, str]:
         """Read back completed translations from the edit file.
