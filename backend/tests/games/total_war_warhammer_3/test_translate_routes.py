@@ -86,7 +86,7 @@ def test_batch_translates_keys_and_persists(client: TestClient, monkeypatch, tmp
     def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
         return ({"k2": "New Translation"}, [])
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
 
     resp = client.post(
         f"{PREFIX}/batch",
@@ -121,7 +121,7 @@ def test_batch_persists_and_returns_new_glossary_suggestions(client: TestClient,
             ],
         )
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
 
     resp = client.post(
         f"{PREFIX}/batch",
@@ -171,7 +171,7 @@ def test_batch_logs_claudes_raw_text_model_and_usage(client: TestClient, monkeyp
         ]
         return ({"k2": "New Translation"}, [])
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese", "is_first_batch": True})
 
     entry = _log_entries(tmp_path)[-1]
@@ -189,7 +189,7 @@ def test_batch_logs_a_failed_call_with_its_error(client: TestClient, monkeypatch
         self.last_raw_responses = [{"model": "claude-sonnet-5", "input_tokens": 10, "output_tokens": 5, "cost_usd": 0.0, "stop_reason": "end_turn", "raw_text": "not json"}]
         raise ValueError("Could not parse any translations from Claude's response")
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese", "is_first_batch": True})
     assert resp.status_code == 502
 
@@ -454,7 +454,7 @@ def _capture_batch_prompt(client: TestClient, monkeypatch) -> str:
         seen["prompt"] = glossary_prompt
         return ({"k2": "New"}, [])
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     parent = _names_parent(None)
     parent["units.loc.tsv"]["k2"] = LocRow("k2", "新", True)
     monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: parent)
@@ -550,7 +550,7 @@ def test_batch_splits_joined_names_in_translations_and_suggested_terms(client: T
             [{"english": "Zhulong", "source": "烛龙", "source_lang": "Chinese", "category": "unit", "reason": "dragon"}],
         )
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["lord"], "source_lang": "Chinese", "is_first_batch": True})
 
     body = resp.json()
@@ -581,7 +581,7 @@ def test_system_prompt_shows_the_unlocks_recruitment_example(client):
     assert "Unlocks recruitment for Frontier Guards (Zhan Ma Sword) and Frontier Guards (Heavy Repeater)." in prompt
 
 
-from backend.translator.base import Revision  # noqa: F401,E402  (documents the prompt contract)
+from backend.providers.base import Revision  # noqa: F401,E402  (documents the prompt contract)
 
 
 def _seed_changed(tmp_path: Path, old_text: str | None = "旧") -> None:
@@ -631,7 +631,7 @@ def test_update_batch_sends_revisions_saves_and_rebaselines(client: TestClient, 
         seen["entries"] = entries
         return ({"k1": "Revised"}, [])
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["k1"], "source_lang": "Chinese", "mode": "update"})
     assert resp.status_code == 200
     assert seen["entries"] == [("k1", "原")]
@@ -657,7 +657,7 @@ def test_update_batch_uses_the_recorded_baseline_after_two_source_changes(client
         seen["old"] = self.revisions["k1"].old_source
         return ({"k1": "Revised"}, [])
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["k1"], "source_lang": "Chinese", "mode": "update"})
     assert seen["old"] == "BASELINE"
 
@@ -679,7 +679,7 @@ def _seed_drifted_untranslated(tmp_path: Path) -> Path:
 
 def test_translate_batch_rebaselines_an_untranslated_drifted_key_so_it_never_shows_changed(client: TestClient, monkeypatch, tmp_path: Path):
     mod_dir = _seed_drifted_untranslated(tmp_path)
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, source_lang, glossary_prompt, **kw: ({"k2": "Fresh"}, []))
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, source_lang, glossary_prompt, **kw: ({"k2": "Fresh"}, []))
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["k2"], "source_lang": "Chinese"})
     assert resp.status_code == 200
 
@@ -700,7 +700,7 @@ def test_translate_batch_rebaselines_an_untranslated_drifted_key_so_it_never_sho
 def test_translate_batch_after_clearing_a_changed_row_is_not_changed(client: TestClient, monkeypatch, tmp_path: Path):
     _seed_changed(tmp_path)
     assert client.put("/api/games/total_war_warhammer_3/translation/mods/3315737452/strings/k1", json={"text": ""}).status_code == 200
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, source_lang, glossary_prompt, **kw: ({"k1": "Fresh"}, []))
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, source_lang, glossary_prompt, **kw: ({"k1": "Fresh"}, []))
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["k1"], "source_lang": "Chinese"})
     assert resp.status_code == 200
     rows = client.get(STRINGS_URL).json()

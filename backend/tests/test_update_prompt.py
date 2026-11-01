@@ -1,7 +1,7 @@
 """Tests for the update-mode (CHANGED) prompt built by `TranslationProvider.build_prompt`."""
 
-from backend.translator.base import Revision
-from backend.translator.claude_provider import ClaudeProvider
+from backend.providers.base import Revision
+from backend.providers.claude_provider import ClaudeProvider
 
 
 def _build(provider: ClaudeProvider, entries):

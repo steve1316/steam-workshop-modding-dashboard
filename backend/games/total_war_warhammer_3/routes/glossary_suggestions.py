@@ -18,8 +18,8 @@ from backend.games.total_war_warhammer_3.name_spacing import glossary_words, spa
 from backend.games.total_war_warhammer_3.routes import translation as _tr
 from backend.games.total_war_warhammer_3.routes.translation import _extract_all_parent_strings
 from backend.games.total_war_warhammer_3.translation_mods import get_translation_mod
+from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import SuggestionAction
-from backend.translator.claude_provider import ClaudeProvider
 
 GAME_ID = "total_war_warhammer_3"
 router = APIRouter(tags=["glossary-suggestions"])

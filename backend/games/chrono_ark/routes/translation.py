@@ -24,7 +24,7 @@ from backend.data.suggestion_manager import add_suggestions, load_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
-from backend.main import get_provider
+from backend.providers.factory import get_provider
 from backend.routes.helpers import (
     _active_translations,
     _fill_duplicate_translations,

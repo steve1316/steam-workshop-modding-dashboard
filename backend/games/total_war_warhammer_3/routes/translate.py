@@ -19,9 +19,9 @@ from backend.games.total_war_warhammer_3.name_spacing import glossary_words, spa
 from backend.games.total_war_warhammer_3.routes import translation as _t
 from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
 from backend.games.total_war_warhammer_3.translation_drift import entry_text
+from backend.providers.base import Revision
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.translation.orchestrator import chunk_entries, run_batch
-from backend.translator.base import Revision
 
 GAME_ID = "total_war_warhammer_3"
 

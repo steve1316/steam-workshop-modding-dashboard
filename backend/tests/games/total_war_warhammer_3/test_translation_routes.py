@@ -178,7 +178,7 @@ def test_translate_batch_calls_claude_and_saves_results(client: TestClient, monk
         return ({k: f"EN({v})" for k, v in entries}, [])
 
     monkeypatch.setattr(
-        "backend.translator.claude_provider.ClaudeProvider.translate_batch",
+        "backend.providers.claude_provider.ClaudeProvider.translate_batch",
         fake_translate_batch,
     )
 
@@ -369,7 +369,7 @@ def test_translate_injects_base_glossary_and_excludes_regions(client: TestClient
         captured["prompt"] = glossary_prompt
         return ({k: "X" for k, _ in entries}, [])
 
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
 
     resp = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/translate", json={"keys": ["k2"]})
     assert resp.status_code == 200
@@ -379,7 +379,7 @@ def test_translate_injects_base_glossary_and_excludes_regions(client: TestClient
 
 def test_legacy_translate_splits_joined_names(client: TestClient, monkeypatch):
     """The older per-mod translate route also saves joined pinyin names with spaced syllables."""
-    monkeypatch.setattr("backend.translator.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, *a, **k: ({"k2": "Xinwen"}, []))
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, *a, **k: ({"k2": "Xinwen"}, []))
     resp = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/translate", json={"keys": ["k2"]})
     assert resp.status_code == 200
     assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "Xin Wen"

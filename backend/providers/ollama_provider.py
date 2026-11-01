@@ -8,7 +8,7 @@ from threading import Event
 import requests
 
 from backend import config
-from backend.translator.base import TranslationProvider
+from backend.providers.base import TranslationProvider
 
 
 class OllamaProvider(TranslationProvider):

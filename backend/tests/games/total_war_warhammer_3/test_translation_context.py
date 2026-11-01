@@ -1,7 +1,7 @@
 """Tests for the WH3 translation prompt rules."""
 
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
-from backend.translator.claude_provider import ClaudeProvider
+from backend.providers.claude_provider import ClaudeProvider
 
 
 def _title_name_rule(rules: list[str]) -> str:

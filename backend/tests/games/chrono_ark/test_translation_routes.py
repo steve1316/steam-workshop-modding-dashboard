@@ -72,14 +72,14 @@ def test_estimate_all_streams_an_estimate_per_mod(fake_ca):
 
 
 def test_get_provider_raises_for_unknown_names():
-    from backend.main import get_provider
+    from backend.providers.factory import get_provider
 
     with pytest.raises(ValueError, match="nope"):
         get_provider("nope")
 
 
 def test_get_provider_builds_the_manual_provider():
-    from backend.main import get_provider
+    from backend.providers.factory import get_provider
 
     assert get_provider("manual").name == "Manual"
 

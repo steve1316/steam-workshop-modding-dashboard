@@ -35,38 +35,8 @@ from backend.data.translation_store import load_translations, save_translations_
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.registry import get_adapter, list_games
+from backend.providers.factory import get_provider
 from backend.translation.orchestrator import chunk_entries
-from backend.translator.base import TranslationProvider
-from backend.translator.claude_provider import ClaudeProvider
-from backend.translator.deepl_provider import DeepLProvider
-from backend.translator.llamacpp_provider import LlamaCppProvider
-from backend.translator.manual_provider import ManualProvider
-from backend.translator.ollama_provider import OllamaProvider
-from backend.translator.openai_provider import OpenAIProvider
-
-
-def get_provider(provider_name: str) -> TranslationProvider:
-    """Create a translation provider instance by name.
-
-    Args:
-        provider_name: One of `"claude"`, `"openai"`, `"deepl"`, `"ollama"`, `"llamacpp"`, `"manual"`.
-
-    Returns:
-        Initialized provider.
-    """
-    if provider_name == "claude":
-        return ClaudeProvider(model=config.CLAUDE_MODEL)
-    elif provider_name == "openai":
-        return OpenAIProvider(model=config.OPENAI_MODEL)
-    elif provider_name == "deepl":
-        return DeepLProvider()
-    elif provider_name == "ollama":
-        return OllamaProvider()
-    elif provider_name == "llamacpp":
-        return LlamaCppProvider()
-    elif provider_name == "manual":
-        return ManualProvider()
-    raise ValueError(f"Unknown provider: {provider_name}. Available: claude, openai, deepl, ollama, llamacpp, manual")
 
 
 def save_extracted_strings(strings: dict, output_path: Path) -> None:

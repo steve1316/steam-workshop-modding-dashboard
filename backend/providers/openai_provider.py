@@ -3,7 +3,7 @@
 import time
 
 from backend import config
-from backend.translator.base import TranslationProvider
+from backend.providers.base import TranslationProvider
 
 OPENAI_MODELS: dict[str, dict] = {
     "gpt-4.1": {"label": "GPT-4.1", "input_per_mtok": 2.0, "output_per_mtok": 8.0},

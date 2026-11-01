@@ -5,7 +5,7 @@ from pathlib import Path
 
 from backend import config
 from backend.core.json_store import write_json
-from backend.translator.base import TranslationProvider
+from backend.providers.base import TranslationProvider
 
 
 class ManualProvider(TranslationProvider):

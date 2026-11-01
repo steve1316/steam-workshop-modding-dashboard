@@ -204,11 +204,11 @@ async def get_provider_models(provider_id: str):
         `models` list with ID, label, and per-MTok pricing.
     """
     if provider_id == "claude":
-        from backend.translator.claude_provider import CLAUDE_MODELS
+        from backend.providers.claude_provider import CLAUDE_MODELS
 
         return JSONResponse({"models": [{"id": k, **v} for k, v in CLAUDE_MODELS.items()]})
     elif provider_id == "openai":
-        from backend.translator.openai_provider import OPENAI_MODELS
+        from backend.providers.openai_provider import OPENAI_MODELS
 
         return JSONResponse({"models": [{"id": k, **v} for k, v in OPENAI_MODELS.items()]})
     raise HTTPException(404, f"No model catalog for provider: {provider_id}")

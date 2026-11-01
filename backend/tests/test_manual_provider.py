@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from backend.translator.manual_provider import ManualProvider
+from backend.providers.manual_provider import ManualProvider
 
 
 def test_translate_batch_returns_translations_and_no_suggestions(tmp_path: Path, monkeypatch):

@@ -61,7 +61,7 @@ from backend.games.total_war_warhammer_3.translation_mods import (
     WH3TranslationMod,
     get_translation_mod,
 )
-from backend.translator.claude_provider import ClaudeProvider
+from backend.providers.claude_provider import ClaudeProvider
 
 logger = logging.getLogger(__name__)
 

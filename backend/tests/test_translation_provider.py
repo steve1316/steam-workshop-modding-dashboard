@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from backend.translator.base import build_character_context_section, build_style_examples_section
-from backend.translator.claude_provider import ClaudeProvider
+from backend.providers.base import build_character_context_section, build_style_examples_section
+from backend.providers.claude_provider import ClaudeProvider
 
 
 def test_parse_response_new_format():
@@ -143,7 +143,7 @@ def _run_batch(monkeypatch, model: str, content: list) -> tuple[dict, list]:
 
 
 def test_claude_models_lists_current_models_with_pricing():
-    from backend.translator.claude_provider import CLAUDE_MODELS
+    from backend.providers.claude_provider import CLAUDE_MODELS
 
     assert {k: (v["input_per_mtok"], v["output_per_mtok"]) for k, v in CLAUDE_MODELS.items()} == {
         "claude-opus-5-5": (4.0, 20.0),
@@ -155,7 +155,7 @@ def test_claude_models_lists_current_models_with_pricing():
 
 
 def test_default_pricing_is_sonnet_5():
-    from backend.translator.claude_provider import _DEFAULT_PRICING, CLAUDE_MODELS
+    from backend.providers.claude_provider import _DEFAULT_PRICING, CLAUDE_MODELS
 
     assert _DEFAULT_PRICING is CLAUDE_MODELS["claude-sonnet-5"]
 

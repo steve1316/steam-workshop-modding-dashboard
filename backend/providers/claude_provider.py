@@ -3,8 +3,8 @@
 import time
 
 from backend import config
+from backend.providers.base import ITEMS_OUTPUT_FORMAT, TranslationProvider
 from backend.translation.orchestrator import chunk_entries
-from backend.translator.base import ITEMS_OUTPUT_FORMAT, TranslationProvider
 
 CLAUDE_MODELS: dict[str, dict] = {
     "claude-opus-5-5": {"label": "Claude Opus 5.5", "input_per_mtok": 4.0, "output_per_mtok": 20.0},

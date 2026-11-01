@@ -1,7 +1,7 @@
 """DeepL provider. DeepL takes no custom prompts, so glossary enforcement relies on DeepL's own glossary feature."""
 
 from backend import config
-from backend.translator.base import TranslationProvider
+from backend.providers.base import TranslationProvider
 
 _DEEPL_LANG_CODES = {
     "Chinese": "ZH",
