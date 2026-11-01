@@ -82,12 +82,13 @@ async def estimate_translation(req: TranslationRequest):
 
     lang_override = load_source_language_override(req.mod_id)
     target_lang = load_target_language_override(req.mod_id) or "English"
-    by_lang = {}
+    by_lang: dict[str, list] = {}
     for key, loc_str in untranslated.items():
         lang = resolve_source_language(loc_str, lang_override)
-        if lang not in by_lang:
-            by_lang[lang] = []
-        by_lang[lang].append((key, loc_str.translations.get(lang, "")))
+        if lang:
+            if lang not in by_lang:
+                by_lang[lang] = []
+            by_lang[lang].append((key, loc_str.translations.get(lang, "")))
 
     base_glossary = load_glossary()
     mod_glossary = load_mod_glossary(req.mod_id)
