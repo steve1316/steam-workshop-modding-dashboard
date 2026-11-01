@@ -29,7 +29,7 @@ const PROVIDERS = [
     { id: "deepl", label: "DeepL", description: "Neural Machine Translation", keyField: "deepl" as const },
     { id: "ollama", label: "Ollama (Local)", description: "Free local AI — no API key needed", keyField: null },
     { id: "llamacpp", label: "llama.cpp (Local)", description: "Direct llama-server connection", keyField: null },
-    { id: "manual", label: "Manual", description: "Export JSON for manual editing", keyField: null },
+    { id: "manual", label: "Manual", description: "Translate by hand in the app", keyField: null },
 ]
 
 /** VRAM tier to recommended Ollama model mapping. */
@@ -840,17 +840,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 <Panel className="settings-panel" title="Manual Translation Mode">
                     <div className="settings-prose">
                         <p>
-                            Manual mode exports untranslated strings to a JSON file (<code className="accent-text">manual_edit.json</code>) in your storage directory. You translate each entry by hand,
-                            then the tool reads your translations back in.
+                            Press <strong>Translate (Manual)</strong> on a mod to step through its missing strings one at a time, with matching glossary terms and the paired name or description
+                            alongside. <strong>Re-Translate All</strong> steps through every string instead.
                         </p>
-                        <p>
-                            Each entry in the file contains the original source text, source language, and an empty <code className="accent-text">translation</code> field for you to fill in. Leave the
-                            field blank to skip an entry.
-                        </p>
-                        <p>
-                            This mode has no API cost and requires no API keys. It is useful when you want full control over every translation or when working with languages/terminology that automated
-                            providers handle poorly.
-                        </p>
+                        <p>Each save is stored like a table edit and marked &quot;manual&quot; in the Mode column. Run Sync Changes afterwards to write them into the mod.</p>
+                        <p>This mode has no API cost and needs no API keys.</p>
                     </div>
                 </Panel>
             )}
