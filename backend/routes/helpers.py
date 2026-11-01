@@ -23,6 +23,7 @@ from backend.data.mod_settings import load_source_language_override, load_target
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
 from backend.games.base import GameAdapter
+from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.registry import get_adapter
 from backend.translation.orchestrator import fill_duplicate_translations
@@ -215,7 +216,7 @@ def _merge_gdata_originals(
     """
     from backend.games.chrono_ark import gdata_extractor
 
-    backup_dir = GameStorage("chrono_ark").mod_dir(mod_id) / "original_gdata"
+    backup_dir = GameStorage(GAME_ID).mod_dir(mod_id) / "original_gdata"
     if not backup_dir.exists():
         return
 
@@ -263,7 +264,7 @@ def _compute_export_snapshot(mod_id: str, mod_path: Path, mod_name: str = "") ->
     h = hashlib.sha256()
 
     # Text only, so metadata-only changes don't trigger a false "needs export".
-    flat = load_translations(mod_id)
+    flat = load_translations(mod_id, game_id=GAME_ID)
     if flat:
         h.update(json.dumps(flat, sort_keys=True).encode("utf-8"))
 
@@ -319,7 +320,7 @@ def _load_last_export_hash(mod_id: str) -> str:
     Returns:
         Hex digest, or an empty string if none recorded.
     """
-    path = GameStorage("chrono_ark").mod_file(mod_id, "last_export.json")
+    path = GameStorage(GAME_ID).mod_file(mod_id, "last_export.json")
     if not path.exists():
         return ""
     try:
@@ -336,7 +337,7 @@ def _save_last_export_hash(mod_id: str, snapshot_hash: str) -> None:
         mod_id: Mod's Workshop id.
         snapshot_hash: Hex digest to persist.
     """
-    path = GameStorage("chrono_ark").mod_file(mod_id, "last_export.json")
+    path = GameStorage(GAME_ID).mod_file(mod_id, "last_export.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, {"hash": snapshot_hash}, indent=None)
 
@@ -368,10 +369,10 @@ def _recalculate_mod_progress(mod_id: str, mod_path: Path) -> None:
         mod_path: Mod's workshop directory.
     """
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    target_lang = load_target_language_override(mod_id) or "English"
+    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
     _merge_gdata_originals(mod_id, strings, target_lang=target_lang)
 
-    translations = load_translations(mod_id)
+    translations = load_translations(mod_id, game_id=GAME_ID)
     for key, translated_text in translations.items():
         if key in strings:
             strings[key].translations[target_lang] = translated_text
@@ -383,11 +384,11 @@ def _recalculate_mod_progress(mod_id: str, mod_path: Path) -> None:
             if key.startswith("DLL/") and loc_str.untranslatable_reason:
                 loc_str.untranslatable_reason = ""
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     tracker.update(mod_id, strings, chrono_ark_adapter().source_languages, target_lang=target_lang)
 
     # Must match how get_mod_detail computes translated keys.
-    lang_override = load_source_language_override(mod_id)
+    lang_override = load_source_language_override(mod_id, game_id=GAME_ID)
     translated_keys = []
     for key, loc_str in strings.items():
         source_lang = resolve_source_language(loc_str, lang_override)

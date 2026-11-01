@@ -7,10 +7,11 @@ from pathlib import Path
 from fastapi import APIRouter
 
 from backend import config
+from backend.core.paths import glossary_path
 from backend.data import glossary_manager as gm
 from backend.games.base import GameAdapter, ModInfo
 from backend.games.capabilities.translation import TranslationCapability
-from backend.games.chrono_ark import csv_extractor, dll_extractor, gdata_extractor, mod_scanner
+from backend.games.chrono_ark import GAME_ID, csv_extractor, dll_extractor, gdata_extractor, mod_scanner
 from backend.models import LocString
 
 # (short_suffix, long_suffix) pairs that may coexist across CSV and gdata sources.
@@ -256,7 +257,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
 
     @property
     def game_id(self) -> str:
-        return "chrono_ark"
+        return GAME_ID
 
     @property
     def game_name(self) -> str:
@@ -455,7 +456,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         Returns:
             Glossary section, or `""` when no terms match.
         """
-        return gm.get_glossary_prompt(gm.load_glossary(), allowed_categories=config.GLOSSARY_CATEGORIES, source_lang=source_lang, target_lang=target_lang)
+        return gm.get_glossary_prompt(gm.load_glossary(glossary_path(GAME_ID)), allowed_categories=config.GLOSSARY_CATEGORIES, source_lang=source_lang, target_lang=target_lang)
 
     def export_strings(self, output_path: Path, entries: list[LocString]) -> None:
         """Write entries to a Chrono Ark CSV (Key, Type, Desc, then language columns).

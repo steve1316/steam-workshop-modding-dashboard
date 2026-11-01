@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 
-from backend.core.paths import game_storage_path
 from backend.data import suggestion_manager
 from backend.games.total_war_warhammer_3 import api_responses_store, glossary_store, snapshot_store
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
@@ -57,8 +56,7 @@ def accept_suggestions(mod_id: str, action: SuggestionAction) -> dict:
         `{"status": "success", "accepted": N, "replaced": M}`, where M counts translations the renames changed.
     """
     mod = _require_mod(mod_id)
-    storage_path = game_storage_path(GAME_ID)
-    suggestions = suggestion_manager.load_suggestions(mod_id, storage_path)
+    suggestions = suggestion_manager.load_suggestions(mod_id, game_id=GAME_ID)
     terms_to_accept = {s["english"] for s in suggestions if "english" in s} if action.all else set(action.terms)
 
     replaced = 0
@@ -74,7 +72,7 @@ def accept_suggestions(mod_id: str, action: SuggestionAction) -> dict:
                 else:
                     glossary_store.add_term(mod_id, entry)
                 replaced += _tr._rename_in_translations(mod, mod_id, s.get("source", ""), s["english"], english)
-        suggestion_manager.remove_suggestions(mod_id, list(terms_to_accept), storage_path)
+        suggestion_manager.remove_suggestions(mod_id, list(terms_to_accept), game_id=GAME_ID)
 
     return {"status": "success", "accepted": len(terms_to_accept), "replaced": replaced}
 
@@ -91,11 +89,10 @@ def dismiss_suggestions(mod_id: str, action: SuggestionAction) -> dict:
         `{"status": "success"}`.
     """
     _require_mod(mod_id)
-    storage_path = game_storage_path(GAME_ID)
     if action.all:
-        suggestion_manager.save_suggestions(mod_id, [], storage_path)
+        suggestion_manager.save_suggestions(mod_id, [], game_id=GAME_ID)
     else:
-        suggestion_manager.remove_suggestions(mod_id, action.terms, storage_path)
+        suggestion_manager.remove_suggestions(mod_id, action.terms, game_id=GAME_ID)
     return {"status": "success"}
 
 
@@ -185,11 +182,10 @@ def _save_new_suggestions(mod_id: str, suggestions: list[dict]) -> int:
     Returns:
         Number newly saved.
     """
-    storage_path = game_storage_path(GAME_ID)
     glossary = glossary_store.load_glossary(mod_id)
     glossary_keys = {k.lower() for k in glossary}
     keep = glossary_words(glossary)
-    taken = {s.get("english", "").lower() for s in suggestion_manager.load_suggestions(mod_id, storage_path)}
+    taken = {s.get("english", "").lower() for s in suggestion_manager.load_suggestions(mod_id, game_id=GAME_ID)}
     fresh: list[dict] = []
     for s in suggestions:
         english = space_pinyin_names(s.get("source", ""), s.get("english", ""), keep).strip()
@@ -199,7 +195,7 @@ def _save_new_suggestions(mod_id: str, suggestions: list[dict]) -> int:
         taken.add(key)
         fresh.append({**s, "english": english})
     if fresh:
-        suggestion_manager.add_suggestions(mod_id, fresh, storage_path)
+        suggestion_manager.add_suggestions(mod_id, fresh, game_id=GAME_ID)
     return len(fresh)
 
 
@@ -243,7 +239,7 @@ def get_suggestions(mod_id: str) -> list[dict]:
         Pending suggestion dicts.
     """
     _require_mod(mod_id)
-    return suggestion_manager.load_suggestions(mod_id, game_storage_path(GAME_ID))
+    return suggestion_manager.load_suggestions(mod_id, game_id=GAME_ID)
 
 
 @router.post("/mods/{mod_id}/glossary/suggestions/scan")

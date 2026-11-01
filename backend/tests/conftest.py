@@ -3,6 +3,8 @@ import os
 import pytest
 
 from backend import config
+from backend.core.paths import game_storage_path
+from backend.games.chrono_ark import GAME_ID as CHRONO_ARK
 from backend.models import LocString
 from backend.routes import helpers
 
@@ -149,10 +151,11 @@ def glossary_categories():
 
 
 @pytest.fixture
-def tmp_storage(tmp_path):
-    """Temporary storage directory mimicking backend/storage/."""
-    (tmp_path / "mods" / "12345").mkdir(parents=True)
-    return tmp_path
+def tmp_storage(isolated_storage):
+    """Chrono Ark storage root inside the isolated storage, with one mod folder."""
+    root = game_storage_path(CHRONO_ARK)
+    (root / "mods" / "12345").mkdir(parents=True)
+    return root
 
 
 @pytest.fixture

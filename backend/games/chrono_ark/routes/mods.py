@@ -24,6 +24,7 @@ from backend.data.translation_store import (
     load_translations,
     update_single_translation,
 )
+from backend.games.chrono_ark import GAME_ID
 from backend.main import save_extracted_strings
 from backend.routes.helpers import (
     _compute_csv_snapshot,
@@ -52,14 +53,14 @@ async def get_mods():
         One dict per mod: id, name, author, CSV/DLL flags, progress counters, workshop URL, preview image path.
     """
     mods = chrono_ark_adapter().scan_mods()
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
 
     results = []
     for mod in mods:
         status = tracker.get_status(mod.mod_id)
         preview_img = _find_mod_preview_image(mod.path)
 
-        saved = load_translations(mod.mod_id)
+        saved = load_translations(mod.mod_id, game_id=GAME_ID)
         if saved:
             current_hash = _compute_export_snapshot(mod.mod_id, mod.path, mod.name)
             last_hash = _load_last_export_hash(mod.mod_id)
@@ -104,7 +105,7 @@ async def refresh_mods(request: Request):
     mods = chrono_ark_adapter().scan_mods()
 
     async def event_stream():
-        tracker = ProgressTracker()
+        tracker = ProgressTracker(game_id=GAME_ID)
         results = []
         total = len(mods)
 
@@ -117,7 +118,7 @@ async def refresh_mods(request: Request):
             status = tracker.get_status(mod.mod_id)
             preview_img = _find_mod_preview_image(mod.path)
 
-            saved = load_translations(mod.mod_id)
+            saved = load_translations(mod.mod_id, game_id=GAME_ID)
             if saved:
                 current_hash = _compute_export_snapshot(mod.mod_id, mod.path, mod.name)
                 last_hash = _load_last_export_hash(mod.mod_id)
@@ -171,12 +172,12 @@ async def get_mod_detail(mod_id: str):
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
 
     # Exported gdata JSONs hold English now, so restore the original source text from backup.
-    target_lang = load_target_language_override(mod_id) or "English"
+    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
     _merge_gdata_originals(mod_id, strings, target_lang=target_lang)
 
-    translations = load_translations(mod_id)
+    translations = load_translations(mod_id, game_id=GAME_ID)
 
-    providers_path = GameStorage("chrono_ark").mod_file(mod_id, "translation_providers.json")
+    providers_path = GameStorage(GAME_ID).mod_file(mod_id, "translation_providers.json")
     translation_providers: dict[str, str] = {}
     if providers_path.exists():
         try:
@@ -188,7 +189,7 @@ async def get_mod_detail(mod_id: str):
     # Must be captured before saved translations are applied below.
     original_english_map = {key: loc_str.translations.get(target_lang, "") for key, loc_str in strings.items()}
 
-    synced_keys_path = GameStorage("chrono_ark").mod_file(mod_id, "synced_keys.json")
+    synced_keys_path = GameStorage(GAME_ID).mod_file(mod_id, "synced_keys.json")
     synced_keys: set[str] = set()
     if synced_keys_path.exists():
         try:
@@ -200,7 +201,7 @@ async def get_mod_detail(mod_id: str):
     # If the mod author changed the CSVs since the last export, synced status is stale. Translation changes are intentionally ignored so
     # new translations don't invalidate synced rows.
     if synced_keys:
-        csv_hash_path = GameStorage("chrono_ark").mod_file(mod_id, "last_csv_hash.json")
+        csv_hash_path = GameStorage(GAME_ID).mod_file(mod_id, "last_csv_hash.json")
         if csv_hash_path.exists():
             try:
                 with open(csv_hash_path, encoding="utf-8") as f:
@@ -219,7 +220,7 @@ async def get_mod_detail(mod_id: str):
     # The CSV now holds the translated values, so the pre-export snapshot is needed to diff synced rows.
     pre_export_english: dict[str, str] = {}
     if synced_keys:
-        pre_export_path = GameStorage("chrono_ark").mod_file(mod_id, "pre_export_english.json")
+        pre_export_path = GameStorage(GAME_ID).mod_file(mod_id, "pre_export_english.json")
         if pre_export_path.exists():
             try:
                 with open(pre_export_path, encoding="utf-8") as f:
@@ -239,9 +240,9 @@ async def get_mod_detail(mod_id: str):
             if key.startswith("DLL/") and loc_str.untranslatable_reason:
                 loc_str.untranslatable_reason = ""
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     tracker.update(mod_id, strings, chrono_ark_adapter().source_languages, target_lang=target_lang)
-    lang_override = load_source_language_override(mod_id)
+    lang_override = load_source_language_override(mod_id, game_id=GAME_ID)
     translated_keys = []
     results = []
     for key, loc_str in strings.items():
@@ -293,7 +294,7 @@ async def get_mod_detail(mod_id: str):
         "preview_image": f"/workshop/{mod_id}/{preview_img.name}" if preview_img else None,
         "strings": results,
         "source_language_override": lang_override,
-        "target_language_override": load_target_language_override(mod_id),
+        "target_language_override": load_target_language_override(mod_id, game_id=GAME_ID),
     }
 
 
@@ -308,10 +309,10 @@ async def update_string(mod_id: str, update: TranslationUpdate):
     Returns:
         `{"status": "success"}`.
     """
-    create_backup(mod_id, f"Before manual edit of '{update.key}'")
-    update_single_translation(mod_id, update.key, update.english)
+    create_backup(mod_id, f"Before manual edit of '{update.key}'", game_id=GAME_ID)
+    update_single_translation(mod_id, update.key, update.english, game_id=GAME_ID)
 
-    providers_path = GameStorage("chrono_ark").mod_file(mod_id, "translation_providers.json")
+    providers_path = GameStorage(GAME_ID).mod_file(mod_id, "translation_providers.json")
     providers: dict[str, str] = {}
     if providers_path.exists():
         try:
@@ -322,7 +323,7 @@ async def update_string(mod_id: str, update: TranslationUpdate):
     providers[update.key] = "manual"
     write_json(providers_path, providers)
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
 
     # An empty source keeps the key "translated" even with empty English.
     mods = chrono_ark_adapter().scan_mods()
@@ -331,7 +332,7 @@ async def update_string(mod_id: str, update: TranslationUpdate):
         strings, _ = chrono_ark_adapter().extract_strings(matching[0].path)
         if update.key in strings:
             loc_str = strings[update.key]
-            lang_override = load_source_language_override(mod_id)
+            lang_override = load_source_language_override(mod_id, game_id=GAME_ID)
             source_lang = resolve_source_language(loc_str, lang_override)
             source_text = loc_str.translations.get(source_lang, "") if source_lang else ""
 
@@ -356,14 +357,14 @@ async def sync_mod(mod_id: str):
     """
     mod_path = _find_mod_path(mod_id)
 
-    create_backup(mod_id, "Before sync")
+    create_backup(mod_id, "Before sync", game_id=GAME_ID)
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
     _merge_gdata_originals(mod_id, strings)
-    output_path = GameStorage("chrono_ark").mod_file(mod_id, "source.json")
+    output_path = GameStorage(GAME_ID).mod_file(mod_id, "source.json")
     save_extracted_strings(strings, output_path)
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     diff = tracker.update(mod_id, strings, chrono_ark_adapter().source_languages)
 
     return {"status": "success", "new": len(diff.new_keys), "modified": len(diff.modified_keys), "removed": len(diff.removed_keys), "unchanged": len(diff.unchanged_keys)}
@@ -380,11 +381,11 @@ async def clear_translations(mod_id: str):
         `{"status": "success"}`.
     """
     mod_path = _find_mod_path(mod_id)
-    target_lang = load_target_language_override(mod_id) or "English"
+    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
 
-    create_backup(mod_id, "Before clearing translations")
+    create_backup(mod_id, "Before clearing translations", game_id=GAME_ID)
 
     # Empty overrides stop the original CSV values showing through.
     keys_to_clear: list[str] = []
@@ -392,23 +393,23 @@ async def clear_translations(mod_id: str):
         if loc_str.translations.get(target_lang, ""):
             keys_to_clear.append(key)
 
-    existing = load_translations(mod_id)
+    existing = load_translations(mod_id, game_id=GAME_ID)
     for key in existing:
         if key not in keys_to_clear:
             keys_to_clear.append(key)
 
-    clear_all_translations(mod_id, keys_to_clear)
+    clear_all_translations(mod_id, keys_to_clear, game_id=GAME_ID)
 
     for filename in ("synced_keys.json", "pre_export_english.json", "last_csv_hash.json"):
-        path = GameStorage("chrono_ark").mod_file(mod_id, filename)
+        path = GameStorage(GAME_ID).mod_file(mod_id, filename)
         if path.exists():
             path.unlink()
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     tracker.update(mod_id, strings, chrono_ark_adapter().source_languages, target_lang=target_lang)
 
     # Only keys with empty sources stay marked translated.
-    lang_override = load_source_language_override(mod_id)
+    lang_override = load_source_language_override(mod_id, game_id=GAME_ID)
     done_keys = []
     for key, loc_str in strings.items():
         source_lang = resolve_source_language(loc_str, lang_override)
@@ -434,11 +435,11 @@ async def reset_mod(mod_id: str):
     Returns:
         `status`, `csv_restored`, `gdata_restored`, and `overrides_cleared`.
     """
-    mod_storage = GameStorage("chrono_ark").mod_dir(mod_id)
+    mod_storage = GameStorage(GAME_ID).mod_dir(mod_id)
     if not mod_storage.exists():
         return {"status": "success", "csv_restored": False, "message": "No data to clear"}
 
-    create_backup(mod_id, "Before reset")
+    create_backup(mod_id, "Before reset", game_id=GAME_ID)
 
     csv_restored = False
     original_csv_dir = mod_storage / "original_csvs"
@@ -546,7 +547,7 @@ async def get_export_status(mod_id: str):
     """
     mod = _find_mod(mod_id)
 
-    translations = load_translations(mod_id)
+    translations = load_translations(mod_id, game_id=GAME_ID)
     if not translations:
         return {"has_changes": False}
 
@@ -574,10 +575,10 @@ async def export_mod(mod_id: str, resync: bool = False):
     mod_path = mod.path
 
     reason = "Before re-sync export" if resync else "Before export"
-    create_backup(mod_id, reason)
+    create_backup(mod_id, reason, game_id=GAME_ID)
 
-    original_csv_dir = GameStorage("chrono_ark").mod_dir(mod_id) / "original_csvs"
-    original_gdata_dir = GameStorage("chrono_ark").mod_dir(mod_id) / "original_gdata"
+    original_csv_dir = GameStorage(GAME_ID).mod_dir(mod_id) / "original_csvs"
+    original_gdata_dir = GameStorage(GAME_ID).mod_dir(mod_id) / "original_gdata"
 
     if resync:
         if original_csv_dir.exists():
@@ -611,11 +612,11 @@ async def export_mod(mod_id: str, resync: bool = False):
             for json_path in gdata_src.glob("*.json"):
                 shutil.copy2(json_path, original_gdata_dir / json_path.name)
 
-    translations = load_translations(mod_id)
+    translations = load_translations(mod_id, game_id=GAME_ID)
     if not translations:
         raise HTTPException(status_code=400, detail="No translations found for this mod")
 
-    target_lang = load_target_language_override(mod_id) or "English"
+    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
 
@@ -730,14 +731,14 @@ async def export_mod(mod_id: str, resync: bool = False):
     _save_last_export_hash(mod_id, snapshot_hash)
 
     # CSV-only hash, so synced-key invalidation triggers on mod-author CSV changes but not new user translations.
-    csv_hash_path = GameStorage("chrono_ark").mod_file(mod_id, "last_csv_hash.json")
+    csv_hash_path = GameStorage(GAME_ID).mod_file(mod_id, "last_csv_hash.json")
     write_json(csv_hash_path, {"hash": _compute_csv_snapshot(mod_path)}, indent=None)
 
-    synced_keys_path = GameStorage("chrono_ark").mod_file(mod_id, "synced_keys.json")
+    synced_keys_path = GameStorage(GAME_ID).mod_file(mod_id, "synced_keys.json")
     synced_keys_path.parent.mkdir(parents=True, exist_ok=True)
     write_json(synced_keys_path, [k for k, v in translations.items() if v], indent=None)
 
-    pre_export_path = GameStorage("chrono_ark").mod_file(mod_id, "pre_export_english.json")
+    pre_export_path = GameStorage(GAME_ID).mod_file(mod_id, "pre_export_english.json")
     write_json(pre_export_path, pre_export_english, indent=None)
 
     return {
@@ -812,7 +813,7 @@ async def get_character_context(mod_id: str):
     Returns:
         `source_game`, `character_name`, and `background` strings (possibly empty).
     """
-    return load_character_context(mod_id)
+    return load_character_context(mod_id, game_id=GAME_ID)
 
 
 @router.post("/mods/{mod_id}/character-context")
@@ -826,8 +827,8 @@ async def set_character_context(mod_id: str, ctx: CharacterContext):
     Returns:
         `{"status": "saved"}`.
     """
-    create_backup(mod_id, "Before updating character context")
-    save_character_context(mod_id, ctx.model_dump())
+    create_backup(mod_id, "Before updating character context", game_id=GAME_ID)
+    save_character_context(mod_id, ctx.model_dump(), game_id=GAME_ID)
     return {"status": "saved"}
 
 
@@ -841,7 +842,7 @@ async def get_source_language(mod_id: str):
     Returns:
         `source_language` override name, or None when auto-detecting.
     """
-    return {"source_language": load_source_language_override(mod_id)}
+    return {"source_language": load_source_language_override(mod_id, game_id=GAME_ID)}
 
 
 @router.post("/mods/{mod_id}/source-language")
@@ -855,7 +856,7 @@ async def set_source_language(mod_id: str, body: SourceLanguageOverride):
     Returns:
         `{"status": "saved"}`.
     """
-    save_source_language_override(mod_id, body.source_language)
+    save_source_language_override(mod_id, body.source_language, game_id=GAME_ID)
     return {"status": "saved"}
 
 
@@ -869,7 +870,7 @@ async def get_target_language(mod_id: str):
     Returns:
         `target_language` override name, or None for the English default.
     """
-    return {"target_language": load_target_language_override(mod_id)}
+    return {"target_language": load_target_language_override(mod_id, game_id=GAME_ID)}
 
 
 @router.post("/mods/{mod_id}/target-language")
@@ -883,7 +884,7 @@ async def set_target_language(mod_id: str, body: TargetLanguageOverride):
     Returns:
         `{"status": "saved"}`.
     """
-    save_target_language_override(mod_id, body.target_language)
+    save_target_language_override(mod_id, body.target_language, game_id=GAME_ID)
     return {"status": "saved"}
 
 
@@ -897,7 +898,7 @@ async def get_history(mod_id: str):
     Returns:
         Backup dicts with id, reason, created_at, and files.
     """
-    return list_backups(mod_id)
+    return list_backups(mod_id, game_id=GAME_ID)
 
 
 @router.post("/mods/{mod_id}/history")
@@ -911,7 +912,7 @@ async def create_history_snapshot(mod_id: str, body: HistorySnapshotRequest):
     Returns:
         `{"status": "saved", "id": backup_id}`, or `{"status": "empty"}` when there was nothing to back up.
     """
-    backup_id = create_backup(mod_id, body.label.strip() or "Manual snapshot", kind="manual")
+    backup_id = create_backup(mod_id, body.label.strip() or "Manual snapshot", kind="manual", game_id=GAME_ID)
     if backup_id is None:
         return {"status": "empty"}
     return {"status": "saved", "id": backup_id}
@@ -928,7 +929,7 @@ async def restore_history(mod_id: str, backup_id: str):
     Returns:
         `{"status": "success"}`.
     """
-    if not restore_backup(mod_id, backup_id):
+    if not restore_backup(mod_id, backup_id, game_id=GAME_ID):
         raise HTTPException(status_code=404, detail="Backup not found")
     return {"status": "success"}
 
@@ -944,7 +945,7 @@ async def delete_history(mod_id: str, backup_id: str):
     Returns:
         `{"status": "success"}`.
     """
-    delete_backup(mod_id, backup_id)
+    delete_backup(mod_id, backup_id, game_id=GAME_ID)
     return {"status": "success"}
 
 
@@ -958,7 +959,7 @@ async def get_api_responses(mod_id: str):
     Returns:
         Response dicts with batch_index, model, input_tokens, output_tokens, and raw_text.
     """
-    responses_path = GameStorage("chrono_ark").mod_file(mod_id, "last_api_responses.json")
+    responses_path = GameStorage(GAME_ID).mod_file(mod_id, "last_api_responses.json")
     if not responses_path.exists():
         return []
     with open(responses_path, encoding="utf-8") as f:

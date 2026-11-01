@@ -18,7 +18,6 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend import config
-from backend.core.paths import game_storage_path
 from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
 from backend.data.mod_settings import (
     load_source_language_override,
@@ -27,6 +26,7 @@ from backend.data.mod_settings import (
     save_target_language_override,
 )
 from backend.games.total_war_warhammer_3 import (
+    GAME_ID,
     api_responses_store,
     glossary_store,
     snapshot_store,
@@ -545,9 +545,8 @@ def get_mod_context(mod_id: str) -> dict:
     """
     _require_mod(mod_id)
     ctx = store.load_character_context(mod_id)
-    wh3_root = game_storage_path(store.GAME_ID)
-    ctx["source_language_override"] = load_source_language_override(mod_id, storage_path=wh3_root)
-    ctx["target_language_override"] = load_target_language_override(mod_id, storage_path=wh3_root)
+    ctx["source_language_override"] = load_source_language_override(mod_id, game_id=GAME_ID)
+    ctx["target_language_override"] = load_target_language_override(mod_id, game_id=GAME_ID)
     ctx["include_translated_names"] = store.load_include_translated_names(mod_id)
     return ctx
 
@@ -652,9 +651,8 @@ def put_mod_context(mod_id: str, ctx: ModContext) -> dict:
     """
     _require_mod(mod_id)
     store.save_character_context(mod_id, ctx.model_dump())
-    wh3_root = game_storage_path(store.GAME_ID)
-    save_source_language_override(mod_id, ctx.source_language_override, storage_path=wh3_root)
-    save_target_language_override(mod_id, ctx.target_language_override, storage_path=wh3_root)
+    save_source_language_override(mod_id, ctx.source_language_override, game_id=GAME_ID)
+    save_target_language_override(mod_id, ctx.target_language_override, game_id=GAME_ID)
     store.save_include_translated_names(mod_id, ctx.include_translated_names)
     return {"status": "ok"}
 

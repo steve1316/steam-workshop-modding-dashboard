@@ -11,17 +11,17 @@ from backend.core.json_store import write_json
 from backend.core.paths import mods_path
 
 
-def _translations_path(mod_id: str, storage_path: Path | None = None) -> Path:
+def _translations_path(mod_id: str, *, game_id: str) -> Path:
     """Build the path to a mod's `translations.json`.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         The translations file path.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     return mods_dir / mod_id / "translations.json"
 
 
@@ -68,17 +68,17 @@ def _save_raw_data(path: Path, data: dict) -> None:
     write_json(path, data)
 
 
-def load_translations(mod_id: str, *, storage_path: Path | None = None) -> dict[str, str]:
+def load_translations(mod_id: str, *, game_id: str) -> dict[str, str]:
     """Load translations as a flat `{key: text}` dict, whichever format is on disk.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Localization key to English text.
     """
-    raw = _load_raw_data(_translations_path(mod_id, storage_path))
+    raw = _load_raw_data(_translations_path(mod_id, game_id=game_id))
     result: dict[str, str] = {}
     for key, value in raw.items():
         if isinstance(value, str):
@@ -90,17 +90,17 @@ def load_translations(mod_id: str, *, storage_path: Path | None = None) -> dict[
     return result
 
 
-def load_translations_raw(mod_id: str, *, storage_path: Path | None = None) -> dict[str, dict]:
+def load_translations_raw(mod_id: str, *, game_id: str) -> dict[str, dict]:
     """Load translations in full timestamped format, normalizing old flat entries with `None` timestamps.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Localization key to timestamped entry.
     """
-    raw = _load_raw_data(_translations_path(mod_id, storage_path))
+    raw = _load_raw_data(_translations_path(mod_id, game_id=game_id))
     return {key: _normalize_entry(value) for key, value in raw.items()}
 
 
@@ -108,7 +108,7 @@ def save_translations_bulk(
     mod_id: str,
     new_entries: dict[str, str],
     *,
-    storage_path: Path | None = None,
+    game_id: str,
 ) -> None:
     """Merge new flat translations into the existing timestamped store.
 
@@ -117,9 +117,9 @@ def save_translations_bulk(
     Args:
         mod_id: Mod's Workshop id.
         new_entries: Flat `{key: english_text}` to merge.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    path = _translations_path(mod_id, storage_path)
+    path = _translations_path(mod_id, game_id=game_id)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
     now = datetime.now(UTC).isoformat()
 
@@ -139,7 +139,7 @@ def update_single_translation(
     key: str,
     text: str,
     *,
-    storage_path: Path | None = None,
+    game_id: str,
 ) -> None:
     """Update a single translation key for manual edits.
 
@@ -147,9 +147,9 @@ def update_single_translation(
         mod_id: Mod's Workshop id.
         key: Localization key.
         text: New English text.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    path = _translations_path(mod_id, storage_path)
+    path = _translations_path(mod_id, game_id=game_id)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
     now = datetime.now(UTC).isoformat()
 
@@ -166,16 +166,16 @@ def clear_all_translations(
     mod_id: str,
     keys: list[str],
     *,
-    storage_path: Path | None = None,
+    game_id: str,
 ) -> None:
     """Set the given keys to empty strings, creating any that don't exist.
 
     Args:
         mod_id: Mod's Workshop id.
         keys: Localization keys to clear.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    path = _translations_path(mod_id, storage_path)
+    path = _translations_path(mod_id, game_id=game_id)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
     now = datetime.now(UTC).isoformat()
 
@@ -194,7 +194,7 @@ def replace_in_translations(
     old_text: str,
     new_text: str,
     *,
-    storage_path: Path | None = None,
+    game_id: str,
 ) -> int:
     """Find-and-replace within translation text, touching `updated_at` only where something changed.
 
@@ -202,12 +202,12 @@ def replace_in_translations(
         mod_id: Mod's Workshop id.
         old_text: Substring to find.
         new_text: Replacement substring.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Number of entries modified.
     """
-    path = _translations_path(mod_id, storage_path)
+    path = _translations_path(mod_id, game_id=game_id)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
     now = datetime.now(UTC).isoformat()
     replaced = 0

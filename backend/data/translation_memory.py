@@ -3,7 +3,6 @@
 import hashlib
 import json
 from datetime import UTC, datetime
-from pathlib import Path
 
 from backend.core.json_store import write_json
 from backend.core.paths import translation_memory_path
@@ -12,15 +11,13 @@ from backend.core.paths import translation_memory_path
 class TranslationMemory:
     """Persistent cache of source text -> English translations, keyed by SHA-256 of the source so lookups work across mods."""
 
-    def __init__(self, path: Path | None = None):
+    def __init__(self, *, game_id: str):
         """Initialize the translation memory.
 
         Args:
-            path: JSON storage file, defaulting to the Chrono Ark memory path.
+            game_id: Game whose memory file to use.
         """
-        if path is None:
-            path = translation_memory_path("chrono_ark")
-        self._path = path
+        self._path = translation_memory_path(game_id)
         self._entries: dict[str, dict] = {}
         self._hits = 0
         self._misses = 0

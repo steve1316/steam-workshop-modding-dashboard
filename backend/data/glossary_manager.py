@@ -7,7 +7,7 @@ from pathlib import Path
 
 from backend import config
 from backend.core.json_store import write_json
-from backend.core.paths import glossary_path, mods_path
+from backend.core.paths import mods_path
 from backend.models import LocString
 
 _NAME_KEY_SUFFIXES = ("_Name", "_name", "_PassiveName", "_SkinName")
@@ -353,18 +353,15 @@ def suggest_glossary_edits(
     return edits
 
 
-def load_glossary(path: Path | None = None) -> dict:
+def load_glossary(path: Path) -> dict:
     """Load the glossary from a JSON file.
 
     Args:
-        path: Glossary file, defaulting to the Chrono Ark path.
+        path: Glossary file, usually `glossary_path(game_id)`.
 
     Returns:
         Glossary dict, empty structure if the file doesn't exist.
     """
-    if path is None:
-        path = glossary_path("chrono_ark")
-
     if not path.exists():
         return {"terms": {}}
 
@@ -372,16 +369,13 @@ def load_glossary(path: Path | None = None) -> dict:
         return json.load(f)
 
 
-def save_glossary(glossary: dict, path: Path | None = None) -> None:
+def save_glossary(glossary: dict, path: Path) -> None:
     """Save the glossary to a JSON file.
 
     Args:
         glossary: Glossary dict.
-        path: Target file, defaulting to the Chrono Ark path.
+        path: Target file, usually `glossary_path(game_id)`.
     """
-    if path is None:
-        path = glossary_path("chrono_ark")
-
     path.parent.mkdir(parents=True, exist_ok=True)
 
     write_json(path, glossary)
@@ -555,17 +549,17 @@ def get_combined_glossary_prompt(
     return mod_prompt or base_prompt
 
 
-def load_mod_glossary(mod_id: str, storage_path: Path | None = None) -> dict:
+def load_mod_glossary(mod_id: str, *, game_id: str) -> dict:
     """Load a mod's glossary.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Glossary dict, empty structure if none exists.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     path = mods_dir / mod_id / "glossary.json"
     if not path.exists():
         return {"terms": {}}
@@ -573,15 +567,15 @@ def load_mod_glossary(mod_id: str, storage_path: Path | None = None) -> dict:
         return json.load(f)
 
 
-def save_mod_glossary(mod_id: str, glossary: dict, storage_path: Path | None = None) -> None:
+def save_mod_glossary(mod_id: str, glossary: dict, *, game_id: str) -> None:
     """Save a mod's glossary.
 
     Args:
         mod_id: Mod's Workshop id.
         glossary: Glossary dict.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     path = mods_dir / mod_id / "glossary.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, glossary)

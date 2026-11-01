@@ -18,6 +18,7 @@ from pathlib import Path
 
 from backend import config
 from backend.core.json_store import write_json
+from backend.core.paths import glossary_path
 from backend.data.glossary_manager import (
     add_glossary_term,
     build_glossary_from_base_game,
@@ -31,6 +32,7 @@ from backend.data.progress_tracker import ProgressTracker
 from backend.data.suggestion_manager import add_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
+from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.registry import get_adapter, list_games
 from backend.translation.orchestrator import chunk_entries
@@ -123,7 +125,7 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         output_path = config.STORAGE_PATH / "mods" / args.mod / "source.json"
         save_extracted_strings(strings, output_path)
 
-        tracker = ProgressTracker()
+        tracker = ProgressTracker(game_id=GAME_ID)
         diff = tracker.update(args.mod, strings, adapter.source_languages)
         print(f"  New keys: {len(diff.new_keys)}")
         print(f"  Modified: {len(diff.modified_keys)}")
@@ -143,7 +145,7 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
             name = mod.name[:28] if len(mod.name) > 28 else mod.name
             print(f"{mod.mod_id:<15} {name:<30} {csv_flag:<5} {dll_flag:<5} {entries:<8}")
 
-        tracker = ProgressTracker()
+        tracker = ProgressTracker(game_id=GAME_ID)
         for mod_info in mods:
             if mod_info.has_loc_files:
                 print(f"\nExtracting: {mod_info.name} ({mod_info.mod_id})...")
@@ -186,9 +188,9 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         print("All strings already have English translations!")
         return
 
-    tm = TranslationMemory()
-    base_glossary = load_glossary()
-    mod_glossary = load_mod_glossary(mod_id)
+    tm = TranslationMemory(game_id=GAME_ID)
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    mod_glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     needs_translation = []
     cached_translations = {}
 
@@ -294,7 +296,7 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     _apply_translations(mod_id, all_translations, tm)
 
     if all_suggestions:
-        add_suggestions(mod_id, all_suggestions)
+        add_suggestions(mod_id, all_suggestions, game_id=GAME_ID)
         print(f"  {len(all_suggestions)} glossary term suggestions pending review")
 
 
@@ -311,9 +313,9 @@ def _apply_translations(
         translations: Key -> English text.
         tm: Translation memory to save.
     """
-    save_translations_bulk(mod_id, translations)
+    save_translations_bulk(mod_id, translations, game_id=GAME_ID)
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     tracker.mark_translated(mod_id, list(translations.keys()))
 
     print(f"\n  Applied {len(translations)} translations")
@@ -331,7 +333,7 @@ def cmd_status(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         args: Parsed CLI arguments, where `args.mod` selects a single mod.
         adapter: Unused, kept for a consistent subcommand signature.
     """
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
 
     if args.mod:
         status = tracker.get_status(args.mod)
@@ -368,7 +370,7 @@ def cmd_glossary(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         adapter: Active game adapter, used to extract base game strings when building.
     """
     if args.show:
-        glossary = load_glossary()
+        glossary = load_glossary(glossary_path(GAME_ID))
         print_glossary(glossary)
 
     elif args.build:
@@ -379,7 +381,7 @@ def cmd_glossary(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
             term_categories=adapter.get_glossary_categories(),
             source_languages=adapter.source_languages,
         )
-        save_glossary(glossary)
+        save_glossary(glossary, glossary_path(GAME_ID))
         print_glossary(glossary)
 
     elif args.add:
@@ -388,9 +390,9 @@ def cmd_glossary(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
             sys.exit(1)
 
         source_term, english_term = args.add
-        glossary = load_glossary()
+        glossary = load_glossary(glossary_path(GAME_ID))
         add_glossary_term(glossary, english_term, {"custom": source_term})
-        save_glossary(glossary)
+        save_glossary(glossary, glossary_path(GAME_ID))
         print(f"  Added: {source_term} → {english_term}")
 
     else:
@@ -422,7 +424,7 @@ def cmd_export(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 
     strings, _ = adapter.extract_strings(mod_path)
 
-    translations = load_translations(mod_id)
+    translations = load_translations(mod_id, game_id=GAME_ID)
     if not translations:
         print(f"No translations found for mod {mod_id}. Run 'translate --mod {mod_id}' first.")
         sys.exit(1)
@@ -461,7 +463,7 @@ def main() -> None:
     parser.add_argument(
         "--game",
         type=str,
-        default="chrono_ark",
+        default=GAME_ID,
         help=f"Game adapter to use (default: chrono_ark). Available: {', '.join(list_games()) or '(loading...)'}",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

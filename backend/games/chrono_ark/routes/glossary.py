@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from backend.core.paths import glossary_path
 from backend.data.glossary_manager import (
     add_glossary_term,
     extract_name_key_suggestions,
@@ -22,6 +23,7 @@ from backend.data.suggestion_manager import (
     save_suggestions,
 )
 from backend.data.translation_store import load_translations, replace_in_translations, save_translations_bulk
+from backend.games.chrono_ark import GAME_ID
 from backend.routes.helpers import _find_mod_path, _merge_gdata_originals, chrono_ark_adapter, resolve_source_language
 from backend.routes.models import (
     GlossaryReplacePreview,
@@ -40,7 +42,7 @@ async def get_glossary():
     Returns:
         Glossary dict as stored on disk, with a `terms` mapping.
     """
-    glossary = load_glossary()
+    glossary = load_glossary(glossary_path(GAME_ID))
     return glossary
 
 
@@ -54,9 +56,9 @@ async def update_glossary(term: GlossaryTerm):
     Returns:
         `{"status": "success"}`.
     """
-    glossary = load_glossary()
+    glossary = load_glossary(glossary_path(GAME_ID))
     add_glossary_term(glossary, term.english, {"custom": term.source})
-    save_glossary(glossary)
+    save_glossary(glossary, glossary_path(GAME_ID))
     return {"status": "success"}
 
 
@@ -70,7 +72,7 @@ async def get_mod_glossary(mod_id: str):
     Returns:
         Glossary dict with a `terms` mapping.
     """
-    return load_mod_glossary(mod_id)
+    return load_mod_glossary(mod_id, game_id=GAME_ID)
 
 
 @router.post("/mods/{mod_id}/glossary")
@@ -84,10 +86,10 @@ async def update_mod_glossary(mod_id: str, term: ModGlossaryTerm):
     Returns:
         `{"status": "success"}`.
     """
-    create_backup(mod_id, f"Before adding glossary term '{term.english}'")
-    glossary = load_mod_glossary(mod_id)
+    create_backup(mod_id, f"Before adding glossary term '{term.english}'", game_id=GAME_ID)
+    glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     add_glossary_term(glossary, term.english, term.source_mappings, term.category)
-    save_mod_glossary(mod_id, glossary)
+    save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
     return {"status": "success"}
 
 
@@ -122,13 +124,13 @@ async def edit_mod_glossary_term(mod_id: str, term: str, entry: ModGlossaryTerm)
     Returns:
         `status` and the `replaced` translation count.
     """
-    glossary = load_mod_glossary(mod_id)
+    glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     terms = glossary.setdefault("terms", {})
     key = _find_term_key(terms, term)
     old = terms.pop(key) if key else {}
-    create_backup(mod_id, f"Before editing glossary term '{term}'")
+    create_backup(mod_id, f"Before editing glossary term '{term}'", game_id=GAME_ID)
     add_glossary_term(glossary, entry.english, entry.source_mappings, entry.category)
-    save_mod_glossary(mod_id, glossary)
+    save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
 
     old_english = old.get("english") or term
     replaced = 0
@@ -149,12 +151,12 @@ async def delete_mod_glossary_term(mod_id: str, term: str):
     Returns:
         `{"status": "success"}`.
     """
-    glossary = load_mod_glossary(mod_id)
+    glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     key = _find_term_key(glossary.get("terms", {}), term)
     if key:
-        create_backup(mod_id, f"Before removing glossary term '{term}'")
+        create_backup(mod_id, f"Before removing glossary term '{term}'", game_id=GAME_ID)
         del glossary["terms"][key]
-        save_mod_glossary(mod_id, glossary)
+        save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
     return {"status": "success"}
 
 
@@ -169,12 +171,12 @@ async def delete_mod_glossary_terms(mod_id: str, action: SuggestionAction):
     Returns:
         `status` and the `deleted` count.
     """
-    glossary = load_mod_glossary(mod_id)
+    glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     terms = glossary.get("terms", {})
     if action.all:
         count = len(terms)
         if count > 0:
-            create_backup(mod_id, "Before deleting all glossary terms")
+            create_backup(mod_id, "Before deleting all glossary terms", game_id=GAME_ID)
         glossary["terms"] = {}
     else:
         count = 0
@@ -182,10 +184,10 @@ async def delete_mod_glossary_terms(mod_id: str, action: SuggestionAction):
             key = _find_term_key(terms, term)
             if key:
                 if count == 0:
-                    create_backup(mod_id, "Before removing glossary term(s)")
+                    create_backup(mod_id, "Before removing glossary term(s)", game_id=GAME_ID)
                 del terms[key]
                 count += 1
-    save_mod_glossary(mod_id, glossary)
+    save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
     return {"status": "success", "deleted": count}
 
 
@@ -199,12 +201,12 @@ async def delete_all_mod_glossary_terms(mod_id: str):
     Returns:
         `status` and the `deleted` count.
     """
-    glossary = load_mod_glossary(mod_id)
+    glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
     count = len(glossary.get("terms", {}))
     if count > 0:
-        create_backup(mod_id, "Before deleting all glossary terms")
+        create_backup(mod_id, "Before deleting all glossary terms", game_id=GAME_ID)
     glossary["terms"] = {}
-    save_mod_glossary(mod_id, glossary)
+    save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
     return {"status": "success", "deleted": count}
 
 
@@ -219,7 +221,7 @@ async def glossary_replace_preview(mod_id: str, req: GlossaryReplacePreview):
     Returns:
         `affected`: list of `{key, old_text, new_text}`.
     """
-    translations = load_translations(mod_id)
+    translations = load_translations(mod_id, game_id=GAME_ID)
     if not translations:
         return {"affected": []}
 
@@ -244,9 +246,9 @@ async def glossary_replace_apply(mod_id: str, req: GlossaryReplacePreview):
     Returns:
         `status` and the `replaced` count.
     """
-    create_backup(mod_id, f"Before replacing '{req.old_english}' with '{req.new_english}'")
+    create_backup(mod_id, f"Before replacing '{req.old_english}' with '{req.new_english}'", game_id=GAME_ID)
 
-    replaced = replace_in_translations(mod_id, req.old_english, req.new_english)
+    replaced = replace_in_translations(mod_id, req.old_english, req.new_english, game_id=GAME_ID)
 
     return {"status": "success", "replaced": replaced}
 
@@ -261,8 +263,8 @@ async def get_merged_glossary(mod_id: str):
     Returns:
         Merged glossary for translation prompts.
     """
-    base = load_glossary()
-    mod = load_mod_glossary(mod_id)
+    base = load_glossary(glossary_path(GAME_ID))
+    mod = load_mod_glossary(mod_id, game_id=GAME_ID)
     return merge_glossaries(base, mod)
 
 
@@ -276,7 +278,7 @@ async def get_suggestions(mod_id: str):
     Returns:
         Suggestion dicts with `english`, `source`, `source_lang`, `category`.
     """
-    return load_suggestions(mod_id)
+    return load_suggestions(mod_id, game_id=GAME_ID)
 
 
 def _source_and_csv_english(mod_id: str) -> dict[str, tuple[str, str]]:
@@ -289,9 +291,9 @@ def _source_and_csv_english(mod_id: str) -> dict[str, tuple[str, str]]:
         `{key: (source text, English from the mod's files)}`.
     """
     strings, _ = chrono_ark_adapter().extract_strings(_find_mod_path(mod_id))
-    target_lang = load_target_language_override(mod_id) or "English"
+    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
     _merge_gdata_originals(mod_id, strings, target_lang=target_lang)
-    override = load_source_language_override(mod_id)
+    override = load_source_language_override(mod_id, game_id=GAME_ID)
     rows: dict[str, tuple[str, str]] = {}
     for key, loc_str in strings.items():
         source_lang = resolve_source_language(loc_str, override)
@@ -315,7 +317,7 @@ def _rename_in_translations(mod_id: str, source: str, old_english: str, new_engl
     """
     if not source or old_english == new_english:
         return 0
-    saved = load_translations(mod_id)
+    saved = load_translations(mod_id, game_id=GAME_ID)
     changes: dict[str, str] = {}
     for key, (source_text, csv_english) in _source_and_csv_english(mod_id).items():
         if source not in source_text:
@@ -324,7 +326,7 @@ def _rename_in_translations(mod_id: str, source: str, old_english: str, new_engl
         if count:
             changes[key] = new_text
     if changes:
-        save_translations_bulk(mod_id, changes)
+        save_translations_bulk(mod_id, changes, game_id=GAME_ID)
     return len(changes)
 
 
@@ -342,13 +344,13 @@ async def accept_suggestions(mod_id: str, action: SuggestionAction):
     Returns:
         `status`, the `accepted` count, and the `replaced` translation count.
     """
-    suggestions = load_suggestions(mod_id)
-    glossary = load_mod_glossary(mod_id)
+    suggestions = load_suggestions(mod_id, game_id=GAME_ID)
+    glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
 
     terms_to_accept = {s["english"] for s in suggestions} if action.all else set(action.terms)
 
     if terms_to_accept:
-        create_backup(mod_id, "Before accepting glossary suggestions")
+        create_backup(mod_id, "Before accepting glossary suggestions", game_id=GAME_ID)
 
     replaced = 0
     for suggestion in suggestions:
@@ -367,8 +369,8 @@ async def accept_suggestions(mod_id: str, action: SuggestionAction):
             )
             replaced += _rename_in_translations(mod_id, suggestion.get("source", ""), suggestion["english"], english)
 
-    save_mod_glossary(mod_id, glossary)
-    remove_suggestions(mod_id, list(terms_to_accept))
+    save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
+    remove_suggestions(mod_id, list(terms_to_accept), game_id=GAME_ID)
     return {"status": "success", "accepted": len(terms_to_accept), "replaced": replaced}
 
 
@@ -384,9 +386,9 @@ async def dismiss_suggestions(mod_id: str, action: SuggestionAction):
         `{"status": "success"}`.
     """
     if action.all:
-        save_suggestions(mod_id, [])
+        save_suggestions(mod_id, [], game_id=GAME_ID)
     else:
-        remove_suggestions(mod_id, action.terms)
+        remove_suggestions(mod_id, action.terms, game_id=GAME_ID)
     return {"status": "success"}
 
 
@@ -404,14 +406,14 @@ async def scan_for_suggestions(mod_id: str):
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
     _merge_gdata_originals(mod_id, strings)
 
-    saved = load_translations(mod_id)
+    saved = load_translations(mod_id, game_id=GAME_ID)
     for key, english in saved.items():
         if key in strings:
             strings[key].translations["English"] = english
 
-    lang_override = load_source_language_override(mod_id)
-    mod_glossary = load_mod_glossary(mod_id)
-    existing_suggestions = load_suggestions(mod_id)
+    lang_override = load_source_language_override(mod_id, game_id=GAME_ID)
+    mod_glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
+    existing_suggestions = load_suggestions(mod_id, game_id=GAME_ID)
 
     translations: dict[str, str] = {}
     by_lang: dict[str, list[str]] = {}
@@ -441,7 +443,7 @@ async def scan_for_suggestions(mod_id: str):
         combined_existing.extend(found)
 
     if new_suggestions:
-        add_suggestions(mod_id, new_suggestions)
+        add_suggestions(mod_id, new_suggestions, game_id=GAME_ID)
 
     return {"status": "success", "new": len(new_suggestions)}
 
@@ -456,12 +458,12 @@ async def suggest_edits(mod_id: str):
     Returns:
         `status` and the `new` edit suggestion count.
     """
-    mod_glossary = load_mod_glossary(mod_id)
-    existing_suggestions = load_suggestions(mod_id)
+    mod_glossary = load_mod_glossary(mod_id, game_id=GAME_ID)
+    existing_suggestions = load_suggestions(mod_id, game_id=GAME_ID)
 
     edits = suggest_glossary_edits(mod_glossary, existing_suggestions)
 
     if edits:
-        add_suggestions(mod_id, edits)
+        add_suggestions(mod_id, edits, game_id=GAME_ID)
 
     return {"status": "success", "new": len(edits)}

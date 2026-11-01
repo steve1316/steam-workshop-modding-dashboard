@@ -50,11 +50,11 @@ def fake_ca(monkeypatch):
     monkeypatch.setattr(ChronoArkAdapter, "scan_mods", lambda self, search_path=None: [FAKE_MOD])
     monkeypatch.setattr(ChronoArkAdapter, "extract_strings", lambda self, path: (strings, {}))
     monkeypatch.setattr(ca_translation, "get_provider", lambda name: provider)
-    monkeypatch.setattr(ca_translation, "load_glossary", lambda: {})
-    monkeypatch.setattr(ca_translation, "load_mod_glossary", lambda mod_id: {})
-    monkeypatch.setattr(ca_translation, "load_character_context", lambda mod_id: {})
-    monkeypatch.setattr(ca_translation, "load_source_language_override", lambda mod_id: None)
-    monkeypatch.setattr(ca_translation, "load_target_language_override", lambda mod_id: "Spanish")
+    monkeypatch.setattr(ca_translation, "load_glossary", lambda path: {})
+    monkeypatch.setattr(ca_translation, "load_mod_glossary", lambda mod_id, game_id: {})
+    monkeypatch.setattr(ca_translation, "load_character_context", lambda mod_id, game_id: {})
+    monkeypatch.setattr(ca_translation, "load_source_language_override", lambda mod_id, game_id: None)
+    monkeypatch.setattr(ca_translation, "load_target_language_override", lambda mod_id, game_id: "Spanish")
     return provider
 
 

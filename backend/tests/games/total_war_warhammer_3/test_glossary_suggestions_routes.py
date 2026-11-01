@@ -7,7 +7,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from backend.core.paths import game_storage_path
 from backend.data import suggestion_manager
 from backend.games.total_war_warhammer_3 import glossary_store
 from backend.games.total_war_warhammer_3.api_responses_store import list_entries
@@ -39,11 +38,11 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
 
 
 def _seed_pending(suggestions: list[dict]) -> None:
-    suggestion_manager.save_suggestions(MOD_ID, suggestions, storage_path=game_storage_path(GAME_ID))
+    suggestion_manager.save_suggestions(MOD_ID, suggestions, game_id=GAME_ID)
 
 
 def _remaining_terms() -> set[str]:
-    return {s["english"] for s in suggestion_manager.load_suggestions(MOD_ID, storage_path=game_storage_path(GAME_ID))}
+    return {s["english"] for s in suggestion_manager.load_suggestions(MOD_ID, game_id=GAME_ID)}
 
 
 def test_accept_specific_term_adds_to_glossary_and_removes_pending(client: TestClient):

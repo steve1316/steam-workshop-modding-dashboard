@@ -2,23 +2,22 @@
 
 import json
 from datetime import UTC, datetime
-from pathlib import Path
 
 from backend.core.json_store import write_json
 from backend.core.paths import mods_path
 
 
-def load_source_language_override(mod_id: str, *, storage_path: Path | None = None) -> str | None:
+def load_source_language_override(mod_id: str, *, game_id: str) -> str | None:
     """Return the source language override for a mod, or None for auto-detect.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Language name, e.g. `"Korean"`.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     path = mods_dir / mod_id / "mod_settings.json"
     if not path.exists():
         return None
@@ -34,16 +33,16 @@ def save_source_language_override(
     mod_id: str,
     language: str | None,
     *,
-    storage_path: Path | None = None,
+    game_id: str,
 ) -> None:
     """Save the source language override for a mod.
 
     Args:
         mod_id: Mod's Workshop id.
         language: Language name, or None for auto-detect.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     mod_dir = mods_dir / mod_id
     mod_dir.mkdir(parents=True, exist_ok=True)
     path = mod_dir / "mod_settings.json"
@@ -63,17 +62,17 @@ def save_source_language_override(
     write_json(path, existing)
 
 
-def load_target_language_override(mod_id: str, *, storage_path: Path | None = None) -> str | None:
+def load_target_language_override(mod_id: str, *, game_id: str) -> str | None:
     """Return the target language override for a mod, or None for default (English).
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Language name, e.g. `"Chinese"`.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     path = mods_dir / mod_id / "mod_settings.json"
     if not path.exists():
         return None
@@ -89,16 +88,16 @@ def save_target_language_override(
     mod_id: str,
     language: str | None,
     *,
-    storage_path: Path | None = None,
+    game_id: str,
 ) -> None:
     """Save the target language override for a mod.
 
     Args:
         mod_id: Mod's Workshop id.
         language: Language name, or None for default (English).
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     mod_dir = mods_dir / mod_id
     mod_dir.mkdir(parents=True, exist_ok=True)
     path = mod_dir / "mod_settings.json"

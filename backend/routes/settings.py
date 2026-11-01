@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from backend import config
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_memory import TranslationMemory
+from backend.games.chrono_ark import GAME_ID
 from backend.games.registry import list_games as registry_list_games
 from backend.process_manager import is_managed
 from backend.routes.helpers import _mask_key, _update_env_file, chrono_ark_adapter, current_adapter, set_active_game
@@ -220,10 +221,10 @@ async def get_stats():
     Returns:
         `tm_entries`, `tm_hits` (session cache hits), `total_mods`, `global_progress` (percent), and `total_strings`.
     """
-    tm = TranslationMemory()
+    tm = TranslationMemory(game_id=GAME_ID)
     stats = tm.get_stats()
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     mods = chrono_ark_adapter().scan_mods()
 
     total_strings = 0

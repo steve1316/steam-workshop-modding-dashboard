@@ -13,7 +13,6 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.core.paths import game_storage_path
 from backend.data import suggestion_manager
 from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
@@ -391,7 +390,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     # Persist the provider's suggestions for the review modal, dropping terms already in the mod glossary so the user only reviews new ones (as in Chrono Ark).
     suggestions = [s for s in _suggestions if s.get("english") and s["english"] not in existing_glossary]
     if suggestions:
-        suggestion_manager.add_suggestions(req.mod_id, suggestions, storage_path=game_storage_path(GAME_ID))
+        suggestion_manager.add_suggestions(req.mod_id, suggestions, game_id=GAME_ID)
 
     raw = _t.store.load_translations_raw(req.mod_id)
     now = datetime.now(UTC).isoformat()
@@ -425,7 +424,7 @@ async def name_suggestions(req: NameSuggestionsRequest) -> dict:
     source_lang = mod.source_language
     suggestions = [{**term, "source_lang": source_lang, "reason": f"Translated {term['category']} name"} for term in _translated_name_terms(mod, req.mod_id, req.categories)]
     if suggestions:
-        suggestion_manager.add_suggestions(req.mod_id, suggestions, storage_path=game_storage_path(GAME_ID))
+        suggestion_manager.add_suggestions(req.mod_id, suggestions, game_id=GAME_ID)
     return {"suggestions": suggestions}
 
 

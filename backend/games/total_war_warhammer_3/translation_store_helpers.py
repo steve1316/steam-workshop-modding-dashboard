@@ -29,7 +29,7 @@ def load_translations(mod_id: str) -> dict[str, str]:
     Returns:
         Translation key to text.
     """
-    return ts.load_translations(mod_id, storage_path=_root())
+    return ts.load_translations(mod_id, game_id=GAME_ID)
 
 
 def load_translations_raw(mod_id: str) -> dict[str, dict]:
@@ -41,7 +41,7 @@ def load_translations_raw(mod_id: str) -> dict[str, dict]:
     Returns:
         Translation key to timestamped entry.
     """
-    return ts.load_translations_raw(mod_id, storage_path=_root())
+    return ts.load_translations_raw(mod_id, game_id=GAME_ID)
 
 
 def save_translations_raw(mod_id: str, data: dict[str, dict]) -> None:
@@ -65,7 +65,7 @@ def load_character_context(mod_id: str) -> dict:
     Returns:
         Mod context fields (source_game, character_name, etc).
     """
-    return cc.load_character_context(mod_id, storage_path=_root())
+    return cc.load_character_context(mod_id, game_id=GAME_ID)
 
 
 def save_character_context(mod_id: str, ctx: dict) -> None:
@@ -75,7 +75,7 @@ def save_character_context(mod_id: str, ctx: dict) -> None:
         mod_id: Mod id.
         ctx: Mod context fields to persist.
     """
-    cc.save_character_context(mod_id, ctx, storage_path=_root())
+    cc.save_character_context(mod_id, ctx, game_id=GAME_ID)
 
 
 def load_include_translated_names(mod_id: str) -> bool:

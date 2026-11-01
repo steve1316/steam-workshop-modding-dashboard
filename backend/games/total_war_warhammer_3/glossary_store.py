@@ -30,12 +30,12 @@ def load_glossary(mod_id: str) -> dict:
     Returns:
         Glossary dict, empty when no file exists.
     """
-    raw = gm.load_mod_glossary(mod_id, storage_path=_root())
+    raw = gm.load_mod_glossary(mod_id, game_id=GAME_ID)
     return dict(raw.get("terms", {}))
 
 
 def _save(mod_id: str, glossary: dict) -> None:
-    gm.save_mod_glossary(mod_id, {"terms": glossary}, storage_path=_root())
+    gm.save_mod_glossary(mod_id, {"terms": glossary}, game_id=GAME_ID)
 
 
 def add_term(mod_id: str, entry: dict) -> None:

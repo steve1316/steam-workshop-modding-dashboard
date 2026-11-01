@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from backend.data import suggestion_manager
 from backend.data.glossary_manager import load_mod_glossary
 from backend.data.translation_store import load_translations, save_translations_bulk
+from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.routes import glossary as glossary_routes
 
 MOD_ID = "900000002"
@@ -39,22 +40,22 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
 
 def test_accept_with_an_edited_english_renames_translations_with_that_source(client: TestClient):
     """The edited English is saved to the glossary, and rows whose source contains the term's source are renamed, including CSV-only rows."""
-    suggestion_manager.save_suggestions(MOD_ID, [KALI])
-    save_translations_bulk(MOD_ID, {"intro": "Kali appears", "other": "Kali is mentioned"})
+    suggestion_manager.save_suggestions(MOD_ID, [KALI], game_id=GAME_ID)
+    save_translations_bulk(MOD_ID, {"intro": "Kali appears", "other": "Kali is mentioned"}, game_id=GAME_ID)
 
     resp = client.post(URL, json={"terms": ["Kali"], "renames": {"Kali": "Kaly"}})
     assert resp.status_code == 200
     assert resp.json() == {"status": "success", "accepted": 1, "replaced": 2}
     # Chrono Ark keys its glossary by source text, so check the saved English values.
-    assert [t["english"] for t in load_mod_glossary(MOD_ID)["terms"].values()] == ["Kaly"]
-    assert load_translations(MOD_ID) == {"intro": "Kaly appears", "csv_only": "Kaly", "other": "Kali is mentioned"}
+    assert [t["english"] for t in load_mod_glossary(MOD_ID, game_id=GAME_ID)["terms"].values()] == ["Kaly"]
+    assert load_translations(MOD_ID, game_id=GAME_ID) == {"intro": "Kaly appears", "csv_only": "Kaly", "other": "Kali is mentioned"}
 
 
 def test_accept_without_an_edit_renames_nothing(client: TestClient):
     """Accepting a suggestion as it is keeps today's behavior and reports zero renamed translations."""
-    suggestion_manager.save_suggestions(MOD_ID, [KALI])
-    save_translations_bulk(MOD_ID, {"intro": "Kali appears"})
+    suggestion_manager.save_suggestions(MOD_ID, [KALI], game_id=GAME_ID)
+    save_translations_bulk(MOD_ID, {"intro": "Kali appears"}, game_id=GAME_ID)
 
     resp = client.post(URL, json={"terms": ["Kali"]})
     assert resp.json() == {"status": "success", "accepted": 1, "replaced": 0}
-    assert load_translations(MOD_ID) == {"intro": "Kali appears"}
+    assert load_translations(MOD_ID, game_id=GAME_ID) == {"intro": "Kali appears"}

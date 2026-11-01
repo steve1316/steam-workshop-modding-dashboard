@@ -9,33 +9,33 @@ from backend.core.json_store import write_json
 from backend.core.paths import mods_path, safe_child
 
 
-def _history_dir(mod_id: str, storage_path: Path | None = None) -> Path:
+def _history_dir(mod_id: str, *, game_id: str) -> Path:
     """Return the history directory for a mod, which may not exist yet.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         The mod's `history/` directory.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     return mods_dir / mod_id / "history"
 
 
-def create_backup(mod_id: str, reason: str, storage_path: Path | None = None, kind: str = "auto") -> str | None:
+def create_backup(mod_id: str, reason: str, *, game_id: str, kind: str = "auto") -> str | None:
     """Create a timestamped backup of the mod's current state.
 
     Args:
         mod_id: Mod's Workshop id.
         reason: Why the backup was created, e.g. "Before clearing translations".
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
         kind: "auto" before destructive ops, "manual" for user-requested snapshots.
 
     Returns:
         The backup id (its folder name), or None if there was nothing to back up.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     mod_dir = mods_dir / mod_id
 
     files_to_backup = [
@@ -53,7 +53,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Path | None = None, ki
         return None
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    hist_dir = _history_dir(mod_id, storage_path)
+    hist_dir = _history_dir(mod_id, game_id=game_id)
     hist_dir.mkdir(parents=True, exist_ok=True)
     # A second backup within the same second, e.g. "Before restore", must not overwrite the first. The suffix still sorts newest first.
     backup_dir = hist_dir / timestamp
@@ -101,22 +101,22 @@ def create_backup(mod_id: str, reason: str, storage_path: Path | None = None, ki
     }
     write_json(backup_dir / "meta.json", meta)
 
-    _prune_backups(mod_id, max_backups=20, storage_path=storage_path)
+    _prune_backups(mod_id, max_backups=20, game_id=game_id)
 
     return backup_dir.name
 
 
-def list_backups(mod_id: str, storage_path: Path | None = None) -> list[dict]:
+def list_backups(mod_id: str, *, game_id: str) -> list[dict]:
     """List all available backups for a mod, newest first.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Backup metadata dicts with id, reason, created_at and files.
     """
-    hist_dir = _history_dir(mod_id, storage_path)
+    hist_dir = _history_dir(mod_id, game_id=game_id)
     if not hist_dir.is_dir():
         return []
     backups = []
@@ -149,7 +149,7 @@ def list_backups(mod_id: str, storage_path: Path | None = None) -> list[dict]:
     return backups
 
 
-def restore_backup(mod_id: str, backup_id: str, storage_path: Path | None = None) -> bool:
+def restore_backup(mod_id: str, backup_id: str, *, game_id: str) -> bool:
     """Restore a mod's state from a backup.
 
     Backs up the current state first, then copies the backed-up files into the mod directory.
@@ -157,21 +157,21 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Path | None = None
     Args:
         mod_id: Mod's Workshop id.
         backup_id: Id of the backup to restore.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         False if the backup was not found.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     try:
-        backup_dir = safe_child(_history_dir(mod_id, storage_path), backup_id)
+        backup_dir = safe_child(_history_dir(mod_id, game_id=game_id), backup_id)
     except ValueError:
         return False
 
     if not backup_dir.exists():
         return False
 
-    create_backup(mod_id, f"Before restore to {backup_id}", storage_path)
+    create_backup(mod_id, f"Before restore to {backup_id}", game_id=game_id)
 
     mod_dir = mods_dir / mod_id
     meta_path = backup_dir / "meta.json"
@@ -193,19 +193,19 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Path | None = None
     return True
 
 
-def delete_backup(mod_id: str, backup_id: str, storage_path: Path | None = None) -> bool:
+def delete_backup(mod_id: str, backup_id: str, *, game_id: str) -> bool:
     """Delete a specific backup.
 
     Args:
         mod_id: Mod's Workshop id.
         backup_id: Id of the backup to delete.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         False if the backup was not found.
     """
     try:
-        backup_dir = safe_child(_history_dir(mod_id, storage_path), backup_id)
+        backup_dir = safe_child(_history_dir(mod_id, game_id=game_id), backup_id)
     except ValueError:
         return False
     if not backup_dir.exists():
@@ -214,15 +214,15 @@ def delete_backup(mod_id: str, backup_id: str, storage_path: Path | None = None)
     return True
 
 
-def _prune_backups(mod_id: str, max_backups: int = 20, storage_path: Path | None = None) -> None:
+def _prune_backups(mod_id: str, max_backups: int = 20, *, game_id: str) -> None:
     """Remove oldest backups when the total exceeds `max_backups`.
 
     Args:
         mod_id: Mod's Workshop id.
         max_backups: Most backups to keep.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    hist_dir = _history_dir(mod_id, storage_path)
+    hist_dir = _history_dir(mod_id, game_id=game_id)
     entries = sorted([e for e in hist_dir.iterdir() if e.is_dir()], reverse=True)
     for old_entry in entries[max_backups:]:
         shutil.rmtree(old_entry)

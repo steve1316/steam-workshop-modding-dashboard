@@ -9,6 +9,7 @@ from backend.data.glossary_manager import (
     save_glossary,
     save_mod_glossary,
 )
+from backend.games.chrono_ark import GAME_ID
 
 
 def _find_by_english(terms: dict, english: str) -> dict:
@@ -124,14 +125,14 @@ def test_glossary_prompt_format():
 
 
 def test_load_mod_glossary_empty(tmp_storage):
-    result = load_mod_glossary("12345", tmp_storage)
+    result = load_mod_glossary("12345", game_id=GAME_ID)
     assert result == {"terms": {}}
 
 
 def test_save_and_load_mod_glossary(tmp_storage):
     glossary = {"terms": {"Dark Mage": {"category": "characters", "key": "", "source_mappings": {"Chinese": "黑魔法师"}}}}
-    save_mod_glossary("12345", glossary, tmp_storage)
-    loaded = load_mod_glossary("12345", tmp_storage)
+    save_mod_glossary("12345", glossary, game_id=GAME_ID)
+    loaded = load_mod_glossary("12345", game_id=GAME_ID)
     assert "Dark Mage" in loaded["terms"]
 
 
@@ -158,11 +159,11 @@ def test_delete_mod_glossary_term(tmp_storage):
             "B": {"category": "c", "key": "", "source_mappings": {}},
         }
     }
-    save_mod_glossary("12345", glossary, tmp_storage)
-    loaded = load_mod_glossary("12345", tmp_storage)
+    save_mod_glossary("12345", glossary, game_id=GAME_ID)
+    loaded = load_mod_glossary("12345", game_id=GAME_ID)
     del loaded["terms"]["A"]
-    save_mod_glossary("12345", loaded, tmp_storage)
-    reloaded = load_mod_glossary("12345", tmp_storage)
+    save_mod_glossary("12345", loaded, game_id=GAME_ID)
+    reloaded = load_mod_glossary("12345", game_id=GAME_ID)
     assert "A" not in reloaded["terms"]
     assert "B" in reloaded["terms"]
 

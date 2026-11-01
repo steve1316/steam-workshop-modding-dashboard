@@ -25,13 +25,13 @@ class ProgressDiff:
 class ProgressTracker:
     """Tracks translation progress per mod, storing a snapshot of content hashes for change detection."""
 
-    def __init__(self, storage_path: Path | None = None):
+    def __init__(self, *, game_id: str):
         """Initialize the progress tracker.
 
         Args:
-            storage_path: Storage root override.
+            game_id: Game whose mods to track.
         """
-        self._storage_path = storage_path
+        self._game_id = game_id
 
     def _mod_progress_path(self, mod_id: str) -> Path:
         """Get the path to a mod's progress file.
@@ -42,7 +42,7 @@ class ProgressTracker:
         Returns:
             The progress JSON path.
         """
-        mods_dir = (self._storage_path / "mods") if self._storage_path else mods_path("chrono_ark")
+        mods_dir = mods_path(self._game_id)
         return mods_dir / mod_id / "progress.json"
 
     def _load_snapshot(self, mod_id: str) -> dict:

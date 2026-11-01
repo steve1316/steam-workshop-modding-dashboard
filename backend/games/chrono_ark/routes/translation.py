@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from backend import config
 from backend.core.json_store import write_json
-from backend.core.paths import GameStorage
+from backend.core.paths import GameStorage, glossary_path
 from backend.data.character_context import load_character_context
 from backend.data.glossary_manager import (
     extract_name_key_suggestions,
@@ -23,6 +23,7 @@ from backend.data.progress_tracker import ProgressTracker
 from backend.data.suggestion_manager import add_suggestions, load_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
+from backend.games.chrono_ark import GAME_ID
 from backend.main import get_provider
 from backend.routes.helpers import (
     _active_translations,
@@ -80,8 +81,8 @@ async def estimate_translation(req: TranslationRequest):
     provider_name = req.provider or config.TRANSLATION_PROVIDER
     provider = _web_provider(provider_name)
 
-    lang_override = load_source_language_override(req.mod_id)
-    target_lang = load_target_language_override(req.mod_id) or "English"
+    lang_override = load_source_language_override(req.mod_id, game_id=GAME_ID)
+    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
     by_lang: dict[str, list] = {}
     for key, loc_str in untranslated.items():
         lang = resolve_source_language(loc_str, lang_override)
@@ -90,10 +91,10 @@ async def estimate_translation(req: TranslationRequest):
                 by_lang[lang] = []
             by_lang[lang].append((key, loc_str.translations.get(lang, "")))
 
-    base_glossary = load_glossary()
-    mod_glossary = load_mod_glossary(req.mod_id)
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
     game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id)
+    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
     character_context = char_ctx if any(char_ctx.values()) else None
     format_rules = chrono_ark_adapter().get_format_preservation_rules()
 
@@ -132,7 +133,7 @@ async def estimate_all_translation_costs(request: Request):
 
     async def event_stream():
         total = len(mods)
-        base_glossary = load_glossary()
+        base_glossary = load_glossary(glossary_path(GAME_ID))
         game_context = chrono_ark_adapter().get_translation_context()
         format_rules = chrono_ark_adapter().get_format_preservation_rules()
 
@@ -143,8 +144,8 @@ async def estimate_all_translation_costs(request: Request):
             strings, _ = chrono_ark_adapter().extract_strings(mod.path)
 
             # Ignores existing English. Falls back to English for gdata/DLL strings that only have an English key in their translations dict.
-            mod_lang_override = load_source_language_override(mod.mod_id)
-            mod_target_lang = load_target_language_override(mod.mod_id) or "English"
+            mod_lang_override = load_source_language_override(mod.mod_id, game_id=GAME_ID)
+            mod_target_lang = load_target_language_override(mod.mod_id, game_id=GAME_ID) or "English"
             by_lang: dict[str, list[tuple[str, str]]] = {}
             entry_count = 0
             for key, loc_str in strings.items():
@@ -161,8 +162,8 @@ async def estimate_all_translation_costs(request: Request):
 
             estimates = {}
             if by_lang:
-                mod_glossary = load_mod_glossary(mod.mod_id)
-                char_ctx = load_character_context(mod.mod_id)
+                mod_glossary = load_mod_glossary(mod.mod_id, game_id=GAME_ID)
+                char_ctx = load_character_context(mod.mod_id, game_id=GAME_ID)
                 character_context = char_ctx if any(char_ctx.values()) else None
 
                 for lang, entries in by_lang.items():
@@ -212,7 +213,7 @@ async def preview_translation(req: TranslationRequest):
     _merge_gdata_originals(req.mod_id, strings)
 
     # Apply saved translations so user edits (including clears) are respected.
-    saved = load_translations(req.mod_id)
+    saved = load_translations(req.mod_id, game_id=GAME_ID)
     for key, english in saved.items():
         if key in strings:
             strings[key].translations["English"] = english
@@ -228,15 +229,15 @@ async def preview_translation(req: TranslationRequest):
     provider_name = req.provider or config.TRANSLATION_PROVIDER
     provider = _web_provider(provider_name)
 
-    base_glossary = load_glossary()
-    mod_glossary = load_mod_glossary(req.mod_id)
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
     game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id)
+    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
     character_context = char_ctx if any(char_ctx.values()) else None
     format_rules = chrono_ark_adapter().get_format_preservation_rules()
 
-    lang_override = load_source_language_override(req.mod_id)
-    target_lang = load_target_language_override(req.mod_id) or "English"
+    lang_override = load_source_language_override(req.mod_id, game_id=GAME_ID)
+    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
     by_lang: dict[str, list] = {}
     for key, loc_str in target.items():
         lang = resolve_source_language(loc_str, lang_override)
@@ -358,10 +359,10 @@ async def translate_mod(req: TranslationRequest):
     mod_path = _find_mod_path(req.mod_id)
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    target_lang = load_target_language_override(req.mod_id) or "English"
+    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
 
     # Saved translations win so user edits (including clears) are respected.
-    saved = load_translations(req.mod_id)
+    saved = load_translations(req.mod_id, game_id=GAME_ID)
     for key, english in saved.items():
         if key in strings:
             strings[key].translations[target_lang] = english
@@ -374,18 +375,18 @@ async def translate_mod(req: TranslationRequest):
     if not untranslated:
         return {"status": "complete", "message": "All strings already translated", "translated": 0, "suggestions": 0}
 
-    base_glossary = load_glossary()
-    mod_glossary = load_mod_glossary(req.mod_id)
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
     game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id)
+    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
     character_context = char_ctx if any(char_ctx.values()) else None
     format_rules = chrono_ark_adapter().get_format_preservation_rules()
 
-    tm = TranslationMemory()
+    tm = TranslationMemory(game_id=GAME_ID)
     all_translations: dict[str, str] = {}
     all_suggestions: list[dict] = []
 
-    lang_override = load_source_language_override(req.mod_id)
+    lang_override = load_source_language_override(req.mod_id, game_id=GAME_ID)
     by_lang: dict[str, list] = {}
     for key, loc_str in untranslated.items():
         lang = resolve_source_language(loc_str, lang_override)
@@ -394,7 +395,7 @@ async def translate_mod(req: TranslationRequest):
                 by_lang[lang] = []
             by_lang[lang].append((key, loc_str.translations.get(lang, "")))
 
-    create_backup(req.mod_id, "Before translation run")
+    create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
 
     if hasattr(provider, "last_raw_responses"):
         provider.last_raw_responses = []
@@ -433,13 +434,13 @@ async def translate_mod(req: TranslationRequest):
     raw_responses = getattr(provider, "last_raw_responses", [])
     if raw_responses:
         _stamp_raw_responses(raw_responses)
-        responses_path = GameStorage("chrono_ark").mod_file(req.mod_id, "last_api_responses.json")
+        responses_path = GameStorage(GAME_ID).mod_file(req.mod_id, "last_api_responses.json")
         responses_path.parent.mkdir(parents=True, exist_ok=True)
         write_json(responses_path, raw_responses)
 
-    save_translations_bulk(req.mod_id, all_translations)
+    save_translations_bulk(req.mod_id, all_translations, game_id=GAME_ID)
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     tracker.mark_translated(req.mod_id, list(all_translations.keys()))
 
     tm.save()
@@ -447,7 +448,7 @@ async def translate_mod(req: TranslationRequest):
     filtered_suggestions = _filter_suggestions(all_suggestions, strings)
 
     # Name-key terms the provider didn't already suggest.
-    existing_suggestions = load_suggestions(req.mod_id)
+    existing_suggestions = load_suggestions(req.mod_id, game_id=GAME_ID)
     combined_existing = existing_suggestions + filtered_suggestions
     for lang, entries in by_lang.items():
         lang_keys = [k for k, _ in entries if k in all_translations]
@@ -464,10 +465,10 @@ async def translate_mod(req: TranslationRequest):
         combined_existing.extend(name_key_suggestions)
 
     if filtered_suggestions:
-        add_suggestions(req.mod_id, filtered_suggestions)
+        add_suggestions(req.mod_id, filtered_suggestions, game_id=GAME_ID)
 
     # Post-dedup count, so the UI is accurate.
-    stored_suggestions = load_suggestions(req.mod_id)
+    stored_suggestions = load_suggestions(req.mod_id, game_id=GAME_ID)
 
     return {
         "status": "success",
@@ -493,10 +494,10 @@ async def translate_batch(req: BatchTranslationRequest):
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
     _merge_gdata_originals(req.mod_id, strings)
-    target_lang = load_target_language_override(req.mod_id) or "English"
+    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
 
     # Saved translations win so user edits (including clears) are respected.
-    saved = load_translations(req.mod_id)
+    saved = load_translations(req.mod_id, game_id=GAME_ID)
     for key, english in saved.items():
         if key in strings:
             strings[key].translations[target_lang] = english
@@ -520,21 +521,21 @@ async def translate_batch(req: BatchTranslationRequest):
 
     # Backup and raw-response reset happen only on the first batch.
     if req.is_first_batch:
-        create_backup(req.mod_id, "Before translation run")
+        create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
         if hasattr(provider, "last_raw_responses"):
             provider.last_raw_responses = []
 
-    base_glossary = load_glossary()
-    mod_glossary = load_mod_glossary(req.mod_id)
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
     glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=req.source_lang, target_lang=target_lang)
 
     game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id)
+    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
     character_context = char_ctx if any(char_ctx.values()) else None
     format_rules = chrono_ark_adapter().get_format_preservation_rules()
     style_examples = chrono_ark_adapter().get_style_examples(req.source_lang)
 
-    tm = TranslationMemory()
+    tm = TranslationMemory(game_id=GAME_ID)
 
     try:
         translations, suggestions = await run_batch(
@@ -560,7 +561,7 @@ async def translate_batch(req: BatchTranslationRequest):
     raw_responses = getattr(provider, "last_raw_responses", [])
     if raw_responses:
         _stamp_raw_responses(raw_responses)
-        responses_path = GameStorage("chrono_ark").mod_file(req.mod_id, "last_api_responses.json")
+        responses_path = GameStorage(GAME_ID).mod_file(req.mod_id, "last_api_responses.json")
         responses_path.parent.mkdir(parents=True, exist_ok=True)
         existing_responses = []
         if not req.is_first_batch and responses_path.exists():
@@ -572,9 +573,9 @@ async def translate_batch(req: BatchTranslationRequest):
         existing_responses.extend(raw_responses)
         write_json(responses_path, existing_responses)
 
-    save_translations_bulk(req.mod_id, translations)
+    save_translations_bulk(req.mod_id, translations, game_id=GAME_ID)
 
-    providers_path = GameStorage("chrono_ark").mod_file(req.mod_id, "translation_providers.json")
+    providers_path = GameStorage(GAME_ID).mod_file(req.mod_id, "translation_providers.json")
     existing_providers: dict[str, str] = {}
     if providers_path.exists():
         try:
@@ -586,7 +587,7 @@ async def translate_batch(req: BatchTranslationRequest):
         existing_providers[key] = provider_name
     write_json(providers_path, existing_providers)
 
-    tracker = ProgressTracker()
+    tracker = ProgressTracker(game_id=GAME_ID)
     tracker.mark_translated(req.mod_id, list(translations.keys()))
 
     tm.save()
@@ -594,7 +595,7 @@ async def translate_batch(req: BatchTranslationRequest):
     filtered_suggestions = _filter_suggestions(suggestions, strings)
 
     # Name-key terms the provider didn't already suggest.
-    existing_suggestions = load_suggestions(req.mod_id)
+    existing_suggestions = load_suggestions(req.mod_id, game_id=GAME_ID)
     name_key_suggestions = extract_name_key_suggestions(
         translated_keys=list(translations.keys()),
         strings=strings,
@@ -607,7 +608,7 @@ async def translate_batch(req: BatchTranslationRequest):
     filtered_suggestions.extend(name_key_suggestions)
 
     if filtered_suggestions:
-        add_suggestions(req.mod_id, filtered_suggestions)
+        add_suggestions(req.mod_id, filtered_suggestions, game_id=GAME_ID)
 
     return {
         "status": "success",
@@ -644,9 +645,9 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
     _merge_gdata_originals(req.mod_id, strings)
-    target_lang = load_target_language_override(req.mod_id) or "English"
+    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
 
-    saved = load_translations(req.mod_id)
+    saved = load_translations(req.mod_id, game_id=GAME_ID)
     for key, english in saved.items():
         if key in strings:
             strings[key].translations[target_lang] = english
@@ -669,21 +670,21 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
     provider = _web_provider(provider_name)
 
     if req.is_first_batch:
-        create_backup(req.mod_id, "Before translation run")
+        create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
         if hasattr(provider, "last_raw_responses"):
             provider.last_raw_responses = []
 
-    base_glossary = load_glossary()
-    mod_glossary = load_mod_glossary(req.mod_id)
+    base_glossary = load_glossary(glossary_path(GAME_ID))
+    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
     glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=req.source_lang, target_lang=target_lang)
 
     game_context = chrono_ark_adapter().get_translation_context()
-    char_ctx = load_character_context(req.mod_id)
+    char_ctx = load_character_context(req.mod_id, game_id=GAME_ID)
     character_context = char_ctx if any(char_ctx.values()) else None
     format_rules = chrono_ark_adapter().get_format_preservation_rules()
     style_examples = chrono_ark_adapter().get_style_examples(req.source_lang)
 
-    tm = TranslationMemory()
+    tm = TranslationMemory(game_id=GAME_ID)
 
     async def event_stream():
         queue: asyncio.Queue[dict | None] = asyncio.Queue()
@@ -744,7 +745,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                 raw_responses = getattr(provider, "last_raw_responses", [])
                 if raw_responses:
                     _stamp_raw_responses(raw_responses)
-                    responses_path = GameStorage("chrono_ark").mod_file(req.mod_id, "last_api_responses.json")
+                    responses_path = GameStorage(GAME_ID).mod_file(req.mod_id, "last_api_responses.json")
                     responses_path.parent.mkdir(parents=True, exist_ok=True)
                     existing_responses = []
                     if not req.is_first_batch and responses_path.exists():
@@ -756,9 +757,9 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                     existing_responses.extend(raw_responses)
                     write_json(responses_path, existing_responses)
 
-                save_translations_bulk(req.mod_id, translations)
+                save_translations_bulk(req.mod_id, translations, game_id=GAME_ID)
 
-                tracker = ProgressTracker()
+                tracker = ProgressTracker(game_id=GAME_ID)
                 tracker.mark_translated(req.mod_id, list(translations.keys()))
 
                 tm.save()
@@ -766,7 +767,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                 filtered_suggestions = _filter_suggestions(suggestions, strings)
 
                 # Name-key terms the provider didn't already suggest.
-                existing_suggestions = load_suggestions(req.mod_id)
+                existing_suggestions = load_suggestions(req.mod_id, game_id=GAME_ID)
                 name_key_suggestions = extract_name_key_suggestions(
                     translated_keys=list(translations.keys()),
                     strings=strings,
@@ -779,7 +780,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                 filtered_suggestions.extend(name_key_suggestions)
 
                 if filtered_suggestions:
-                    add_suggestions(req.mod_id, filtered_suggestions)
+                    add_suggestions(req.mod_id, filtered_suggestions, game_id=GAME_ID)
 
             yield f"data: {json.dumps(event)}\n\n"
 

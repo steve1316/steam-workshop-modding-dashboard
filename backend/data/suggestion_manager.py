@@ -2,7 +2,6 @@
 
 import json
 import re
-from pathlib import Path
 
 from backend.core.json_store import write_json
 from backend.core.paths import mods_path
@@ -10,17 +9,17 @@ from backend.core.paths import mods_path
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
-def load_suggestions(mod_id: str, storage_path: Path | None = None) -> list[dict]:
+def load_suggestions(mod_id: str, *, game_id: str) -> list[dict]:
     """Load pending suggestions for a mod.
 
     Args:
         mod_id: Mod's Workshop id.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
 
     Returns:
         Suggestion dicts, empty if none.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     path = mods_dir / mod_id / "pending_suggestions.json"
     if not path.exists():
         return []
@@ -28,21 +27,21 @@ def load_suggestions(mod_id: str, storage_path: Path | None = None) -> list[dict
         return json.load(f)
 
 
-def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Path | None = None) -> None:
+def save_suggestions(mod_id: str, suggestions: list[dict], *, game_id: str) -> None:
     """Save pending suggestions for a mod.
 
     Args:
         mod_id: Mod's Workshop id.
         suggestions: Suggestion dicts to persist.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
+    mods_dir = mods_path(game_id)
     path = mods_dir / mod_id / "pending_suggestions.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, suggestions)
 
 
-def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Path | None = None) -> None:
+def add_suggestions(mod_id: str, new_suggestions: list[dict], *, game_id: str) -> None:
     """Append new suggestions, deduplicating by english term.
 
     Existing suggestions with the same english term are kept, not overwritten.
@@ -50,9 +49,9 @@ def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Path
     Args:
         mod_id: Mod's Workshop id.
         new_suggestions: Suggestion dicts, each with at least an `english` key.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    existing = load_suggestions(mod_id, storage_path)
+    existing = load_suggestions(mod_id, game_id=game_id)
     existing_terms = {_TAG_RE.sub("", s["english"]).lower() for s in existing if "english" in s}
     for suggestion in new_suggestions:
         term = suggestion.get("english", "")
@@ -60,17 +59,17 @@ def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Path
         if term and stripped not in existing_terms:
             existing.append(suggestion)
             existing_terms.add(stripped)
-    save_suggestions(mod_id, existing, storage_path)
+    save_suggestions(mod_id, existing, game_id=game_id)
 
 
-def remove_suggestions(mod_id: str, terms: list[str], storage_path: Path | None = None) -> None:
+def remove_suggestions(mod_id: str, terms: list[str], *, game_id: str) -> None:
     """Remove suggestions by english term.
 
     Args:
         mod_id: Mod's Workshop id.
         terms: English terms to remove.
-        storage_path: Storage root override.
+        game_id: Game the mod belongs to.
     """
-    existing = load_suggestions(mod_id, storage_path)
+    existing = load_suggestions(mod_id, game_id=game_id)
     filtered = [s for s in existing if s.get("english") not in terms]
-    save_suggestions(mod_id, filtered, storage_path)
+    save_suggestions(mod_id, filtered, game_id=game_id)
