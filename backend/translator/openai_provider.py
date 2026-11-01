@@ -90,7 +90,8 @@ class OpenAIProvider(TranslationProvider):
                     max_tokens=4096,
                     temperature=0.3,
                 )
-                raw_text = response.choices[0].message.content
+                # A refusal comes back with no content.
+                raw_text = response.choices[0].message.content or ""
                 translations, suggestions = self._parse_response(raw_text, entries)
                 self.last_raw_responses = getattr(self, "last_raw_responses", [])
                 in_tok = getattr(response.usage, "prompt_tokens", None)

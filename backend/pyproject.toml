@@ -12,5 +12,7 @@ ignore = ["E501"]
 [tool.pyright]
 include = ["."]
 exclude = ["storage", "tests/fixtures", "**/__pycache__"]
+# Imports are written as `backend.*`, so resolve them from the repo root.
+extraPaths = [".."]
 pythonVersion = "3.12"
 typeCheckingMode = "basic"

@@ -22,13 +22,14 @@ from backend.data.mod_settings import load_source_language_override, load_target
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
 from backend.games.base import GameAdapter
+from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.registry import get_adapter
 from backend.translation.game_storage import GameStorage
 from backend.translation.orchestrator import fill_duplicate_translations
 
-# ---------------------------------------------------------------------------
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
 # Module-level state
-# ---------------------------------------------------------------------------
 
 _adapter: GameAdapter = get_adapter(config.ACTIVE_GAME)
 """Cached active game adapter. Use `current_adapter()` to read."""
@@ -42,11 +43,11 @@ def current_adapter() -> GameAdapter:
     return _adapter
 
 
-_chrono_ark_adapter: GameAdapter | None = None
+_chrono_ark_adapter: ChronoArkAdapter | None = None
 """Cached Chrono Ark adapter. Use `chrono_ark_adapter()` to read."""
 
 
-def chrono_ark_adapter() -> GameAdapter:
+def chrono_ark_adapter() -> ChronoArkAdapter:
     """Return the Chrono Ark adapter for the `/api/games/chrono_ark` routes, whatever the persisted `active_game` is.
 
     Returns:
@@ -54,7 +55,7 @@ def chrono_ark_adapter() -> GameAdapter:
     """
     global _chrono_ark_adapter
     if _chrono_ark_adapter is None:
-        _chrono_ark_adapter = get_adapter("chrono_ark")
+        _chrono_ark_adapter = ChronoArkAdapter()
     return _chrono_ark_adapter
 
 
@@ -79,9 +80,9 @@ _gguf_download_cancels: dict[str, asyncio.Event] = {}
 _ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 """Path to the backend `.env` configuration file."""
 
-# ---------------------------------------------------------------------------
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
 # Helper functions
-# ---------------------------------------------------------------------------
 
 
 def resolve_source_language(
