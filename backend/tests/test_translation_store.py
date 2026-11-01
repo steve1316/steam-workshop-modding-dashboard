@@ -5,7 +5,6 @@ from backend.data.translation_store import (
     clear_all_translations,
     load_translations,
     load_translations_raw,
-    replace_in_translations,
     save_translations_bulk,
     update_single_translation,
 )
@@ -110,27 +109,6 @@ def test_clear_updates_updated_at(tmp_storage):
     clear_all_translations("12345", ["key1"], game_id=GAME_ID)
     raw2 = load_translations_raw("12345", game_id=GAME_ID)
     assert raw2["key1"]["updated_at"] > original_updated
-
-
-def test_replace_in_translations(tmp_storage):
-    save_translations_bulk("12345", {"key1": "Hello World", "key2": "Goodbye"}, game_id=GAME_ID)
-    replaced = replace_in_translations("12345", "Hello", "Hi", game_id=GAME_ID)
-    assert replaced == 1
-    result = load_translations("12345", game_id=GAME_ID)
-    assert result["key1"] == "Hi World"
-    assert result["key2"] == "Goodbye"
-
-
-def test_replace_updates_only_affected_timestamps(tmp_storage):
-    save_translations_bulk("12345", {"key1": "Hello", "key2": "World"}, game_id=GAME_ID)
-    raw1 = load_translations_raw("12345", game_id=GAME_ID)
-    key2_updated = raw1["key2"]["updated_at"]
-
-    time.sleep(0.01)
-    replace_in_translations("12345", "Hello", "Hi", game_id=GAME_ID)
-    raw2 = load_translations_raw("12345", game_id=GAME_ID)
-    assert raw2["key1"]["updated_at"] > raw1["key1"]["updated_at"]
-    assert raw2["key2"]["updated_at"] == key2_updated
 
 
 def test_save_bulk_creates_mod_directory(tmp_path):

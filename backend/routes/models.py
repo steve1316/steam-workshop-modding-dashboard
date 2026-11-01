@@ -186,13 +186,6 @@ class SettingsUpdate(BaseModel):
     steam_username: str | None = None
 
 
-class GlossaryReplacePreview(BaseModel):
-    """Request body for previewing glossary term replacements."""
-
-    old_english: str
-    new_english: str
-
-
 class OllamaPullRequest(BaseModel):
     """Request body for POST /api/ollama/pull."""
 

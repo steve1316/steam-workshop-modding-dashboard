@@ -22,11 +22,10 @@ from backend.data.suggestion_manager import (
     remove_suggestions,
     save_suggestions,
 )
-from backend.data.translation_store import load_translations, replace_in_translations, save_translations_bulk
+from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
 from backend.routes.helpers import _find_mod_path, _merge_gdata_originals, chrono_ark_adapter, resolve_source_language
 from backend.routes.models import (
-    GlossaryReplacePreview,
     GlossaryTerm,
     ModGlossaryTerm,
     SuggestionAction,
@@ -208,49 +207,6 @@ async def delete_all_mod_glossary_terms(mod_id: str):
     glossary["terms"] = {}
     save_mod_glossary(mod_id, glossary, game_id=GAME_ID)
     return {"status": "success", "deleted": count}
-
-
-@router.post("/mods/{mod_id}/glossary/replace-preview")
-async def glossary_replace_preview(mod_id: str, req: GlossaryReplacePreview):
-    """Preview which translations a glossary term replacement would change.
-
-    Args:
-        mod_id: Mod's Workshop id.
-        req: Old and new English terms.
-
-    Returns:
-        `affected`: list of `{key, old_text, new_text}`.
-    """
-    translations = load_translations(mod_id, game_id=GAME_ID)
-    if not translations:
-        return {"affected": []}
-
-    affected = []
-    for key, english in translations.items():
-        if req.old_english in english:
-            new_text = english.replace(req.old_english, req.new_english)
-            if new_text != english:
-                affected.append({"key": key, "old_text": english, "new_text": new_text})
-
-    return {"affected": affected}
-
-
-@router.post("/mods/{mod_id}/glossary/replace-apply")
-async def glossary_replace_apply(mod_id: str, req: GlossaryReplacePreview):
-    """Apply a glossary term replacement across all translations.
-
-    Args:
-        mod_id: Mod's Workshop id.
-        req: Old and new English terms.
-
-    Returns:
-        `status` and the `replaced` count.
-    """
-    create_backup(mod_id, f"Before replacing '{req.old_english}' with '{req.new_english}'", game_id=GAME_ID)
-
-    replaced = replace_in_translations(mod_id, req.old_english, req.new_english, game_id=GAME_ID)
-
-    return {"status": "success", "replaced": replaced}
 
 
 @router.get("/mods/{mod_id}/glossary/merged")
