@@ -11,6 +11,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+from backend.core.paths import safe_child
 from backend.games.storage_paths import mods_path
 
 
@@ -169,7 +170,10 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = N
         True if the restore was successful, False if the backup was not found.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
-    backup_dir = _history_dir(mod_id, storage_path) / backup_id
+    try:
+        backup_dir = safe_child(_history_dir(mod_id, storage_path), backup_id)
+    except ValueError:
+        return False
 
     if not backup_dir.exists():
         return False
@@ -210,7 +214,10 @@ def delete_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = No
     Returns:
         True if the backup was deleted, False if it was not found.
     """
-    backup_dir = _history_dir(mod_id, storage_path) / backup_id
+    try:
+        backup_dir = safe_child(_history_dir(mod_id, storage_path), backup_id)
+    except ValueError:
+        return False
     if not backup_dir.exists():
         return False
     shutil.rmtree(backup_dir)

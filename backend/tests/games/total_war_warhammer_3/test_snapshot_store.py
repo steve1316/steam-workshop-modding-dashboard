@@ -127,3 +127,13 @@ def test_restoring_a_snapshot_without_a_glossary_keeps_the_current_glossary(monk
     _write_glossary(tmp_path, "abc", {"Phoenix": {"source": "凤", "category": "factions"}})
     restore_snapshot("abc", sid)
     assert _read_glossary_terms(tmp_path, "abc") == {"Phoenix": {"source": "凤", "category": "factions"}}
+
+
+@pytest.mark.parametrize("sid", ["../translations", "..\\translations", ""])
+def test_snapshot_ids_cannot_leave_the_snapshots_dir(monkeypatch, tmp_path: Path, sid: str):
+    _seed_translations(monkeypatch, tmp_path, "abc", {"k1": {"text": "Hello"}})
+    translations = tmp_path / "games" / "total_war_warhammer_3" / "mods" / "abc" / "translations.json"
+    delete_snapshot("abc", sid)
+    assert translations.exists()
+    with pytest.raises(FileNotFoundError):
+        restore_snapshot("abc", sid)

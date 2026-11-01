@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from backend import config
+from backend.core.paths import safe_child
 from backend.translation.game_storage import GameStorage
 from backend.routes.helpers import (
     chrono_ark_adapter,
@@ -907,7 +908,10 @@ async def open_base_game_file(filename: str):
     if base_path is None:
         raise HTTPException(status_code=400, detail="Base game path not configured")
 
-    candidate = base_path / filename
+    try:
+        candidate = safe_child(base_path, filename)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Base game file not found: {filename}")
     if not candidate.is_file():
         raise HTTPException(status_code=404, detail=f"Base game file not found: {filename}")
 

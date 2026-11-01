@@ -18,6 +18,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from backend.core.paths import safe_child
 from backend.games.storage_paths import game_storage_path
 
 GAME_ID = "total_war_warhammer_3"
@@ -156,8 +157,8 @@ def delete_snapshot(mod_id: str, sid: str) -> None:
     index = [e for e in index if e["ulid"] != sid]
     _write_index(mod_id, index)
     try:
-        (_snapshots_dir(mod_id) / f"{sid}.json").unlink(missing_ok=True)
-    except OSError:
+        safe_child(_snapshots_dir(mod_id), f"{sid}.json").unlink(missing_ok=True)
+    except (OSError, ValueError):
         pass
 
 
@@ -176,8 +177,11 @@ def restore_snapshot(mod_id: str, sid: str, *, local_source_dir: Path | None = N
     Raises:
         FileNotFoundError: When the requested snapshot does not exist on disk.
     """
-    snap_path = _snapshots_dir(mod_id) / f"{sid}.json"
-    if not snap_path.exists():
+    try:
+        snap_path = safe_child(_snapshots_dir(mod_id), f"{sid}.json")
+    except ValueError:
+        snap_path = None
+    if snap_path is None or not snap_path.exists():
         raise FileNotFoundError(f"snapshot {sid} not found for mod {mod_id}")
 
     create_snapshot(mod_id, label=f"pre-restore of {sid}", kind="auto", local_source_dir=local_source_dir)

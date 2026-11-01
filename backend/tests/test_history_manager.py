@@ -3,7 +3,9 @@
 import json
 from pathlib import Path
 
-from backend.data.history_manager import create_backup, list_backups
+import pytest
+
+from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 
 
 def _seed(tmp_path: Path, mod_id: str) -> Path:
@@ -42,3 +44,11 @@ def test_list_backups_backfills_missing_kind_as_auto(tmp_path: Path):
     meta_path.write_text(json.dumps(meta), encoding="utf-8")
     backups = list_backups("abc", storage_path=tmp_path)
     assert backups[0]["kind"] == "auto"
+
+
+@pytest.mark.parametrize("backup_id", ["..", ".", "", "../abc", "..\\abc"])
+def test_delete_and_restore_ignore_ids_that_leave_the_history_dir(tmp_path: Path, backup_id: str):
+    mod_dir = _seed(tmp_path, "abc")
+    assert delete_backup("abc", backup_id, storage_path=tmp_path) is False
+    assert restore_backup("abc", backup_id, storage_path=tmp_path) is False
+    assert (mod_dir / "translations.json").exists()
