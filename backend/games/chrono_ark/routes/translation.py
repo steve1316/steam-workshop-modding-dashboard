@@ -7,8 +7,7 @@ import threading
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from backend.core.json_store import write_json
-from backend.core.paths import GameStorage, glossary_path
+from backend.core.paths import glossary_path
 from backend.core.settings import settings
 from backend.data import api_response_log
 from backend.data.character_context import load_character_context
@@ -371,19 +370,7 @@ async def translate_batch(req: BatchTranslationRequest):
     if raw_responses:
         api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=[k for k, _ in entries], raw_responses=raw_responses)
 
-    save_translations_bulk(req.mod_id, translations, game_id=GAME_ID)
-
-    providers_path = GameStorage(GAME_ID).mod_file(req.mod_id, "translation_providers.json")
-    existing_providers: dict[str, str] = {}
-    if providers_path.exists():
-        try:
-            with open(providers_path, encoding="utf-8") as f:
-                existing_providers = json.load(f)
-        except Exception:
-            pass
-    for key in translations:
-        existing_providers[key] = provider_name
-    write_json(providers_path, existing_providers)
+    save_translations_bulk(req.mod_id, translations, game_id=GAME_ID, provider=provider_name)
 
     tracker = ProgressTracker(game_id=GAME_ID)
     tracker.mark_translated(req.mod_id, list(translations.keys()))
@@ -542,7 +529,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                 if raw_responses:
                     api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=[k for k, _ in entries], raw_responses=raw_responses)
 
-                save_translations_bulk(req.mod_id, translations, game_id=GAME_ID)
+                save_translations_bulk(req.mod_id, translations, game_id=GAME_ID, provider=provider_name)
 
                 tracker = ProgressTracker(game_id=GAME_ID)
                 tracker.mark_translated(req.mod_id, list(translations.keys()))

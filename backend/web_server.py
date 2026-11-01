@@ -15,6 +15,7 @@ from backend.routes import settings as settings_routes
 from backend.routes.helpers import chrono_ark_adapter
 from backend.scripts.migrate_storage_v1_to_v2 import run_migration
 from backend.scripts.migrate_storage_v2_to_v3 import run_migration as run_migration_v2_to_v3
+from backend.scripts.migrate_storage_v3_to_v4 import run_migration as run_migration_v3_to_v4
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ async def lifespan(_app: FastAPI):
     """Run storage migrations on startup, which are no-ops once the marker file exists."""
     run_migration()
     run_migration_v2_to_v3()
+    run_migration_v3_to_v4()
     yield
 
 

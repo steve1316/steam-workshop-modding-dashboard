@@ -21,6 +21,7 @@ from backend.data.mod_settings import (
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import (
     clear_all_translations,
+    load_providers,
     load_translations,
     update_single_translation,
 )
@@ -177,14 +178,7 @@ async def get_mod_detail(mod_id: str):
 
     translations = load_translations(mod_id, game_id=GAME_ID)
 
-    providers_path = GameStorage(GAME_ID).mod_file(mod_id, "translation_providers.json")
-    translation_providers: dict[str, str] = {}
-    if providers_path.exists():
-        try:
-            with open(providers_path, encoding="utf-8") as f:
-                translation_providers = json.load(f)
-        except Exception:
-            pass
+    translation_providers = load_providers(mod_id, game_id=GAME_ID)
 
     # Must be captured before saved translations are applied below.
     original_english_map = {key: loc_str.translations.get(target_lang, "") for key, loc_str in strings.items()}
@@ -310,18 +304,7 @@ async def update_string(mod_id: str, update: TranslationUpdate):
         `{"status": "success"}`.
     """
     create_backup(mod_id, f"Before manual edit of '{update.key}'", game_id=GAME_ID)
-    update_single_translation(mod_id, update.key, update.english, game_id=GAME_ID)
-
-    providers_path = GameStorage(GAME_ID).mod_file(mod_id, "translation_providers.json")
-    providers: dict[str, str] = {}
-    if providers_path.exists():
-        try:
-            with open(providers_path, encoding="utf-8") as f:
-                providers = json.load(f)
-        except Exception:
-            pass
-    providers[update.key] = "manual"
-    write_json(providers_path, providers)
+    update_single_translation(mod_id, update.key, update.english, game_id=GAME_ID, provider="manual")
 
     tracker = ProgressTracker(game_id=GAME_ID)
 

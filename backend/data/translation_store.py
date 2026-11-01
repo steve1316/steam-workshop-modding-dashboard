@@ -1,4 +1,4 @@
-"""Read/write for per-mod translations.json, stored as `{key: {text, created_at, updated_at}}` (legacy files were flat `{key: text}`).
+"""Read/write for per-mod translations.json, stored as `{key: {text, created_at, updated_at, provider}}` (legacy files were flat `{key: text}`).
 
 Consumers that only need the text should use `load_translations`, which returns the flat dict for either format.
 """
@@ -104,6 +104,20 @@ def load_translations_raw(mod_id: str, *, game_id: str) -> dict[str, dict]:
     return {key: _normalize_entry(value) for key, value in raw.items()}
 
 
+def load_providers(mod_id: str, *, game_id: str) -> dict[str, str]:
+    """Load which provider wrote each translation.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        game_id: Game the mod belongs to.
+
+    Returns:
+        Localization key to provider id, for keys that record one.
+    """
+    raw = _load_raw_data(_translations_path(mod_id, game_id=game_id))
+    return {key: value["provider"] for key, value in raw.items() if isinstance(value, dict) and value.get("provider")}
+
+
 def save_translations_raw(mod_id: str, data: dict[str, dict], *, game_id: str) -> None:
     """Replace the full timestamped store for a mod.
 
@@ -120,6 +134,7 @@ def save_translations_bulk(
     new_entries: dict[str, str],
     *,
     game_id: str,
+    provider: str | None = None,
 ) -> None:
     """Merge new flat translations into the existing timestamped store.
 
@@ -129,6 +144,7 @@ def save_translations_bulk(
         mod_id: Mod's Workshop id.
         new_entries: Flat `{key: english_text}` to merge.
         game_id: Game the mod belongs to.
+        provider: Provider recorded on every key in `new_entries`, or `None` to keep each key's existing one.
     """
     path = _translations_path(mod_id, game_id=game_id)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
@@ -141,6 +157,8 @@ def save_translations_bulk(
                 existing[key]["updated_at"] = now
         else:
             existing[key] = {"text": text, "created_at": now, "updated_at": now}
+        if provider:
+            existing[key]["provider"] = provider
 
     _save_raw_data(path, existing)
 
@@ -151,6 +169,7 @@ def update_single_translation(
     text: str,
     *,
     game_id: str,
+    provider: str | None = None,
 ) -> None:
     """Update a single translation key for manual edits.
 
@@ -159,6 +178,7 @@ def update_single_translation(
         key: Localization key.
         text: New English text.
         game_id: Game the mod belongs to.
+        provider: Provider to record on the key, or `None` to keep its existing one.
     """
     path = _translations_path(mod_id, game_id=game_id)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
@@ -169,6 +189,8 @@ def update_single_translation(
         existing[key]["updated_at"] = now
     else:
         existing[key] = {"text": text, "created_at": now, "updated_at": now}
+    if provider:
+        existing[key]["provider"] = provider
 
     _save_raw_data(path, existing)
 

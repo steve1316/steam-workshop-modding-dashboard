@@ -3,6 +3,7 @@ import time
 
 from backend.data.translation_store import (
     clear_all_translations,
+    load_providers,
     load_translations,
     load_translations_raw,
     save_translations_bulk,
@@ -115,3 +116,10 @@ def test_save_bulk_creates_mod_directory(tmp_path):
     save_translations_bulk("99999", {"key1": "Hello"}, game_id=GAME_ID)
     result = load_translations("99999", game_id=GAME_ID)
     assert result == {"key1": "Hello"}
+
+
+def test_provider_is_recorded_and_kept_when_omitted(tmp_storage):
+    save_translations_bulk("12345", {"key1": "Hello", "key2": "World"}, game_id=GAME_ID, provider="claude")
+    update_single_translation("12345", "key2", "Earth", game_id=GAME_ID, provider="manual")
+    save_translations_bulk("12345", {"key1": "Hi"}, game_id=GAME_ID)
+    assert load_providers("12345", game_id=GAME_ID) == {"key1": "claude", "key2": "manual"}
