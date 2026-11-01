@@ -35,6 +35,10 @@ interface Backend {
     scanNew?: number
     /** HTTP status for GET /mods/{id}. Defaults to 200. */
     modStatus?: number
+    /** Provider returned by GET /settings. Defaults to "claude". */
+    provider?: string
+    /** Rows returned by GET /mods/{id}. Defaults to the one translated `STRING`. */
+    strings?: (typeof STRING)[]
 }
 
 /**
@@ -49,11 +53,11 @@ function mockBackend(backend: Backend = {}) {
     return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
         const url = String(input)
         const method = init?.method ?? "GET"
-        if (url.endsWith("/settings")) return json({ provider: "claude" })
+        if (url.endsWith("/settings")) return json({ provider: backend.provider ?? "claude" })
         if (url.endsWith(`/mods/${MOD_ID}`))
             return backend.modStatus && backend.modStatus !== 200
                 ? Promise.resolve(new Response(JSON.stringify({ detail: "Mod not found" }), { status: backend.modStatus }))
-                : json({ strings: [STRING], name: "Roland", author: "Author", preview_image: null, url: null })
+                : json({ strings: backend.strings ?? [STRING], name: "Roland", author: "Author", preview_image: null, url: null })
         if (url.endsWith("/export-status")) return json(backend.exportStatus ?? { has_changes: true, has_previous_sync: true })
         if (url.endsWith("/glossary/suggestions/scan") && method === "POST") return json({ status: "success", new: backend.scanNew ?? 0 })
         if (url.endsWith("/glossary/suggestions")) return json(suggestionQueue.length > 1 ? suggestionQueue.shift() : suggestionQueue[0])
@@ -182,5 +186,30 @@ describe("Chrono Ark Details page", () => {
         await waitFor(() => expect(modLoads).toBeGreaterThan(1))
         expect(screen.queryByRole("heading", { name: "Could not load this mod" })).not.toBeInTheDocument()
         expect(screen.getByText("Mook Workshop")).toBeInTheDocument()
+    })
+
+    it("steps through missing rows by hand when the provider is Manual", async () => {
+        const missing = { ...STRING, key: "Character/Roland_Name", source: "罗兰", english: "", is_translated: false, original_english: "", translated_by: "" }
+        const description = { ...STRING, key: "Character/Roland_Description", source: "图书馆的客人", english: "A guest of the Library", is_synced: true }
+        const fetchSpy = mockBackend({ provider: "manual", strings: [missing, description] })
+        renderPage()
+        await userEvent.click(await screen.findByRole("button", { name: "Translate (Manual)" }))
+        const dialog = await screen.findByRole("dialog", { name: "Manual Translation" })
+        expect(within(dialog).getByText("1 of 1")).toBeInTheDocument()
+        expect(within(dialog).getByText("A guest of the Library")).toBeInTheDocument()
+        await userEvent.click(within(dialog).getByRole("button", { name: "Use" }))
+        await userEvent.type(within(dialog).getByRole("textbox"), "{Control>}{Enter}{/Control}")
+        expect(await within(dialog).findByText(/Saved 1 of 1/)).toBeInTheDocument()
+        const call = fetchSpy.mock.calls.find(([url, init]) => String(url).endsWith(`/mods/${MOD_ID}/strings`) && init?.method === "POST")
+        expect(JSON.parse(String(call?.[1]?.body))).toEqual({ key: "Character/Roland_Name", english: "Roland" })
+        expect(fetchSpy.mock.calls.some(([url]) => String(url).includes("/translate/preview"))).toBe(false)
+    })
+
+    it("reports nothing to do in Manual mode when no rows are missing", async () => {
+        mockBackend({ provider: "manual" })
+        renderPage()
+        await userEvent.click(await screen.findByRole("button", { name: "Translate (Manual)" }))
+        expect(await screen.findByText("All strings are already translated.")).toBeInTheDocument()
+        expect(screen.queryByRole("dialog", { name: "Manual Translation" })).not.toBeInTheDocument()
     })
 })

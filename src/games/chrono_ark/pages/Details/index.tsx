@@ -11,6 +11,7 @@ import TranslationConfirmModal from "../../../../components/TranslationConfirmMo
 import ApiResponsesModal from "../../components/ApiResponsesModal"
 import BackupHistoryModal from "../../components/BackupHistoryModal"
 import ChronoArkGlossaryModal from "../../components/ChronoArkGlossaryModal"
+import ManualTranslateModal from "../../components/ManualTranslateModal"
 import ConfirmModal from "../../../../components/ConfirmModal"
 import { TranslationPage } from "../../../../translation/TranslationPage"
 import ErrorState from "../../../../ui/ErrorState"
@@ -83,6 +84,7 @@ const ModDetail: React.FC = () => {
     const [pendingProvider, setPendingProvider] = useState<string>("")
     const [activeProvider, setActiveProvider] = useState<string>("")
     const [showGlossary, setShowGlossary] = useState(false)
+    const [manualQueue, setManualQueue] = useState<LocString[] | null>(null)
     const [translateBanner, setTranslateBanner] = useState<{ type: "success" | "error"; message: string } | null>(null)
     const { suggestions, refresh: fetchSuggestions, scan, scanning } = usePendingSuggestions("chrono_ark", modId ?? "", setTranslateBanner)
 
@@ -179,6 +181,13 @@ const ModDetail: React.FC = () => {
     const handleTranslateClick = async (provider: string, retranslate = false) => {
         if (!modId) return
         setTranslateBanner(null)
+        // Manual mode has no backend run. It steps through the rows in a dialog instead.
+        if ((provider || activeProvider) === "manual") {
+            const queue = strings.filter((s) => (retranslate ? s.source.trim() && !s.untranslatable_reason : getRowStatus(s) === "missing"))
+            if (queue.length === 0) setTranslateBanner({ type: "success", message: "All strings are already translated." })
+            else setManualQueue(queue)
+            return
+        }
         try {
             // POST /api/games/chrono_ark/translate/preview — returns { total_strings, total_batches, batch_size, provider, previews, estimates }
             const res = await gameApi("chrono_ark").post("/translate/preview", { mod_id: modId, provider, retranslate })
@@ -335,9 +344,10 @@ const ModDetail: React.FC = () => {
      *
      * @param key - The localization key to update.
      * @param newValue - The new English translation text.
+     * @returns Whether the save succeeded.
      */
-    const handleSaveString = async (key: string, newValue: string) => {
-        if (!modId) return
+    const handleSaveString = async (key: string, newValue: string): Promise<boolean> => {
+        if (!modId) return false
         try {
             const res = await gameApi("chrono_ark").post(`/mods/${modId}/strings`, { key, english: newValue })
             if (res.ok) {
@@ -350,10 +360,12 @@ const ModDetail: React.FC = () => {
                     )
                 )
                 fetchExportStatus()
+                return true
             }
         } catch (err) {
             console.error("Failed to save manual translation:", err)
         }
+        return false
     }
 
     // Uses pointer events with setPointerCapture for reliable cross-browser drag
@@ -704,6 +716,18 @@ const ModDetail: React.FC = () => {
                                 })
                             }
                             onDelete={(entry) => setConfirmModal({ type: "delete-backup", message: "Delete this backup?", entryId: entry.id })}
+                        />
+                    )}
+
+                    {manualQueue && (
+                        <ManualTranslateModal
+                            queue={manualQueue}
+                            allStrings={strings}
+                            glossary={modGlossary}
+                            sourceLanguage={sourceLangOverride || "Chinese"}
+                            targetLanguage={targetLangOverride || "English"}
+                            onSave={handleSaveString}
+                            onClose={() => setManualQueue(null)}
                         />
                     )}
 
