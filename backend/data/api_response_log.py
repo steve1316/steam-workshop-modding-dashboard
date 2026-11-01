@@ -1,26 +1,24 @@
-"""Append-only audit log of LLM API calls per WH3 mod, bounded to the last 20 entries.
+"""Per-mod log of LLM API calls, bounded to the last `MAX_ENTRIES` calls.
 
 Stored as a JSON array (newest last on disk), and `list_entries` returns newest first.
 """
 
-from __future__ import annotations
-
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.core.paths import game_storage_path
-from backend.games.total_war_warhammer_3 import GAME_ID
+from backend.core.paths import mods_path
 
-MAX_ENTRIES = 20
-
-
-def _path(mod_id: str) -> Path:
-    return game_storage_path(GAME_ID) / "mods" / mod_id / "api_responses.json"
+MAX_ENTRIES = 50
 
 
-def _load(mod_id: str) -> list[dict]:
-    p = _path(mod_id)
+def _path(mod_id: str, game_id: str) -> Path:
+    return mods_path(game_id) / mod_id / "api_responses.json"
+
+
+def _load(mod_id: str, game_id: str) -> list[dict]:
+    p = _path(mod_id, game_id)
     if not p.exists():
         return []
     try:
@@ -31,36 +29,32 @@ def _load(mod_id: str) -> list[dict]:
         return []
 
 
-def _save(mod_id: str, entries: list[dict]) -> None:
-    p = _path(mod_id)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    write_json(p, entries)
-
-
-def append(mod_id: str, entry: dict) -> None:
-    """Append one API response entry to the mod's log.
+def append(mod_id: str, entry: dict, *, game_id: str) -> None:
+    """Append one API call entry to the mod's log, dropping the oldest past `MAX_ENTRIES`.
 
     Args:
-        mod_id: Workshop id of the WH3 mod.
-        entry: Audit entry dict.
+        mod_id: Mod's Workshop id.
+        entry: Log entry dict.
+        game_id: Game the mod belongs to.
     """
-    entries = _load(mod_id)
+    entries = _load(mod_id, game_id)
     entries.append(entry)
-    if len(entries) > MAX_ENTRIES:
-        entries = entries[-MAX_ENTRIES:]
-    _save(mod_id, entries)
+    p = _path(mod_id, game_id)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    write_json(p, entries[-MAX_ENTRIES:])
 
 
-def list_entries(mod_id: str) -> list[dict]:
-    """List a mod's API response entries, newest first.
+def list_entries(mod_id: str, *, game_id: str) -> list[dict]:
+    """List a mod's API call entries, newest first.
 
     Args:
-        mod_id: Workshop id of the WH3 mod.
+        mod_id: Mod's Workshop id.
+        game_id: Game the mod belongs to.
 
     Returns:
-        Audit entries, empty if no log exists.
+        Log entries, empty if no log exists.
     """
-    return list(reversed(_load(mod_id)))
+    return list(reversed(_load(mod_id, game_id)))
 
 
 def provider_call_fields(raw_responses: list[dict], error: str | None = None) -> dict:
@@ -93,3 +87,18 @@ def provider_call_fields(raw_responses: list[dict], error: str | None = None) ->
         "cost_usd": total("cost_usd"),
         "raw_response": "\n\n".join(texts),
     }
+
+
+def log_batch_call(mod_id: str, *, game_id: str, provider: str, keys: list[str], raw_responses: list[dict], error: str | None = None) -> None:
+    """Record one translate-batch provider call, with the provider's raw reply text.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        game_id: Game the mod belongs to.
+        provider: Provider id that ran the batch.
+        keys: Keys sent.
+        raw_responses: Provider's raw response records for this batch.
+        error: Error message when the call failed.
+    """
+    entry = {"timestamp": datetime.now(UTC).isoformat(), "kind": "translate-batch", "provider": provider, **provider_call_fields(raw_responses, error=error), "keys_or_inputs": keys}
+    append(mod_id, entry, game_id=game_id)

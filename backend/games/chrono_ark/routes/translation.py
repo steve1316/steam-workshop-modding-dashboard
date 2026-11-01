@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from backend.core.json_store import write_json
 from backend.core.paths import GameStorage, glossary_path
 from backend.core.settings import settings
+from backend.data import api_response_log
 from backend.data.character_context import load_character_context
 from backend.data.glossary_manager import (
     extract_name_key_suggestions,
@@ -31,7 +32,6 @@ from backend.routes.helpers import (
     _filter_suggestions,
     _find_mod_path,
     _merge_gdata_originals,
-    _stamp_raw_responses,
     chrono_ark_adapter,
     resolve_source_language,
 )
@@ -332,11 +332,8 @@ async def translate_batch(req: BatchTranslationRequest):
 
     provider = _web_provider(provider_name)
 
-    # Backup and raw-response reset happen only on the first batch.
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
-        if hasattr(provider, "last_raw_responses"):
-            provider.last_raw_responses = []
 
     base_glossary = load_glossary(glossary_path(GAME_ID))
     mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
@@ -370,21 +367,9 @@ async def translate_batch(req: BatchTranslationRequest):
         if source_text and english:
             tm.store(source_text, english, req.source_lang)
 
-    # Raw responses accumulate across batches.
     raw_responses = getattr(provider, "last_raw_responses", [])
     if raw_responses:
-        _stamp_raw_responses(raw_responses)
-        responses_path = GameStorage(GAME_ID).mod_file(req.mod_id, "last_api_responses.json")
-        responses_path.parent.mkdir(parents=True, exist_ok=True)
-        existing_responses = []
-        if not req.is_first_batch and responses_path.exists():
-            try:
-                with open(responses_path, encoding="utf-8") as f:
-                    existing_responses = json.load(f)
-            except Exception:
-                pass
-        existing_responses.extend(raw_responses)
-        write_json(responses_path, existing_responses)
+        api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=[k for k, _ in entries], raw_responses=raw_responses)
 
     save_translations_bulk(req.mod_id, translations, game_id=GAME_ID)
 
@@ -484,8 +469,6 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
 
     if req.is_first_batch:
         create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
-        if hasattr(provider, "last_raw_responses"):
-            provider.last_raw_responses = []
 
     base_glossary = load_glossary(glossary_path(GAME_ID))
     mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
@@ -557,18 +540,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
 
                 raw_responses = getattr(provider, "last_raw_responses", [])
                 if raw_responses:
-                    _stamp_raw_responses(raw_responses)
-                    responses_path = GameStorage(GAME_ID).mod_file(req.mod_id, "last_api_responses.json")
-                    responses_path.parent.mkdir(parents=True, exist_ok=True)
-                    existing_responses = []
-                    if not req.is_first_batch and responses_path.exists():
-                        try:
-                            with open(responses_path, encoding="utf-8") as f:
-                                existing_responses = json.load(f)
-                        except Exception:
-                            pass
-                    existing_responses.extend(raw_responses)
-                    write_json(responses_path, existing_responses)
+                    api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=[k for k, _ in entries], raw_responses=raw_responses)
 
                 save_translations_bulk(req.mod_id, translations, game_id=GAME_ID)
 

@@ -14,12 +14,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.core.settings import settings
-from backend.data import mod_settings, suggestion_manager, translation_store
+from backend.data import api_response_log, mod_settings, suggestion_manager, translation_store
 from backend.data.glossary_manager import get_combined_glossary_prompt
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _t
-from backend.games.total_war_warhammer_3.stores import api_responses as api_responses_store
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation import context as tc
 from backend.games.total_war_warhammer_3.translation.drift import compute_drift, entry_text
@@ -308,27 +307,6 @@ async def preview(req: TranslationRequest) -> dict:
     return result
 
 
-def _log_batch_call(mod_id: str, keys: list[str], raw_responses: list[dict], error: str | None = None) -> None:
-    """Record a translate-batch Claude call in the mod's API-responses log, with Claude's raw reply text.
-
-    Args:
-        mod_id: Workshop id of the WH3 mod.
-        keys: Keys sent.
-        raw_responses: Provider's raw response records for this batch.
-        error: Error message when the call failed.
-    """
-    api_responses_store.append(
-        mod_id,
-        {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "kind": "translate-batch",
-            "provider": "claude",
-            **api_responses_store.provider_call_fields(raw_responses, error=error),
-            "keys_or_inputs": keys,
-        },
-    )
-
-
 @router.post("/batch")
 async def translate_batch(req: BatchTranslationRequest) -> dict:
     """Translate one batch of keys via Claude and persist into translations.json.
@@ -382,7 +360,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
             target_lang=target_lang,
         )
     except Exception as e:
-        _log_batch_call(req.mod_id, keys, provider.last_raw_responses, error=str(e))
+        api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider="claude", keys=keys, raw_responses=provider.last_raw_responses, error=str(e))
         raise HTTPException(status_code=502, detail=str(e)) from e
 
     # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps Claude's raw output.
@@ -407,7 +385,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     # Each saved row was translated from the current source, so that source becomes its baseline. It shows as pending until Sync.
     save_parent_snapshot(req.mod_id, accept_keys(load_parent_snapshot(req.mod_id), parent, set(spaced)))
 
-    _log_batch_call(req.mod_id, keys, provider.last_raw_responses)
+    api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider="claude", keys=keys, raw_responses=provider.last_raw_responses)
 
     return {"status": "success", "translated": len(spaced), "translations": spaced, "suggestions": suggestions}
 

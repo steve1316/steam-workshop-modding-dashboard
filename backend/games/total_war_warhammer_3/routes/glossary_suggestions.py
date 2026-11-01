@@ -11,12 +11,11 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 
-from backend.data import suggestion_manager
+from backend.data import api_response_log, suggestion_manager
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _tr
 from backend.games.total_war_warhammer_3.routes.translation import _extract_all_parent_strings
-from backend.games.total_war_warhammer_3.stores import api_responses as api_responses_store
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
 from backend.games.total_war_warhammer_3.translation.mods import get_translation_mod
@@ -155,7 +154,7 @@ def _log_call(mod_id: str, kind: str, keys: list[str], suggestions: list[dict]) 
         keys: Keys sent.
         suggestions: What Claude returned.
     """
-    api_responses_store.append(
+    api_response_log.append(
         mod_id,
         {
             "timestamp": datetime.now(UTC).isoformat(),
@@ -168,6 +167,7 @@ def _log_call(mod_id: str, kind: str, keys: list[str], suggestions: list[dict]) 
             "keys_or_inputs": keys,
             "raw_response": json.dumps(suggestions, ensure_ascii=False),
         },
+        game_id=GAME_ID,
     )
 
 

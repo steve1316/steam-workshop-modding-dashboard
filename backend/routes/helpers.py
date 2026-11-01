@@ -6,7 +6,6 @@ import asyncio
 import hashlib
 import json
 import threading
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -100,21 +99,6 @@ def resolve_source_language(
             return override
         return None
     return chrono_ark_adapter().detect_source_language(loc_str)
-
-
-def _stamp_raw_responses(responses: list[dict]) -> list[dict]:
-    """Add an ISO-8601 UTC `timestamp` to each raw API response dict.
-
-    Args:
-        responses: Provider response dicts.
-
-    Returns:
-        The same list, modified in place.
-    """
-    now = datetime.now(UTC).isoformat()
-    for r in responses:
-        r["timestamp"] = now
-    return responses
 
 
 def _fill_duplicate_translations(

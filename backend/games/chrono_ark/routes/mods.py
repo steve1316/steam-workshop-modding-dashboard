@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from backend.core.json_store import write_json
 from backend.core.os_open import open_path, reveal_path
 from backend.core.paths import GameStorage, safe_child
+from backend.data import api_response_log
 from backend.data.character_context import load_character_context, save_character_context
 from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 from backend.data.mod_settings import (
@@ -490,7 +491,7 @@ async def reset_mod(mod_id: str):
         "last_export.json",
         "last_csv_hash.json",
         "pre_export_english.json",
-        "last_api_responses.json",
+        "api_responses.json",
     ]
     dirs_to_delete = ["original_csvs", "original_gdata"]
 
@@ -950,16 +951,12 @@ async def delete_history(mod_id: str, backup_id: str):
 
 @router.get("/mods/{mod_id}/api-responses")
 async def get_api_responses(mod_id: str):
-    """Get the raw API responses from the last translation run.
+    """List a mod's API call entries, newest first.
 
     Args:
         mod_id: Mod's Workshop id.
 
     Returns:
-        Response dicts with batch_index, model, input_tokens, output_tokens, and raw_text.
+        Log entries with `timestamp`, `kind`, `provider`, `model`, token counts, `cost_usd`, `keys_or_inputs` and `raw_response`.
     """
-    responses_path = GameStorage(GAME_ID).mod_file(mod_id, "last_api_responses.json")
-    if not responses_path.exists():
-        return []
-    with open(responses_path, encoding="utf-8") as f:
-        return json.load(f)
+    return api_response_log.list_entries(mod_id, game_id=GAME_ID)

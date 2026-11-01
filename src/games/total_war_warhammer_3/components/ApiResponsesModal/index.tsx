@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 
 import { listApiResponses } from "../../translationApi"
-import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
+import { ApiResponsesModal as SharedApiResponsesModal, toApiResponseEntry, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
 
 /** Props for `ApiResponsesModal`. */
 interface ApiResponsesModalProps {
@@ -27,19 +27,7 @@ const ApiResponsesModal: React.FC<ApiResponsesModalProps> = ({ workshopId, onClo
             try {
                 const data = await listApiResponses(workshopId)
                 if (!cancelled) {
-                    setEntries(
-                        data.map((e, i) => ({
-                            id: `${e.timestamp}-${i}`,
-                            kind: e.kind,
-                            timestamp: e.timestamp,
-                            model: e.model,
-                            inputTokens: e.input_tokens,
-                            outputTokens: e.output_tokens,
-                            costUsd: e.cost_usd,
-                            keysOrInputs: e.keys_or_inputs,
-                            rawText: e.raw_response,
-                        }))
-                    )
+                    setEntries(data.map(toApiResponseEntry))
                 }
             } catch (e) {
                 if (!cancelled) setError((e as Error).message)

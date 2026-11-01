@@ -1,18 +1,7 @@
 import { useEffect, useState } from "react"
 import { gameApi } from "../../../../api/games"
-import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
-
-/** One recorded provider API response for a Chrono Ark translation batch. */
-interface CaApiResponse {
-    model: string
-    /** Prompt token count, when reported. */
-    input_tokens?: number | null
-    /** Completion token count, when reported. */
-    output_tokens?: number | null
-    /** Estimated USD cost, when available. */
-    cost_usd?: number | null
-    raw_text: string
-}
+import type { ApiLogEntry } from "../../../../shared_types"
+import { ApiResponsesModal as SharedApiResponsesModal, toApiResponseEntry, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
 
 /** Props for ApiResponsesModal. */
 interface ApiResponsesModalProps {
@@ -37,10 +26,8 @@ export default function ApiResponsesModal({ modId, onClose }: ApiResponsesModalP
             try {
                 const res = await gameApi("chrono_ark").get(`/mods/${modId}/api-responses`)
                 if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                const data: CaApiResponse[] = await res.json()
-                if (!cancelled) {
-                    setEntries(data.map((e, i) => ({ id: String(i), model: e.model, inputTokens: e.input_tokens, outputTokens: e.output_tokens, costUsd: e.cost_usd, rawText: e.raw_text })))
-                }
+                const data: ApiLogEntry[] = await res.json()
+                if (!cancelled) setEntries(data.map(toApiResponseEntry))
             } catch (err) {
                 if (!cancelled) setError((err as Error).message)
             } finally {

@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from backend.core.os_open import open_path
 from backend.core.settings import settings
-from backend.data import character_context, mod_settings, translation_store
+from backend.data import api_response_log, character_context, mod_settings, translation_store
 from backend.data.mod_settings import (
     load_source_language_override,
     load_target_language_override,
@@ -38,7 +38,6 @@ from backend.games.total_war_warhammer_3.loc.packer import (
 )
 from backend.games.total_war_warhammer_3.loc.writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
 from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, tw3_workshop_content_dir
-from backend.games.total_war_warhammer_3.stores import api_responses as api_responses_store
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
 from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
@@ -945,7 +944,7 @@ def get_api_responses(mod_id: str) -> list[dict]:
         Audit entries, empty if no log exists.
     """
     _require_mod(mod_id)
-    return api_responses_store.list_entries(mod_id)
+    return api_response_log.list_entries(mod_id, game_id=GAME_ID)
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////

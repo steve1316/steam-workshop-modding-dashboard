@@ -2,9 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import ApiResponsesModal from "../../../../games/total_war_warhammer_3/components/ApiResponsesModal"
-import type { WH3ApiResponseEntry } from "../../../../shared_types"
+import type { ApiLogEntry } from "../../../../shared_types"
 
-const ENTRIES: WH3ApiResponseEntry[] = [
+const ENTRIES: ApiLogEntry[] = [
     {
         timestamp: "2026-05-25T01:00:00Z",
         kind: "translate-batch",

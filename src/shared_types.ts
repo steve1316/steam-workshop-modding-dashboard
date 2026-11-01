@@ -206,8 +206,8 @@ export interface WH3SnapshotMeta {
     kind: "auto" | "manual"
 }
 
-/** One entry in `GET /translation/mods/{id}/api-responses`. */
-export interface WH3ApiResponseEntry {
+/** One entry in a mod's `api-responses` log, the same shape for every game. */
+export interface ApiLogEntry {
     /** ISO timestamp. */
     timestamp: string
     kind: "translate-batch" | "scan-terms" | "suggest-edits"

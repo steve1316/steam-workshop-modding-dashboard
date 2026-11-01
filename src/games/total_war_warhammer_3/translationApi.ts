@@ -1,7 +1,7 @@
 import type {
     Glossary,
     TermSuggestion,
-    WH3ApiResponseEntry,
+    ApiLogEntry,
     WH3DriftRow,
     WH3DriftStatus,
     WH3GlossaryEntry,
@@ -327,7 +327,7 @@ export async function glossarySuggestEdits(workshopId: string): Promise<{ status
  * @param workshopId Translation mod Workshop id.
  * @returns Audit entries.
  */
-export async function listApiResponses(workshopId: string): Promise<WH3ApiResponseEntry[]> {
+export async function listApiResponses(workshopId: string): Promise<ApiLogEntry[]> {
     const res = await api.get(`/translation/mods/${encodeURIComponent(workshopId)}/api-responses`)
     if (!res.ok) throw await registryError(res)
     return res.json()

@@ -5,9 +5,9 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
+from backend.data.api_response_log import append
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
-from backend.games.total_war_warhammer_3.stores.api_responses import append
 from backend.games.total_war_warhammer_3.stores.snapshots import list_snapshots
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from fastapi import FastAPI
@@ -458,6 +458,7 @@ def test_get_api_responses_returns_logged_entries(client: TestClient):
             "keys_or_inputs": ["k1"],
             "raw_response": "{}",
         },
+        game_id="total_war_warhammer_3",
     )
 
     resp = client.get(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/api-responses")

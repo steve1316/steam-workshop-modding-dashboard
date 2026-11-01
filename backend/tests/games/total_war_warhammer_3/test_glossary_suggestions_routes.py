@@ -8,10 +8,10 @@ from types import SimpleNamespace
 
 import pytest
 from backend.data import suggestion_manager, translation_store
+from backend.data.api_response_log import list_entries
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
-from backend.games.total_war_warhammer_3.stores.api_responses import list_entries
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -138,7 +138,7 @@ def test_scan_saves_new_terms_and_skips_ones_already_in_the_glossary(client: Tes
     assert resp.status_code == 200
     assert resp.json() == {"status": "success", "new": 1}
     assert _remaining_terms() == {"Lord"}
-    assert any(e["kind"] == "scan-terms" for e in list_entries(MOD_ID))
+    assert any(e["kind"] == "scan-terms" for e in list_entries(MOD_ID, game_id=GAME_ID))
 
 
 def test_scan_does_not_duplicate_a_term_that_is_already_pending(client: TestClient, fake_claude):
@@ -157,7 +157,7 @@ def test_suggest_edits_saves_suggestions_for_review(client: TestClient, fake_cla
     assert resp.json() == {"status": "success", "new": 1}
     # Claude joined the name, and it is saved with spaced syllables.
     assert _remaining_terms() == {"[Sentinel] Sui Tang"}
-    assert any(e["kind"] == "suggest-edits" for e in list_entries(MOD_ID))
+    assert any(e["kind"] == "suggest-edits" for e in list_entries(MOD_ID, game_id=GAME_ID))
 
 
 def test_accepting_an_edit_suggestion_renames_the_old_term(client: TestClient):
