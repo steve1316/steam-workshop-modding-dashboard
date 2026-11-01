@@ -162,7 +162,7 @@ async def estimate_all_translation_costs(request: Request):
                 character_context = char_ctx if any(char_ctx.values()) else None
 
                 for lang, entries in by_lang.items():
-                    glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang, target_lang=target_lang)
+                    glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang, target_lang=mod_target_lang)
                     estimates[lang] = provider.estimate_cost(
                         entries,
                         source_lang=lang,
