@@ -15,13 +15,17 @@ from pydantic import BaseModel
 
 from backend.core.settings import settings
 from backend.data import mod_settings, suggestion_manager, translation_store
-from backend.games.total_war_warhammer_3 import GAME_ID
+from backend.data.glossary_manager import get_combined_glossary_prompt
+from backend.games.total_war_warhammer_3 import GAME_ID, api_responses_store, glossary_store
+from backend.games.total_war_warhammer_3 import translation_context as tc
+from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes import translation as _t
 from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
-from backend.games.total_war_warhammer_3.translation_drift import entry_text
+from backend.games.total_war_warhammer_3.translation_drift import compute_drift, entry_text
 from backend.providers.base import Revision
+from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.translation.orchestrator import chunk_entries, run_batch
 
@@ -53,17 +57,17 @@ def _glossary_prompt(mod_id: str, source_lang: str, target_lang: str, mod=None) 
     Returns:
         Combined glossary prompt, or a placeholder when no terms apply.
     """
-    base_glossary = _t.glossary_store.load_base_glossary()
-    mod_terms = _t.glossary_store.mod_glossary_as_terms(mod_id, source_lang)
+    base_glossary = glossary_store.load_base_glossary()
+    mod_terms = glossary_store.mod_glossary_as_terms(mod_id, source_lang)
     if mod is not None and mod_settings.load_include_translated_names(mod_id, game_id=GAME_ID):
         for term in _translated_name_terms(mod, mod_id):
             mod_terms["terms"][term["english"]] = {"english": term["english"], "category": term["category"], "key": "", "source_mappings": {source_lang: term["source"]}}
-    prompt = _t.get_combined_glossary_prompt(
+    prompt = get_combined_glossary_prompt(
         base_glossary,
         mod_terms,
         source_lang=source_lang,
         target_lang=target_lang,
-        allowed_categories=_t.tc.BASE_GLOSSARY_PROMPT_CATEGORIES,
+        allowed_categories=tc.BASE_GLOSSARY_PROMPT_CATEGORIES,
     )
     return prompt or "No glossary available."
 
@@ -81,7 +85,7 @@ def _overlaid_rows(mod, mod_id: str) -> tuple[list, dict[str, str]]:
     parent = _t._extract_all_parent_strings(mod)
     translation = _t._extract_translation_strings(mod)
     snapshot = load_parent_snapshot(mod_id)
-    drift = _t.compute_drift(parent=parent, translation=translation, snapshot=snapshot)
+    drift = compute_drift(parent=parent, translation=translation, snapshot=snapshot)
     overlaid = _t._overlay_translations(drift, translation_store.load_translations_raw(mod_id, game_id=GAME_ID))
 
     src_by_key: dict[str, str] = {}
@@ -106,7 +110,7 @@ def _translated_name_terms(mod, mod_id: str, categories: list[str] | None = None
         `{english, source, category}` dicts in parent order.
     """
     overlaid, src_by_key = _overlaid_rows(mod, mod_id)
-    glossary = _t.glossary_store.load_glossary(mod_id)
+    glossary = glossary_store.load_glossary(mod_id)
     known_sources = {info.get("source") for info in glossary.values() if info.get("source")}
     keep = glossary_words(glossary)
 
@@ -154,7 +158,7 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
     """
     parent = _t._extract_all_parent_strings(mod)
     snapshot = load_parent_snapshot(mod_id)
-    drift = _t.compute_drift(parent=parent, translation=_t._extract_translation_strings(mod), snapshot=snapshot)
+    drift = compute_drift(parent=parent, translation=_t._extract_translation_strings(mod), snapshot=snapshot)
     entries: list[tuple[str, str]] = []
     revisions: dict[str, Revision] = {}
     for row in _t._overlay_translations(drift, translation_store.load_translations_raw(mod_id, game_id=GAME_ID)):
@@ -179,8 +183,8 @@ async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "En
     Returns:
         Dict with `provider`, `source_lang` and `system_prompt`.
     """
-    provider = _t.ClaudeProvider()
-    adapter = _t.TotalWarWarhammer3Adapter()
+    provider = ClaudeProvider()
+    adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = adapter.get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang) or "No glossary available."
     system_prompt, _ = provider.build_prompt(
         [("example_unit_description", "示例文本")],
@@ -247,9 +251,9 @@ async def preview(req: TranslationRequest) -> dict:
     else:
         chunks = chunk_entries(entries, batch_size, max_chars)
 
-    provider = _t.ClaudeProvider()
+    provider = ClaudeProvider()
     provider.revisions = revisions or None
-    adapter = _t.TotalWarWarhammer3Adapter()
+    adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = _glossary_prompt(req.mod_id, source_lang, target_lang, mod=mod)
     game_context = adapter.get_translation_context()
     format_rules = adapter.get_format_preservation_rules()
@@ -311,13 +315,13 @@ def _log_batch_call(mod_id: str, keys: list[str], raw_responses: list[dict], err
         raw_responses: Provider's raw response records for this batch.
         error: Error message when the call failed.
     """
-    _t.api_responses_store.append(
+    api_responses_store.append(
         mod_id,
         {
             "timestamp": datetime.now(UTC).isoformat(),
             "kind": "translate-batch",
             "provider": "claude",
-            **_t.api_responses_store.provider_call_fields(raw_responses, error=error),
+            **api_responses_store.provider_call_fields(raw_responses, error=error),
             "keys_or_inputs": keys,
         },
     )
@@ -356,9 +360,9 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     if not entries:
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
 
-    adapter = _t.TotalWarWarhammer3Adapter()
+    adapter = TotalWarWarhammer3Adapter()
     glossary_prompt = _glossary_prompt(req.mod_id, source_lang, target_lang, mod=mod)
-    provider = _t.ClaudeProvider()
+    provider = ClaudeProvider()
     provider.revisions = revisions or None
     provider.last_raw_responses = []
     keys = [k for k, _ in entries]
@@ -381,7 +385,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
 
     # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps Claude's raw output.
     # Words the mod glossary spells joined ("Fu Yuanshan") are kept.
-    existing_glossary = _t.glossary_store.load_glossary(req.mod_id)
+    existing_glossary = glossary_store.load_glossary(req.mod_id)
     keep = glossary_words(existing_glossary)
     source_by_key = dict(entries)
     spaced = {key: space_pinyin_names(source_by_key.get(key, ""), text, keep) for key, text in translations.items()}

@@ -13,6 +13,7 @@ from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translate as translate_module
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.providers.claude_provider import ClaudeProvider
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -522,7 +523,7 @@ def test_system_prompt_is_built_from_the_wh3_context_rules_and_claude(client):
     res = client.get("/api/games/total_war_warhammer_3/translate/system-prompt", params={"source_lang": "Chinese"})
     assert res.status_code == 200
     body = res.json()
-    assert body["provider"] == routes_module.ClaudeProvider().name
+    assert body["provider"] == ClaudeProvider().name
     assert body["source_lang"] == "Chinese"
     prompt = body["system_prompt"]
     assert "Total War: Warhammer III" in prompt
@@ -705,3 +706,35 @@ def test_translate_batch_after_clearing_a_changed_row_is_not_changed(client: Tes
     assert resp.status_code == 200
     rows = client.get(STRINGS_URL).json()
     assert next(r for r in rows if r["key"] == "k1")["canonical_status"] != "changed"
+
+
+def test_batch_prompt_includes_base_glossary_stats_but_not_regions(client: TestClient, monkeypatch, tmp_path: Path):
+    """The batch prompt carries base glossary terms from the allowed categories only."""
+    gpath = tmp_path / "games" / "total_war_warhammer_3" / "glossary.json"
+    gpath.parent.mkdir(parents=True, exist_ok=True)
+    terms = {
+        "Armour": {"english": "Armour", "category": "stats", "key": "k1", "source_mappings": {"Chinese": "护甲"}},
+        "The Black Pit": {"english": "The Black Pit", "category": "regions", "key": "k2", "source_mappings": {"Chinese": "黑暗深渊"}},
+    }
+    gpath.write_text(json.dumps({"terms": terms}), encoding="utf-8")
+    captured = {}
+
+    def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
+        captured["prompt"] = glossary_prompt
+        return ({k: "X" for k, _ in entries}, [])
+
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese", "is_first_batch": True})
+    assert resp.status_code == 200
+    assert "Armour" in captured["prompt"]
+    assert "Black Pit" not in captured["prompt"]
+
+
+def test_batch_splits_joined_pinyin_names(client: TestClient, monkeypatch, tmp_path: Path):
+    """Joined pinyin names in a batch reply are saved with spaced syllables."""
+    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"k2": LocRow("k2", "新文本", True)}})
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, *a, **k: ({"k2": "Xinwen"}, []))
+    resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese", "is_first_batch": True})
+    assert resp.status_code == 200
+    raw = json.loads((tmp_path / "games" / GAME_ID / "mods" / "3315737452" / "translations.json").read_text(encoding="utf-8"))
+    assert raw["k2"]["text"] == "Xin Wen"

@@ -11,7 +11,6 @@ from pathlib import Path
 import pytest
 from backend.data import translation_store
 from backend.games.total_war_warhammer_3 import GAME_ID
-from backend.games.total_war_warhammer_3.api_responses_store import list_entries
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
@@ -161,49 +160,6 @@ def test_mod_context_round_trip(client: TestClient):
     assert got["background"] == "Cathay units."
 
 
-def test_translate_batch_calls_claude_and_saves_results(client: TestClient, monkeypatch):
-    """The batch endpoint hands untranslated rows to ClaudeProvider and persists results.
-
-    `ClaudeProvider.translate_batch` takes `entries: list[tuple[str, str]]` and
-    builds the system prompt internally - the route should pass game_context,
-    format_rules, style_examples, target_lang as separate kwargs.
-    """
-    calls: dict = {}
-
-    def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
-        calls["source_lang"] = source_lang
-        calls["target_lang"] = kwargs.get("target_lang", "English")
-        calls["game_context"] = kwargs.get("game_context", "")
-        calls["keys"] = [k for k, _ in entries]
-        return ({k: f"EN({v})" for k, v in entries}, [])
-
-    monkeypatch.setattr(
-        "backend.providers.claude_provider.ClaudeProvider.translate_batch",
-        fake_translate_batch,
-    )
-
-    resp = client.post(
-        "/api/games/total_war_warhammer_3/translation/mods/3315737452/translate",
-        json={"keys": ["k2"]},
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["translated"] == 1
-    assert calls["source_lang"] == "Chinese"
-    assert calls["target_lang"] == "English"
-    assert "Warhammer III" in calls["game_context"]
-    assert calls["keys"] == ["k2"]
-
-    assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "EN(新文本)"
-    raw = translation_store.load_translations_raw("3315737452", game_id=GAME_ID)
-    assert raw["k2"]["provider"] == "claude"
-
-    entries = list_entries("3315737452")
-    assert len(entries) == 1
-    assert entries[0]["kind"] == "translate-batch"
-    assert "k2" in entries[0]["keys_or_inputs"]
-
-
 def test_list_includes_preview_image_url_field(client: TestClient):
     # Default fixture has no workshop folders on disk so preview URLs resolve to None.
     resp = client.get("/api/games/total_war_warhammer_3/translation/mods")
@@ -333,43 +289,3 @@ def test_get_base_glossary_empty_when_unbuilt(client: TestClient):
     resp = client.get("/api/games/total_war_warhammer_3/translation/glossary")
     assert resp.status_code == 200
     assert resp.json() == {"terms": {}}
-
-
-def test_translate_injects_base_glossary_and_excludes_regions(client: TestClient, tmp_path: Path, monkeypatch):
-    """The translate route builds a prompt from the base glossary, including stats but not regions."""
-    import json
-
-    gpath = tmp_path / "games" / "total_war_warhammer_3" / "glossary.json"
-    gpath.parent.mkdir(parents=True, exist_ok=True)
-    gpath.write_text(
-        json.dumps(
-            {
-                "terms": {
-                    "Armour": {"english": "Armour", "category": "stats", "key": "k1", "source_mappings": {"Chinese": "护甲"}},
-                    "The Black Pit": {"english": "The Black Pit", "category": "regions", "key": "k2", "source_mappings": {"Chinese": "黑暗深渊"}},
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    captured = {}
-
-    def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
-        captured["prompt"] = glossary_prompt
-        return ({k: "X" for k, _ in entries}, [])
-
-    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
-
-    resp = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/translate", json={"keys": ["k2"]})
-    assert resp.status_code == 200
-    assert "Armour" in captured["prompt"]
-    assert "Black Pit" not in captured["prompt"]
-
-
-def test_legacy_translate_splits_joined_names(client: TestClient, monkeypatch):
-    """The older per-mod translate route also saves joined pinyin names with spaced syllables."""
-    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, *a, **k: ({"k2": "Xinwen"}, []))
-    resp = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/translate", json={"keys": ["k2"]})
-    assert resp.status_code == 200
-    assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "Xin Wen"

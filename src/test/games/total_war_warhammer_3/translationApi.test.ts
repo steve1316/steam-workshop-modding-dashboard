@@ -21,7 +21,6 @@ import {
     saveModContext,
     saveString,
     syncChanges,
-    translateBatch,
     updateGlossaryTerm,
 } from "../../../games/total_war_warhammer_3/translationApi"
 import { RegistryError } from "../../../games/total_war_warhammer_3/api"
@@ -97,16 +96,6 @@ describe("translationApi", () => {
         const [, init] = spy.mock.calls[0] as [string, RequestInit]
         expect(init.method).toBe("PUT")
         expect(JSON.parse(init.body as string)).toEqual({ source_game: "WH3", character_name: "y", background: "z", source_language_override: null, target_language_override: null })
-    })
-
-    it("translateBatch POSTs /mods/{id}/translate with keys array", async () => {
-        const spy = mockFetchOk({ translated: 2, suggested_terms: [] })
-        const result = await translateBatch("abc", ["k1", "k2"])
-        const [url, init] = spy.mock.calls[0] as [string, RequestInit]
-        expect(url).toContain(`${PREFIX}/mods/abc/translate`)
-        expect(init.method).toBe("POST")
-        expect(JSON.parse(init.body as string)).toEqual({ keys: ["k1", "k2"] })
-        expect(result.translated).toBe(2)
     })
 
     it("throws RegistryError when the backend returns a 4xx with a detail string", async () => {

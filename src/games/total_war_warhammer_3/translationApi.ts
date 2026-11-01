@@ -112,19 +112,6 @@ export async function saveModContext(workshopId: string, ctx: WH3ModContext): Pr
 }
 
 /**
- * Translate the given keys with the LLM. Source text comes from the latest parent extraction and results are saved server-side.
- *
- * @param workshopId Translation mod Workshop id.
- * @param keys Keys to translate.
- * @returns Translated count and suggested glossary terms.
- */
-export async function translateBatch(workshopId: string, keys: string[]): Promise<{ translated: number; suggested_terms: TermSuggestion[] }> {
-    const res = await api.post(`/translation/mods/${encodeURIComponent(workshopId)}/translate`, { keys })
-    if (!res.ok) throw await registryError(res)
-    return res.json()
-}
-
-/**
  * Preview a translation run (prompts, cost, batch plan). Mirrors Chrono Ark's `/translate/preview` so the shared modal and hook drive both games.
  *
  * @param workshopId Translation mod Workshop id.

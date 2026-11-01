@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from backend.core.os_open import open_path
 from backend.core.settings import settings
 from backend.data import character_context, mod_settings, translation_store
-from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
+from backend.data.glossary_manager import replace_whole_term
 from backend.data.mod_settings import (
     load_source_language_override,
     load_target_language_override,
@@ -31,8 +31,6 @@ from backend.games.total_war_warhammer_3 import (
     snapshot_store,
 )
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
-from backend.games.total_war_warhammer_3 import translation_context as tc
-from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.canonical_status import to_status_rows
 from backend.games.total_war_warhammer_3.loc_extractor import (
     LocRow,
@@ -47,7 +45,6 @@ from backend.games.total_war_warhammer_3.loc_tsv_packer import (
     resolve_rpfm_cli_path,
 )
 from backend.games.total_war_warhammer_3.loc_tsv_writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
-from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes._paths import parent_pack_cache_dir, tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
 from backend.games.total_war_warhammer_3.translation_drift import (
@@ -59,7 +56,6 @@ from backend.games.total_war_warhammer_3.translation_mods import (
     WH3TranslationMod,
     get_translation_mod,
 )
-from backend.providers.claude_provider import ClaudeProvider
 
 logger = logging.getLogger(__name__)
 
@@ -545,93 +541,6 @@ def get_mod_context(mod_id: str) -> dict:
     ctx["target_language_override"] = load_target_language_override(mod_id, game_id=GAME_ID)
     ctx["include_translated_names"] = mod_settings.load_include_translated_names(mod_id, game_id=GAME_ID)
     return ctx
-
-
-class TranslateBatchRequest(BaseModel):
-    """Request body for `POST /mods/{mod_id}/translate`."""
-
-    keys: list[str]
-
-
-@router.post("/mods/{mod_id}/translate")
-def translate_batch(mod_id: str, req: TranslateBatchRequest) -> dict:
-    """Translate the given keys via Claude and persist into `translations.json`.
-
-    `ClaudeProvider.translate_batch` builds the prompts itself via `TranslationProvider.build_prompt`, so the WH3 translation-context strings are passed as kwargs.
-
-    Args:
-        mod_id: Workshop id of the WH3 mod.
-        req: Loc keys to translate, with source text looked up from the latest parent extraction.
-
-    Returns:
-        `{"translated": N, "suggested_terms": [...]}`.
-    """
-    mod = _require_mod(mod_id)
-    parent = _extract_all_parent_strings(mod)
-
-    # Flatten parent into {key: source_text} for the requested keys.
-    src: dict[str, str] = {}
-    for rows in parent.values():
-        for key, row in rows.items():
-            if key in req.keys:
-                src[key] = row.text
-    if not src:
-        return {"translated": 0, "suggested_terms": []}
-
-    adapter = TotalWarWarhammer3Adapter()
-    entries = list(src.items())
-
-    base_glossary = glossary_store.load_base_glossary()
-    mod_terms = glossary_store.mod_glossary_as_terms(mod_id, mod.source_language)
-    glossary_prompt = get_combined_glossary_prompt(
-        base_glossary,
-        mod_terms,
-        source_lang=mod.source_language,
-        target_lang=mod.target_language,
-        allowed_categories=tc.BASE_GLOSSARY_PROMPT_CATEGORIES,
-    )
-    if not glossary_prompt:
-        glossary_prompt = "No glossary available."
-
-    provider = ClaudeProvider()
-    provider.last_raw_responses = []
-    translations, suggested_terms = provider.translate_batch(
-        entries,
-        mod.source_language,
-        glossary_prompt,
-        game_context=adapter.get_translation_context(),
-        format_rules=adapter.get_format_preservation_rules(),
-        style_examples=adapter.get_style_examples(mod.source_language),
-        character_context=None,  # mod-context wiring deferred to Plan 2
-        target_lang=mod.target_language,
-    )
-
-    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
-    now = datetime.now(UTC).isoformat()
-    keep = glossary_words(mod_terms["terms"])
-    for key, text in translations.items():
-        existing = raw.get(key, {})
-        raw[key] = {
-            # Split joined pinyin names ("Miaoying" -> "Miao Ying"), keeping the glossary's spelling ("Fu Yuanshan").
-            "text": space_pinyin_names(src.get(key, ""), text, keep),
-            "created_at": existing.get("created_at") or now,
-            "updated_at": now,
-            "provider": "claude",
-        }
-    translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
-
-    api_responses_store.append(
-        mod_id,
-        {
-            "timestamp": now,
-            "kind": "translate-batch",
-            "provider": "claude",
-            **api_responses_store.provider_call_fields(getattr(provider, "last_raw_responses", [])),
-            "keys_or_inputs": list(src.keys()),
-        },
-    )
-
-    return {"translated": len(translations), "suggested_terms": suggested_terms}
 
 
 @router.put("/mods/{mod_id}/mod-context")
