@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from backend.games.total_war_warhammer_3.loc_tsv_writeback import (
+from backend.games.total_war_warhammer_3.loc.writeback import (
     apply_row_patches,
     read_loc_tsv_lines,
     remove_keys_from_loc_tsv,
     sync_translations_to_loc_tsv,
 )
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
 def _write_loc_tsv(path: Path, body: str) -> None:

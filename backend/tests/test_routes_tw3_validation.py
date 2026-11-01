@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3.helper_scripts_loader import (
+from backend.games.total_war_warhammer_3.registry.loader import (
     RegistryFileMissingError,
 )
 from backend.web_server import app

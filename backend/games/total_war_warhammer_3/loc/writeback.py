@@ -9,8 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend.core.json_store import write_text_atomic
-from backend.games.total_war_warhammer_3.loc_extractor import escape_loc_text, normalize_loc_filename
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.loc.extractor import escape_loc_text, normalize_loc_filename
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
 def read_loc_tsv_lines(path: Path) -> list[str]:

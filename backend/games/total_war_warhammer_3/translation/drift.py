@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 
 DriftStatus = Literal["translated", "untranslated", "stale", "orphan"]
 

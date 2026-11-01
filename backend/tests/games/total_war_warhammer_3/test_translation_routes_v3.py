@@ -5,11 +5,11 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
-from backend.games.total_war_warhammer_3.api_responses_store import append
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
-from backend.games.total_war_warhammer_3.snapshot_store import list_snapshots
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.stores.api_responses import append
+from backend.games.total_war_warhammer_3.stores.snapshots import list_snapshots
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -512,7 +512,7 @@ def test_sync_skips_pack_build_when_no_keys_written(client: TestClient, monkeypa
 
 
 def test_sync_reports_pack_error_non_fatally(client: TestClient, monkeypatch, tmp_path: Path):
-    from backend.games.total_war_warhammer_3.loc_tsv_packer import PackNotFoundError
+    from backend.games.total_war_warhammer_3.loc.packer import PackNotFoundError
 
     monkeypatch.setattr(routes_module, "sync_translations_to_loc_tsv", lambda mod, drift: {"/abs/units.loc.tsv": 1})
     monkeypatch.setattr(routes_module, "resolve_rpfm_cli_path", lambda: Path("/fake/rpfm_cli.exe"))

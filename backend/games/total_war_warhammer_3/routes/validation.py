@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from backend.games.total_war_warhammer_3.helper_scripts_loader import (
+from backend.games.total_war_warhammer_3.paths import helper_scripts_path
+from backend.games.total_war_warhammer_3.registry.loader import (
     HelperScriptsLoaderError,
     HelperScriptsNotConfiguredError,
     RegistryFileMissingError,
     load_supported_effects,
     load_supported_mods,
 )
-from backend.games.total_war_warhammer_3.routes._paths import helper_scripts_path
-from backend.games.total_war_warhammer_3.validator import validate_registries
+from backend.games.total_war_warhammer_3.registry.validator import validate_registries
 
 router = APIRouter()
 

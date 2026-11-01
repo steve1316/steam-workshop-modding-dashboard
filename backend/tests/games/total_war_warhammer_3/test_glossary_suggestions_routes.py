@@ -8,10 +8,11 @@ from types import SimpleNamespace
 
 import pytest
 from backend.data import suggestion_manager, translation_store
-from backend.games.total_war_warhammer_3 import GAME_ID, glossary_store
-from backend.games.total_war_warhammer_3.api_responses_store import list_entries
+from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.stores.api_responses import list_entries
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -213,7 +214,7 @@ def _seed_rows(monkeypatch, tmp_path: Path, parent: dict[str, str], saved: dict[
     """
     import json
 
-    from backend.games.total_war_warhammer_3.loc_extractor import LocRow
+    from backend.games.total_war_warhammer_3.loc.extractor import LocRow
     from backend.games.total_war_warhammer_3.routes import translation as tr
 
     monkeypatch.setattr(tr, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in parent.items()}})

@@ -1,6 +1,6 @@
 """Tests for the recorded Workshop publish times."""
 
-from backend.games.total_war_warhammer_3 import published_times
+from backend.games.total_war_warhammer_3.stores import published_times
 
 
 def test_get_returns_none_when_nothing_recorded():

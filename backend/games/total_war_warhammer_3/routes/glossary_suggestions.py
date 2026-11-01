@@ -12,12 +12,15 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 
 from backend.data import suggestion_manager
-from backend.games.total_war_warhammer_3 import GAME_ID, api_responses_store, glossary_store, snapshot_store
+from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
-from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes import translation as _tr
 from backend.games.total_war_warhammer_3.routes.translation import _extract_all_parent_strings
-from backend.games.total_war_warhammer_3.translation_mods import get_translation_mod
+from backend.games.total_war_warhammer_3.stores import api_responses as api_responses_store
+from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
+from backend.games.total_war_warhammer_3.translation.mods import get_translation_mod
+from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import SuggestionAction
 

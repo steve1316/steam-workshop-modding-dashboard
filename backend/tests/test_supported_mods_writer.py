@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.games.total_war_warhammer_3.supported_mods_writer import (
+from backend.games.total_war_warhammer_3.registry.writer import (
     DuplicatePackageError,
     EntryNotFoundError,
     add_entry,

@@ -16,14 +16,16 @@ from pydantic import BaseModel
 from backend.core.settings import settings
 from backend.data import mod_settings, suggestion_manager, translation_store
 from backend.data.glossary_manager import get_combined_glossary_prompt
-from backend.games.total_war_warhammer_3 import GAME_ID, api_responses_store, glossary_store
-from backend.games.total_war_warhammer_3 import translation_context as tc
+from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
-from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
-from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes import translation as _t
-from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
-from backend.games.total_war_warhammer_3.translation_drift import compute_drift, entry_text
+from backend.games.total_war_warhammer_3.stores import api_responses as api_responses_store
+from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.translation import context as tc
+from backend.games.total_war_warhammer_3.translation.drift import compute_drift, entry_text
+from backend.games.total_war_warhammer_3.translation.name_keys import NAME_STAGES, classify_name_key, is_name_key
+from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
+from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
 from backend.providers.base import Revision
 from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import BatchTranslationRequest, TranslationRequest

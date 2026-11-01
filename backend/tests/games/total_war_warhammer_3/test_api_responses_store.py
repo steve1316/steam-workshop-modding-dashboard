@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from backend.games.total_war_warhammer_3.api_responses_store import append, list_entries
+from backend.games.total_war_warhammer_3.stores.api_responses import append, list_entries
 
 
 def _root(tmp_path: Path) -> Path:

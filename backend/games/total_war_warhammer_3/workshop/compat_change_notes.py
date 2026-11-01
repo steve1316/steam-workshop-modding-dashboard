@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3.routes._paths import helper_scripts_path
+from backend.games.total_war_warhammer_3.paths import helper_scripts_path
 
 # `preview` hashes each pack and can be slow. Publish All sends every pack in one call, so the timeout scales with the id count.
 PREVIEW_TIMEOUT_SECONDS = 60

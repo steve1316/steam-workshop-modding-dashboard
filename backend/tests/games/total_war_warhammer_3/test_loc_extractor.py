@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from backend.games.total_war_warhammer_3.loc_extractor import (
+from backend.games.total_war_warhammer_3.loc.extractor import (
     LocRow,
     escape_loc_text,
     extract_parent_pack_strings,

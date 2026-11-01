@@ -8,7 +8,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.core.json_store import write_text_atomic
-from backend.games.total_war_warhammer_3.helper_scripts_loader import (
+from backend.games.total_war_warhammer_3.paths import helper_scripts_path
+from backend.games.total_war_warhammer_3.registry.loader import (
     HelperScriptsLoaderError,
     HelperScriptsNotConfiguredError,
     RegistryFileMissingError,
@@ -16,8 +17,7 @@ from backend.games.total_war_warhammer_3.helper_scripts_loader import (
     load_supported_mods,
     supported_mods_source_path,
 )
-from backend.games.total_war_warhammer_3.routes._paths import helper_scripts_path
-from backend.games.total_war_warhammer_3.supported_mods_writer import (
+from backend.games.total_war_warhammer_3.registry.writer import (
     DuplicatePackageError,
     EntryNotFoundError,
     add_entry,

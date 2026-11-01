@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from backend.games.total_war_warhammer_3.snapshot_store import (
+from backend.games.total_war_warhammer_3.stores.snapshots import (
     create_snapshot,
     delete_snapshot,
     list_snapshots,

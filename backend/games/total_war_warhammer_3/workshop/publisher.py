@@ -1,6 +1,6 @@
 """Subprocess-based publisher for pushing TW3 mod updates to the Steam Workshop via SteamCMD.
 
-Mirrors the `script_runner` pattern: one in-flight publish guarded by a module lock, a daemon thread draining stdout into a deque,
+Mirrors the `registry.runner` pattern: one in-flight publish guarded by a module lock, a daemon thread draining stdout into a deque,
 and an async generator bridging the buffer into SSE. The VDF descriptor is minimal (`appid`, `publishedfileid`, `contentfolder`, and a non-empty
 `changenote`) so updates do not blank existing Workshop metadata.
 """
@@ -20,8 +20,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from backend.games.total_war_warhammer_3 import published_times
-from backend.games.total_war_warhammer_3.routes._paths import TW3_APPID
+from backend.games.total_war_warhammer_3.paths import TW3_APPID
+from backend.games.total_war_warhammer_3.stores import published_times
 
 
 @dataclass

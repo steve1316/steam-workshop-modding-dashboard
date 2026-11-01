@@ -1,7 +1,7 @@
-"""Unit tests for the TW3 SteamCMD `workshop_batch_publisher` orchestrator.
+"""Unit tests for the TW3 SteamCMD `workshop.batch_publisher` orchestrator.
 
-The orchestrator wraps the single-flight `workshop_publisher` with serialized batch semantics.
-Tests stub out `workshop_publisher.start_publish` and `stream_lines` so the orchestrator can be
+The orchestrator wraps the single-flight `workshop.publisher` with serialized batch semantics.
+Tests stub out `workshop.publisher.start_publish` and `stream_lines` so the orchestrator can be
 exercised deterministically without spawning real SteamCMD subprocesses.
 """
 
@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
-from backend.games.total_war_warhammer_3 import workshop_publisher as wp
+from backend.games.total_war_warhammer_3.workshop import batch_publisher as wbp
+from backend.games.total_war_warhammer_3.workshop import publisher as wp
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////

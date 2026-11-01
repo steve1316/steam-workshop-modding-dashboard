@@ -172,6 +172,6 @@ def sample_csv_content():
 @pytest.fixture(autouse=True)
 def _isolated_published_times(tmp_path, monkeypatch):
     """Keep tests from writing publish times into the real storage folder."""
-    from backend.games.total_war_warhammer_3 import published_times
+    from backend.games.total_war_warhammer_3.stores import published_times
 
     monkeypatch.setattr(published_times, "_path", lambda: tmp_path / "published_times.json")

@@ -1,7 +1,7 @@
 """Tests for mapping WH3 drift rows to the canonical five-state status."""
 
-from backend.games.total_war_warhammer_3.canonical_status import to_status_rows
-from backend.games.total_war_warhammer_3.translation_drift import DriftRow
+from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
+from backend.games.total_war_warhammer_3.translation.drift import DriftRow
 
 
 def _drift(key, parent, trans, status):

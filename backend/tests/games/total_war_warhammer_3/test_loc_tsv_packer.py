@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3.loc_tsv_packer import (
+from backend.games.total_war_warhammer_3.loc.packer import (
     AmbiguousPackError,
     PackNotFoundError,
     RpfmFailedError,
@@ -12,7 +12,7 @@ from backend.games.total_war_warhammer_3.loc_tsv_packer import (
     resolve_rpfm_cli_path,
     resolve_target_pack,
 )
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
 def test_resolve_target_pack_returns_single_pack(tmp_path: Path):
@@ -101,7 +101,7 @@ def test_build_translation_pack_raises_on_rpfm_nonzero(monkeypatch, tmp_path: Pa
 
 
 def test_validate_loc_tsv_dir_passes_well_formed(tmp_path: Path):
-    from backend.games.total_war_warhammer_3.loc_tsv_packer import validate_loc_tsv_dir
+    from backend.games.total_war_warhammer_3.loc.packer import validate_loc_tsv_dir
 
     text_dir = tmp_path / "text"
     text_dir.mkdir()
@@ -110,7 +110,7 @@ def test_validate_loc_tsv_dir_passes_well_formed(tmp_path: Path):
 
 
 def test_validate_loc_tsv_dir_rejects_embedded_newline(tmp_path: Path):
-    from backend.games.total_war_warhammer_3.loc_tsv_packer import MalformedLocTsvError, validate_loc_tsv_dir
+    from backend.games.total_war_warhammer_3.loc.packer import MalformedLocTsvError, validate_loc_tsv_dir
 
     text_dir = tmp_path / "text"
     text_dir.mkdir()
@@ -125,8 +125,8 @@ def test_build_translation_pack_real_rpfm_round_trips_multiline_keys(tmp_path: P
 
     Skips when rpfm_cli + schema are not configured on this machine.
     """
-    from backend.games.total_war_warhammer_3.loc_extractor import escape_loc_text
-    from backend.games.total_war_warhammer_3.loc_tsv_packer import resolve_rpfm_cli_path
+    from backend.games.total_war_warhammer_3.loc.extractor import escape_loc_text
+    from backend.games.total_war_warhammer_3.loc.packer import resolve_rpfm_cli_path
 
     rpfm = resolve_rpfm_cli_path()
     if rpfm is None or not (rpfm.parent / "schemas" / "schema_wh3.ron").is_file():

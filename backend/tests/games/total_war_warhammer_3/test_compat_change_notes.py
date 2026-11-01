@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
+from backend.games.total_war_warhammer_3.workshop import compat_change_notes as ccn
 
 
 @pytest.fixture

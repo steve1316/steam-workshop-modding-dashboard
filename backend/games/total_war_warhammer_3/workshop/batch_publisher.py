@@ -1,4 +1,4 @@
-"""Serialized batch orchestrator on top of `workshop_publisher` for pushing many TW3 mods at once.
+"""Serialized batch orchestrator on top of `publisher` for pushing many TW3 mods at once.
 
 Runs items one at a time in a background task, each with its own changelog. Surfaces per-mod status and an event stream
 the SSE route fans out to subscribers, including ones that reconnect mid-batch.
@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
-from backend.games.total_war_warhammer_3 import publish_notes
-from backend.games.total_war_warhammer_3 import workshop_publisher as wp
-from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.paths import tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.workshop import publish_notes
+from backend.games.total_war_warhammer_3.workshop import publisher as wp
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,8 +105,8 @@ def start_batch(
 
     Args:
         items: `{"workshop_id", "title", "changenote"}` dicts in run order.
-        steamcmd_path: Path to `steamcmd.exe`, forwarded to `workshop_publisher.start_publish`.
-        steam_username: Steam username, forwarded to `workshop_publisher.start_publish`.
+        steamcmd_path: Path to `steamcmd.exe`, forwarded to `publisher.start_publish`.
+        steam_username: Steam username, forwarded to `publisher.start_publish`.
 
     Returns:
         Handle with the batch id, event stream and `done_event`.

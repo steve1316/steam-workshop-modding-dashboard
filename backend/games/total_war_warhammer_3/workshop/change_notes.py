@@ -15,8 +15,8 @@ from pathlib import Path
 from backend.core.json_store import write_json
 from backend.core.paths import game_storage_path
 from backend.games.total_war_warhammer_3 import GAME_ID
-from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_manifest_path
-from backend.games.total_war_warhammer_3.translation_drift import DriftRow, hash_text
+from backend.games.total_war_warhammer_3.paths import tw3_workshop_manifest_path
+from backend.games.total_war_warhammer_3.translation.drift import DriftRow, hash_text
 
 BASELINE_FILENAME = "published_baseline.json"
 GENERIC_NOTE = "[u]Translation update[/u]"

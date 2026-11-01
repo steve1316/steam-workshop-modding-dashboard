@@ -1,8 +1,8 @@
 """Tests for the WH3 parent source snapshot helpers."""
 
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
-from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged
-from backend.games.total_war_warhammer_3.translation_drift import hash_text, make_entry
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
+from backend.games.total_war_warhammer_3.translation.drift import hash_text, make_entry
+from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged
 
 
 def _parent(**texts: str) -> dict:

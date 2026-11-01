@@ -11,11 +11,12 @@ from pydantic import BaseModel
 
 from backend.core.os_open import open_path
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3 import publish_notes, published_times
-from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
-from backend.games.total_war_warhammer_3 import workshop_publisher as wp
-from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
-from backend.games.total_war_warhammer_3.translation_change_notes import parent_updated_at
+from backend.games.total_war_warhammer_3.paths import tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.stores import published_times
+from backend.games.total_war_warhammer_3.workshop import batch_publisher as wbp
+from backend.games.total_war_warhammer_3.workshop import publish_notes
+from backend.games.total_war_warhammer_3.workshop import publisher as wp
+from backend.games.total_war_warhammer_3.workshop.change_notes import parent_updated_at
 
 router = APIRouter()
 

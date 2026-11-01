@@ -7,7 +7,7 @@ become `missing`. A blank parent source is `untranslatable`. WH3 has no `untouch
 
 from __future__ import annotations
 
-from backend.games.total_war_warhammer_3.translation_drift import DriftRow
+from backend.games.total_war_warhammer_3.translation.drift import DriftRow
 from backend.translation.status import StatusRow, classify_status
 
 

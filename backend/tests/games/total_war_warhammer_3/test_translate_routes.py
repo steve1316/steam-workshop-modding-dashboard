@@ -9,10 +9,10 @@ from pathlib import Path
 
 import pytest
 from backend.games.total_war_warhammer_3 import GAME_ID
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translate as translate_module
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from backend.providers.claude_provider import ClaudeProvider
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -108,7 +108,7 @@ def test_batch_translates_keys_and_persists(client: TestClient, monkeypatch, tmp
 def test_batch_persists_and_returns_new_glossary_suggestions(client: TestClient, monkeypatch, tmp_path: Path):
     """The provider's glossary suggestions are returned and persisted for the review modal; terms already in the glossary are filtered out."""
     from backend.data import suggestion_manager
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     # "Lord" is already in the glossary, so it must be filtered out; only "Cathay" should survive.
     glossary_store.add_term("3315737452", {"english": "Lord", "source": "卿", "category": "title"})
@@ -293,7 +293,7 @@ def test_name_suggestions_builds_categorized_suggestions(client: TestClient, mon
 
 def test_name_suggestions_skips_terms_already_in_glossary(client: TestClient, monkeypatch, tmp_path: Path):
     """A translated name already present in the mod glossary is not re-suggested."""
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     mod_id = "3315737452"
     glossary_store.add_term(mod_id, {"english": "Dragon Guard", "source": "龙卫", "category": "unit"})
@@ -404,7 +404,7 @@ def test_name_suggestions_include_names_translated_in_the_pack(client: TestClien
 
 def test_name_suggestions_skip_names_whose_source_is_in_the_glossary(client: TestClient, monkeypatch, tmp_path: Path):
     """A name whose source text already has a glossary term is not suggested again under a different English."""
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     glossary_store.add_term("3315737452", {"english": "Dragon Sentinel", "source": "龙卫", "category": "unit"})
     monkeypatch.setattr(routes_module, "_extract_all_parent_strings", _names_parent)
@@ -492,7 +492,7 @@ def test_batch_prompt_includes_translated_names_when_enabled(client: TestClient,
 
 def test_batch_prompt_prefers_the_glossary_over_a_translated_name(client: TestClient, monkeypatch, tmp_path: Path):
     """When a translated name's source text already has a glossary term, only the glossary term is sent."""
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     glossary_store.add_term("3315737452", {"english": "Dragon Sentinel", "source": "龙卫", "category": "unit"})
     _write_translations(tmp_path, "3315737452", {"land_units_onscreen_name_dragon": "Dragon Guard"})

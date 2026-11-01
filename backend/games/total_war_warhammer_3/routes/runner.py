@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response, StreamingResponse
 
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3 import script_runner as sr
+from backend.games.total_war_warhammer_3.registry import runner as sr
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ def _settings() -> dict:
     """Read the TW3 runner paths from settings.
 
     Returns:
-        Settings for `script_runner._preflight` and `start_run`.
+        Settings for `registry.runner._preflight` and `start_run`.
     """
     return {
         "helper_scripts_path": settings.tw3.helper_path,

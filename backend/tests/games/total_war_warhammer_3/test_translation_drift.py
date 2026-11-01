@@ -1,7 +1,7 @@
 """Tests for the translation drift / staleness algorithm."""
 
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
-from backend.games.total_war_warhammer_3.translation_drift import (
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
+from backend.games.total_war_warhammer_3.translation.drift import (
     DriftRow,
     compute_drift,
     entry_hash,

@@ -1,6 +1,6 @@
 """Build a WH3 translation mod's published `.pack` from its loose `.loc.tsv` files via the RPFM CLI.
 
-Mirrors the subprocess pattern in `loc_extractor.py`. Used by `/sync` to rebuild the pack after the loose-file writeback.
+Mirrors the subprocess pattern in `loc/extractor.py`. Used by `/sync` to rebuild the pack after the loose-file writeback.
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
 class PackBuildError(Exception):

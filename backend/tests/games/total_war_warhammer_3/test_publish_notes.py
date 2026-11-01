@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
-from backend.games.total_war_warhammer_3 import publish_notes as pn
-from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
+from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
+from backend.games.total_war_warhammer_3.workshop import compat_change_notes as ccn
+from backend.games.total_war_warhammer_3.workshop import publish_notes as pn
 from backend.web_server import app
 from fastapi.testclient import TestClient
 

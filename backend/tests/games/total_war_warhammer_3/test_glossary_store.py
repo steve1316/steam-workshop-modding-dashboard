@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from backend.games.total_war_warhammer_3.glossary_store import (
+from backend.games.total_war_warhammer_3.stores.glossary import (
     add_term,
     apply_term_rename,
     delete_term,
@@ -76,7 +76,7 @@ def test_load_glossary_returns_empty_when_missing(monkeypatch, tmp_path: Path):
 def test_load_base_glossary_reads_storage(tmp_path, monkeypatch):
     import json
 
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     gpath = tmp_path / "games" / "total_war_warhammer_3" / "glossary.json"
@@ -88,14 +88,14 @@ def test_load_base_glossary_reads_storage(tmp_path, monkeypatch):
 
 
 def test_load_base_glossary_empty_when_missing(tmp_path, monkeypatch):
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     assert glossary_store.load_base_glossary() == {"terms": {}}
 
 
 def test_mod_glossary_as_terms_adapts_flat_format(tmp_path, monkeypatch):
-    from backend.games.total_war_warhammer_3 import glossary_store
+    from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     glossary_store.add_term("123", {"english": "Battleguard", "source": "近卫军", "category": "unit_types"})

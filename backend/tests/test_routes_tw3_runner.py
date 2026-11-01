@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.games.total_war_warhammer_3 import script_runner as sr
+from backend.games.total_war_warhammer_3.registry import runner as sr
 from backend.web_server import app
 
 FIXTURES = Path(__file__).parent / "fixtures" / "helper_scripts"

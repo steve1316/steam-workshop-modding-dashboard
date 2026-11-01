@@ -10,7 +10,7 @@ from backend.core.settings import settings
 from backend.data import glossary_manager as gm
 from backend.games.chrono_ark import adapter as ca_adapter
 from backend.games.total_war_warhammer_3 import adapter as wh3_adapter
-from backend.games.total_war_warhammer_3 import glossary_store
+from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
 
 def _glossary(terms: dict) -> dict:

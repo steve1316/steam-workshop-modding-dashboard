@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.games.total_war_warhammer_3.helper_scripts_loader import (
+from backend.games.total_war_warhammer_3.registry.loader import (
     HelperScriptsNotConfiguredError,
     RegistryConstantNotFoundError,
     RegistryFileMissingError,
@@ -48,14 +48,14 @@ def test_load_raises_when_file_missing(tmp_path):
 def test_load_raises_on_syntax_error():
     # The fixtures dir has _test_syntax_error.py; we point the loader at a
     # custom filename via the internal helper to test syntax-error handling.
-    from backend.games.total_war_warhammer_3.helper_scripts_loader import _load_constant
+    from backend.games.total_war_warhammer_3.registry.loader import _load_constant
 
     with pytest.raises(RegistryFileSyntaxError):
         _load_constant(FIXTURES, "_test_syntax_error.py", "SUPPORTED_MODS")
 
 
 def test_load_raises_when_constant_missing():
-    from backend.games.total_war_warhammer_3.helper_scripts_loader import _load_constant
+    from backend.games.total_war_warhammer_3.registry.loader import _load_constant
 
     with pytest.raises(RegistryConstantNotFoundError):
         _load_constant(FIXTURES, "missing_constant.py", "SUPPORTED_MODS")
@@ -67,7 +67,7 @@ def test_load_resolves_sibling_imports():
     the import. This test exercises that contract via fixture files."""
     import sys
 
-    from backend.games.total_war_warhammer_3.helper_scripts_loader import _load_constant
+    from backend.games.total_war_warhammer_3.registry.loader import _load_constant
 
     before = list(sys.path)
     result = _load_constant(FIXTURES, "with_sibling_constant.py", "WITH_SIBLING")

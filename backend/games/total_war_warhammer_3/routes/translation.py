@@ -24,38 +24,36 @@ from backend.data.mod_settings import (
     save_source_language_override,
     save_target_language_override,
 )
-from backend.games.total_war_warhammer_3 import (
-    GAME_ID,
-    api_responses_store,
-    glossary_store,
-    snapshot_store,
-)
-from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
-from backend.games.total_war_warhammer_3.canonical_status import to_status_rows
-from backend.games.total_war_warhammer_3.loc_extractor import (
+from backend.games.total_war_warhammer_3 import GAME_ID
+from backend.games.total_war_warhammer_3.loc.extractor import (
     LocRow,
     extract_parent_pack_strings,
     normalize_loc_filename,
     read_translation_loc_tsv,
 )
-from backend.games.total_war_warhammer_3.loc_tsv_packer import (
+from backend.games.total_war_warhammer_3.loc.packer import (
     PackBuildError,
     RpfmNotConfiguredError,
     build_translation_pack,
     resolve_rpfm_cli_path,
 )
-from backend.games.total_war_warhammer_3.loc_tsv_writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
-from backend.games.total_war_warhammer_3.routes._paths import parent_pack_cache_dir, tw3_workshop_content_dir
-from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
-from backend.games.total_war_warhammer_3.translation_drift import (
+from backend.games.total_war_warhammer_3.loc.writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
+from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.stores import api_responses as api_responses_store
+from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
+from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
+from backend.games.total_war_warhammer_3.translation.drift import (
     DriftRow,
     compute_drift,
 )
-from backend.games.total_war_warhammer_3.translation_mods import (
+from backend.games.total_war_warhammer_3.translation.mods import (
     WH3_TRANSLATION_MODS,
     WH3TranslationMod,
     get_translation_mod,
 )
+from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
+from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +87,7 @@ def _extract_translation_strings(mod: WH3TranslationMod) -> dict[str, dict[str, 
 def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, LocRow]]:
     """Extract `.loc` strings from every parent `.pack` declared on `mod`.
 
-    Resolves `rpfm_cli_path` like `script_runner._preflight`: `config.TW3_RPFM_CLI_PATH` if set, else `rpfm_cli.exe` in `config.TW3_HELPER_PATH`.
+    Resolves `rpfm_cli_path` like `registry.runner._preflight`: `settings.tw3.rpfm_cli_path` if set, else `rpfm_cli.exe` in `settings.tw3.helper_path`.
 
     Args:
         mod: Translation mod whose parent packs to extract.
@@ -487,7 +485,7 @@ def current_shipped_strings(mod_id: str) -> dict[str, dict[str, str]]:
         mod_id: Workshop id of the translation mod.
 
     Returns:
-        `{source_filename: {key: hash}}` from `translation_change_notes.shipped_strings`.
+        `{source_filename: {key: hash}}` from `workshop.change_notes.shipped_strings`.
     """
     mod = _require_mod(mod_id)
     _, _, overlaid = _drift_and_overlay(mod_id, mod)

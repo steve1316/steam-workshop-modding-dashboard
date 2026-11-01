@@ -13,13 +13,13 @@ from fastapi import APIRouter
 from backend.data import glossary_manager as gm
 from backend.games.base import GameAdapter, ModInfo
 from backend.games.capabilities.translation import TranslationCapability
-from backend.games.total_war_warhammer_3 import glossary_store
-from backend.games.total_war_warhammer_3 import translation_context as tc
-from backend.games.total_war_warhammer_3.loc_extractor import (
+from backend.games.total_war_warhammer_3.loc.extractor import (
     normalize_loc_filename,
     read_translation_loc_tsv,
 )
-from backend.games.total_war_warhammer_3.translation_mods import (
+from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.translation import context as tc
+from backend.games.total_war_warhammer_3.translation.mods import (
     WH3_TRANSLATION_MODS,
     get_translation_mod,
 )
@@ -117,7 +117,7 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
         return {}
 
     def scan_mods(self, search_path: Path | None = None) -> list[ModInfo]:
-        """Return the static list of WH3 translation mods from `translation_mods.WH3_TRANSLATION_MODS`.
+        """Return the static list of WH3 translation mods from `translation.mods.WH3_TRANSLATION_MODS`.
 
         Args:
             search_path: Ignored, kept for interface compatibility.

@@ -11,8 +11,8 @@ import json
 from backend.core.json_store import write_json
 from backend.core.paths import mods_path
 from backend.games.total_war_warhammer_3 import GAME_ID
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
-from backend.games.total_war_warhammer_3.translation_drift import entry_hash, hash_text, make_entry
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
+from backend.games.total_war_warhammer_3.translation.drift import entry_hash, hash_text, make_entry
 
 
 def _copy(snapshot: dict) -> dict:

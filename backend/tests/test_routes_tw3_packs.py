@@ -9,11 +9,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.core.settings import settings
-from backend.games.total_war_warhammer_3 import publish_notes
-from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
-from backend.games.total_war_warhammer_3 import workshop_publisher as wp
+from backend.games.total_war_warhammer_3.paths import tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.routes import packs as packs_routes
-from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.workshop import batch_publisher as wbp
+from backend.games.total_war_warhammer_3.workshop import publish_notes
+from backend.games.total_war_warhammer_3.workshop import publisher as wp
 from backend.web_server import app
 
 
@@ -495,7 +495,7 @@ def test_publish_all_skipped_items_do_not_need_a_changenote(monkeypatch, tmp_pat
 
 
 def test_last_modified_prefers_newer_recorded_publish_time(monkeypatch, tmp_path):
-    from backend.games.total_war_warhammer_3 import published_times
+    from backend.games.total_war_warhammer_3.stores import published_times
 
     parent = _set_drive(monkeypatch, tmp_path)
     (parent / "999").mkdir()
@@ -507,7 +507,7 @@ def test_last_modified_prefers_newer_recorded_publish_time(monkeypatch, tmp_path
 
 
 def test_last_modified_keeps_manifest_time_when_newer_than_recorded(monkeypatch, tmp_path):
-    from backend.games.total_war_warhammer_3 import published_times
+    from backend.games.total_war_warhammer_3.stores import published_times
 
     parent = _set_drive(monkeypatch, tmp_path)
     (parent / "999").mkdir()

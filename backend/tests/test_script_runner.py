@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from backend.games.total_war_warhammer_3 import script_runner as sr
-from backend.games.total_war_warhammer_3.script_runner import (
+from backend.games.total_war_warhammer_3.registry import runner as sr
+from backend.games.total_war_warhammer_3.registry.runner import (
     _TEST_SCRIPT_REGISTRY,
     SCRIPT_REGISTRY,
     PreflightError,

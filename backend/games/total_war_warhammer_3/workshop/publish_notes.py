@@ -9,10 +9,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
-from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
 from backend.games.total_war_warhammer_3.routes.translation import current_shipped_strings
-from backend.games.total_war_warhammer_3.translation_mods import get_translation_mod
+from backend.games.total_war_warhammer_3.translation.mods import get_translation_mod
+from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
+from backend.games.total_war_warhammer_3.workshop import compat_change_notes as ccn
 
 logger = logging.getLogger(__name__)
 

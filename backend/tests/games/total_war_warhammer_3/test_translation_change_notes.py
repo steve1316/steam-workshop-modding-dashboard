@@ -7,11 +7,11 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
-from backend.games.total_war_warhammer_3.loc_extractor import LocRow
+from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
-from backend.games.total_war_warhammer_3.translation_drift import DriftRow, DriftStatus, hash_text
-from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.translation.drift import DriftRow, DriftStatus, hash_text
+from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
+from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
 
 MOD_ID = "3315737452"
 

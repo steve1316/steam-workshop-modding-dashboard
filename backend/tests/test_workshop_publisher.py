@@ -1,4 +1,4 @@
-"""Unit tests for the TW3 SteamCMD workshop_publisher module's pure helpers.
+"""Unit tests for the TW3 SteamCMD workshop.publisher module's pure helpers.
 
 The subprocess-spawning surface (`start_publish`) is not exercised here - that path is covered
 by the route-level tests with a monkeypatched `start_publish`, so the test suite never invokes
@@ -14,7 +14,7 @@ from typing import cast
 
 import pytest
 
-from backend.games.total_war_warhammer_3 import workshop_publisher as wp
+from backend.games.total_war_warhammer_3.workshop import publisher as wp
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -240,7 +240,7 @@ def test_start_publish_raises_in_progress_while_previous_handle_has_no_exit_code
 
 
 def test_reader_thread_records_the_publish_time_only_on_success(tmp_path):
-    from backend.games.total_war_warhammer_3 import published_times
+    from backend.games.total_war_warhammer_3.stores import published_times
 
     handle = _handle()
     wp._reader_thread(_fake_proc([], 1), handle, tmp_path / "x.vdf", None)
