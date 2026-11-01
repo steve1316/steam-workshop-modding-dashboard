@@ -1,4 +1,4 @@
-"""Settings and stats API endpoints for the Steam Workshop Mod Translator."""
+"""Settings and stats API endpoints for the Steam Workshop Modding Dashboard."""
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse

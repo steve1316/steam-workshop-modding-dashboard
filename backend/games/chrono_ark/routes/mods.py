@@ -1,4 +1,4 @@
-"""Chrono Ark mod API endpoints for the Steam Workshop Mod Translator."""
+"""Chrono Ark mod API endpoints for the Steam Workshop Modding Dashboard."""
 
 import json
 import os

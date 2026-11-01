@@ -1,4 +1,4 @@
-"""Ollama-related API endpoints for the Steam Workshop Mod Translator."""
+"""Ollama-related API endpoints for the Steam Workshop Modding Dashboard."""
 
 import asyncio
 import os

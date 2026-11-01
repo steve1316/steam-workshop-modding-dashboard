@@ -1,5 +1,5 @@
 """
-FastAPI backend for the Steam Workshop Mod Translator.
+FastAPI backend for the Steam Workshop Modding Dashboard.
 
 Provides REST APIs for mod discovery, string extraction, translation status,
 glossary management, and triggering translation jobs. Routes are organized
@@ -31,7 +31,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Steam Workshop Mod Translator API", lifespan=lifespan)
+app = FastAPI(title="Steam Workshop Modding Dashboard API", lifespan=lifespan)
 
 
 # Enable CORS for Vite development server.

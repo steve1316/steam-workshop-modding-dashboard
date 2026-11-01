@@ -1,5 +1,5 @@
 """
-Steam Workshop Mod Translator - CLI entry point.
+Steam Workshop Modding Dashboard - CLI entry point.
 
 Provides subcommands for extracting, translating, and managing
 localization strings for Chrono Ark Steam Workshop mods.
@@ -500,7 +500,7 @@ def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Steam Workshop Mod Translator",
+        description="Steam Workshop Modding Dashboard",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(

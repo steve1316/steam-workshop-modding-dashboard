@@ -1,4 +1,4 @@
-"""llama.cpp-related API endpoints for the Steam Workshop Mod Translator."""
+"""llama.cpp-related API endpoints for the Steam Workshop Modding Dashboard."""
 
 import asyncio
 import json

@@ -1,5 +1,5 @@
 """
-Shared data models for the Steam Workshop Mod Translator.
+Shared data models for the Steam Workshop Modding Dashboard.
 
 Contains domain objects used across extractors, translators, and the web UI.
 """

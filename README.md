@@ -1,8 +1,8 @@
-# Steam Workshop Mod Translator
+# Steam Workshop Modding Dashboard
 
-A game-agnostic translation workbench for Steam Workshop mods. A single app hosts several games side by side. Each game plugs in through a backend adapter and a frontend manifest. They all share one translation pipeline, glossary system, provider layer and UI framework. It translates mod localization strings from their source languages into English using AI providers, with glossary enforcement, iterative batch review, manual editing, history snapshots and write-back to mod-ready files.
+A game-agnostic dashboard for Steam Workshop modding. A single app hosts several games side by side. Each game plugs in through a backend adapter and a frontend manifest. They all share one translation pipeline, glossary system, provider layer and UI framework. At its core it translates mod localization strings from their source languages into English using AI providers, with glossary enforcement, iterative batch review, manual editing, history snapshots and write-back to mod-ready files.
 
-The project started as a Chrono Ark-only tool (originally named `chrono-ark-translator`) and has since been generalized. It currently supports:
+The project started as a Chrono Ark-only tool (originally named `chrono-ark-translator`, then `steam-workshop-mod-translator`) and has since grown into a general modding dashboard. It currently supports:
 
 | Game | Slug | Source → Target | What it covers |
 | --- | --- | --- | --- |
@@ -467,8 +467,8 @@ These are read from `.env` only. They are not on the Settings page.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/steve1316/steam-workshop-mod-translator.git
-   cd steam-workshop-mod-translator
+   git clone https://github.com/steve1316/steam-workshop-modding-dashboard.git
+   cd steam-workshop-modding-dashboard
    ```
 
 2. Install frontend dependencies:

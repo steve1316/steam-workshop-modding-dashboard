@@ -1,8 +1,8 @@
 """
-Central configuration for the Steam Workshop Mod Translator.
+Central configuration for the Steam Workshop Modding Dashboard.
 
 All settings can be overridden via environment variables prefixed with SWMT_
-(Steam Workshop Mod Translator).
+(legacy prefix from the old Steam Workshop Mod Translator name).
 
 Game-specific settings (paths, CSV schema, DLL skip lists, etc.) live in
 the corresponding game adapter under games/<game_id>/adapter.py.
