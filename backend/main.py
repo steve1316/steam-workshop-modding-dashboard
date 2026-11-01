@@ -31,7 +31,7 @@ from backend.data.progress_tracker import ProgressTracker
 from backend.data.suggestion_manager import add_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
-from backend.games.base import GameAdapter
+from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.registry import get_adapter, list_games
 from backend.translation.orchestrator import chunk_entries
 from backend.translator.base import TranslationProvider
@@ -94,7 +94,7 @@ def save_extracted_strings(strings: dict, output_path: Path) -> None:
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Subcommand: extract
-def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
+def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     """Handle the `extract` subcommand for the base game, one mod, or all workshop mods.
 
     Args:
@@ -159,7 +159,7 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Subcommand: translate
-def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
+def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     """Handle the `translate` subcommand, using translation memory and supporting a dry-run cost estimate.
 
     Args:
@@ -322,7 +322,7 @@ def _apply_translations(
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Subcommand: status
-def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
+def cmd_status(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     """Handle the `status` subcommand, showing one mod's progress or a summary of all extracted mods.
 
     Args:
@@ -358,7 +358,7 @@ def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Subcommand: glossary
-def cmd_glossary(args: argparse.Namespace, adapter: GameAdapter) -> None:
+def cmd_glossary(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     """Handle the `glossary` subcommand to show, build from base game strings, or add an entry.
 
     Args:
@@ -399,7 +399,7 @@ def cmd_glossary(args: argparse.Namespace, adapter: GameAdapter) -> None:
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Subcommand: export
-def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
+def cmd_export(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     """Handle the `export` subcommand, writing translated strings back to CSV files.
 
     Args:
@@ -459,8 +459,8 @@ def main() -> None:
     parser.add_argument(
         "--game",
         type=str,
-        default=config.ACTIVE_GAME,
-        help=f"Game adapter to use (default: {config.ACTIVE_GAME}). Available: {', '.join(list_games()) or '(loading...)'}",
+        default="chrono_ark",
+        help=f"Game adapter to use (default: chrono_ark). Available: {', '.join(list_games()) or '(loading...)'}",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -494,6 +494,9 @@ def main() -> None:
         sys.exit(1)
 
     adapter = get_adapter(args.game)
+    # The commands call Chrono Ark extractor and export methods that other adapters do not have.
+    if not isinstance(adapter, ChronoArkAdapter):
+        parser.error(f"The CLI only supports chrono_ark, not {args.game}.")
 
     commands = {
         "extract": cmd_extract,
