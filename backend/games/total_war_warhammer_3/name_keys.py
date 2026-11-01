@@ -1,15 +1,14 @@
 """Classify WH3 loc keys as named-entity terms (unit / skill / building / location / ...).
 
-Used by the 'Translate Names First' pass: only short NAME strings are translated in the first pass and routed into the glossary, so the subsequent bulk
-translation prompts carry those established terms. Detection is by key prefix - WH3 loc keys follow game-wide table-name conventions (e.g.
-`land_units_onscreen_name_<id>`), so a curated prefix -> category map classifies names reliably. Descriptions, tooltips, and effects (which are
-`effects_description_*`, not names) return None and translate in the bulk pass.
+Used by the 'Translate Names First' pass: only short NAME strings are translated first and routed into the glossary so the bulk prompts carry those terms.
+Detection is by key prefix, since WH3 loc keys follow table-name conventions (e.g. `land_units_onscreen_name_<id>`).
+Descriptions, tooltips and effects return None.
 """
 
 from __future__ import annotations
 
-# Curated map of WH3 name-table key prefixes to a coarse category. Grounded in real parent-pack data. A key matches a prefix only at a token boundary
-# (exact match or prefix followed by `_`), so `land_units_onscreen_namex` does not match `land_units_onscreen_name`.
+# Curated map of WH3 name-table key prefixes to a coarse category. A key matches only at a token boundary (exact or followed by `_`),
+# so `land_units_onscreen_namex` does not match `land_units_onscreen_name`.
 _NAME_PREFIX_CATEGORIES: dict[str, str] = {
     # Units and characters.
     "land_units_onscreen_name": "unit",
@@ -38,8 +37,8 @@ _NAME_PREFIX_CATEGORIES: dict[str, str] = {
     "rituals_display_name": "ritual",
 }
 
-# Order of the staged Translate Names pass. Each stage's names are reviewed into the glossary before the next stage runs, so skills are translated
-# with the unit names already known, and so on.
+# Order of the staged Translate Names pass.
+# Each stage is reviewed into the glossary before the next runs, so skills are translated with unit names known.
 NAME_STAGES: list[dict] = [
     {"id": "units", "label": "Units & Lords", "categories": ["unit"]},
     {"id": "skills", "label": "Skills & Abilities", "categories": ["skill"]},
@@ -52,13 +51,13 @@ _SORTED_PREFIXES: list[tuple[str, str]] = sorted(_NAME_PREFIX_CATEGORIES.items()
 
 
 def classify_name_key(key: str) -> str | None:
-    """Return the name category for a WH3 loc key, or None when the key is not a name key.
+    """Return the name category for a WH3 loc key, or None when it is not a name key.
 
     Args:
-        key: The loc key (e.g. `land_units_onscreen_name_cth_inf_dragon_guard`).
+        key: Loc key, e.g. `land_units_onscreen_name_cth_inf_dragon_guard`.
 
     Returns:
-        One of `unit`, `skill`, `building`, `location`, `item`, `trait`, `tech`, `ritual`, or None for descriptions/tooltips/effects/anything else.
+        `unit`, `skill`, `building`, `location`, `item`, `trait`, `tech`, `ritual`, or None.
     """
     for prefix, category in _SORTED_PREFIXES:
         if key == prefix or key.startswith(prefix + "_"):
@@ -67,10 +66,10 @@ def classify_name_key(key: str) -> str | None:
 
 
 def is_name_key(key: str) -> bool:
-    """Return whether a WH3 loc key is a name key (any category).
+    """Return whether a WH3 loc key is a name key of any category.
 
     Args:
-        key: The loc key to test.
+        key: Loc key to test.
 
     Returns:
         True when `classify_name_key` returns a category.

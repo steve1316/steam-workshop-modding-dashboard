@@ -1,8 +1,7 @@
 """Per-mod glossary CRUD wrappers for the WH3 translation flow.
 
-Stores the per-mod glossary at `<root>/mods/{id}/glossary.json` as a flat dict keyed by English term. Entries have `source` and `category` fields. The shared
-`backend.data.glossary_manager` module handles disk IO using a `{"terms": {...}}` wrapper. This module pins it to the WH3 game id, flattens/unflattens the
-wrapper, and adds the apply-rename helper that does word-boundary substitution across translations.json.
+Stores `<root>/mods/{id}/glossary.json` as a flat dict keyed by English term. The shared `backend.data.glossary_manager` handles disk IO
+with a `{"terms": {...}}` wrapper, which this module pins to the WH3 game id and flattens. It also holds the apply-rename helper.
 """
 
 from __future__ import annotations
@@ -26,10 +25,10 @@ def load_glossary(mod_id: str) -> dict:
     """Load the per-mod glossary as `{english_term: {source, category}}`.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        Glossary dict; empty when no file exists.
+        Glossary dict, empty when no file exists.
     """
     raw = gm.load_mod_glossary(mod_id, storage_path=_root())
     return dict(raw.get("terms", {}))
@@ -43,11 +42,8 @@ def add_term(mod_id: str, entry: dict) -> None:
     """Add or replace a glossary entry.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        entry: `{english, source, category}` dict. The `english` key becomes the glossary key.
-
-    Raises:
-        ValueError: When `entry` is missing the `english` key.
+        mod_id: Workshop id of the WH3 mod.
+        entry: `{english, source, category}`, keyed by `english`.
     """
     english = entry.get("english")
     if not english:
@@ -58,17 +54,12 @@ def add_term(mod_id: str, entry: dict) -> None:
 
 
 def update_term(mod_id: str, old_english: str, entry: dict) -> None:
-    """Update an existing entry, handling rename.
-
-    When `entry["english"]` differs from `old_english`, the old key is removed and the new one written.
+    """Update an entry, removing the old key when `entry["english"]` differs from `old_english`.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        old_english: The current English term key.
-        entry: Updated `{english, source, category}` dict.
-
-    Raises:
-        ValueError: When `entry` is missing the `english` key.
+        mod_id: Workshop id of the WH3 mod.
+        old_english: Current English term key.
+        entry: Updated `{english, source, category}`.
     """
     new_english = entry.get("english")
     if not new_english:
@@ -84,8 +75,8 @@ def delete_term(mod_id: str, english: str) -> None:
     """Remove a glossary entry by English term.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        english: The English term key to delete.
+        mod_id: Workshop id of the WH3 mod.
+        english: English term key to delete.
     """
     glossary = load_glossary(mod_id)
     glossary.pop(english, None)
@@ -96,10 +87,10 @@ def delete_all_terms(mod_id: str) -> int:
     """Remove every entry from the per-mod glossary.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        The number of terms removed.
+        Number of terms removed.
     """
     count = len(load_glossary(mod_id))
     _save(mod_id, {})
@@ -110,12 +101,12 @@ def apply_term_rename(mod_id: str, old_english: str, new_english: str) -> int:
     """Word-boundary find-and-replace `old_english` -> `new_english` across all translations.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        old_english: The previous canonical English term.
-        new_english: The new English term that should replace it.
+        mod_id: Workshop id of the WH3 mod.
+        old_english: Previous English term.
+        new_english: Replacement term.
 
     Returns:
-        Total count of replacements performed across all translations.
+        Total replacements made.
     """
     path = _root() / "mods" / mod_id / "translations.json"
     if not path.exists():
@@ -142,7 +133,7 @@ def load_base_glossary() -> dict:
     """Load the WH3 base-game glossary as `{"terms": {...}}`.
 
     Returns:
-        The base glossary dict; `{"terms": {}}` when it has not been built yet.
+        Base glossary, `{"terms": {}}` when not built yet.
     """
     return gm.load_glossary(glossary_path(GAME_ID))
 
@@ -151,11 +142,11 @@ def mod_glossary_as_terms(mod_id: str, source_language: str) -> dict:
     """Adapt the flat per-mod glossary into the `{"terms": {...}}` shape used by the prompt builder.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        source_language: The mod's source language name, used as the `source_mappings` key.
+        mod_id: Workshop id of the WH3 mod.
+        source_language: Mod's source language, used as the `source_mappings` key.
 
     Returns:
-        A glossary dict `{"terms": {english: {english, category, key, source_mappings}}}`.
+        `{"terms": {english: {english, category, key, source_mappings}}}`.
     """
     flat = load_glossary(mod_id)
     terms: dict[str, dict] = {}

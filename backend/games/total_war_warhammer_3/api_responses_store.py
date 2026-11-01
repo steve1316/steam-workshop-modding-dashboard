@@ -1,7 +1,6 @@
-"""Append-only audit log of LLM API calls per WH3 mod.
+"""Append-only audit log of LLM API calls per WH3 mod, bounded to the last 20 entries.
 
-Records translate-batch, scan-terms, and suggest-edits Claude calls. Bounded to the last 20 entries per mod; oldest is dropped when the 21st is written.
-The log is stored as a JSON array (newest last on disk, but `list_entries` returns newest first for UI convenience).
+Stored as a JSON array (newest last on disk), and `list_entries` returns newest first.
 """
 
 from __future__ import annotations
@@ -42,8 +41,8 @@ def append(mod_id: str, entry: dict) -> None:
     """Append one API response entry to the mod's log.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        entry: Audit entry dict (timestamp, kind, provider, model, tokens, cost, keys_or_inputs, raw_response).
+        mod_id: Workshop id of the WH3 mod.
+        entry: Audit entry dict.
     """
     entries = _load(mod_id)
     entries.append(entry)
@@ -53,28 +52,28 @@ def append(mod_id: str, entry: dict) -> None:
 
 
 def list_entries(mod_id: str) -> list[dict]:
-    """List API response entries for a mod, newest first.
+    """List a mod's API response entries, newest first.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        List of audit entries; empty if no log exists.
+        Audit entries, empty if no log exists.
     """
     return list(reversed(_load(mod_id)))
 
 
 def provider_call_fields(raw_responses: list[dict], error: str | None = None) -> dict:
-    """Summarize a provider's raw responses into the model, usage, cost, and raw-text fields of a log entry.
+    """Summarize a provider's raw responses into the model, usage, cost and raw-text fields of a log entry.
 
-    A batch Claude split after a truncated reply has several raw responses. Their usage and cost are summed and their text joined.
+    A batch split after a truncated reply has several raw responses, so usage and cost are summed and the text joined.
 
     Args:
-        raw_responses: The provider's `last_raw_responses` records for one batch.
-        error: Error message when the call failed. It leads the raw text so the log shows why the batch produced nothing.
+        raw_responses: Provider's `last_raw_responses` records for one batch.
+        error: Error message that leads the raw text when the call failed.
 
     Returns:
-        Dict with `model`, `input_tokens`, `output_tokens`, `cost_usd`, and `raw_response`.
+        Dict with `model`, `input_tokens`, `output_tokens`, `cost_usd` and `raw_response`.
     """
 
     def total(field: str):

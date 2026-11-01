@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal, TypedDict
 
-# Package name of the base-game entry in SUPPORTED_MODS. It has no pack on disk, so an empty path is expected.
+# Base-game entry in SUPPORTED_MODS. It has no pack on disk, so an empty path is expected.
 VANILLA_PACKAGE_NAME = "vanilla"
 
 
@@ -11,12 +11,12 @@ class Issue(TypedDict):
     """One broken cross-reference flagged by `validate_registries`.
 
     Fields:
-        kind: Discriminates the two check types.
-        severity: Always 'error'; exists for forward compatibility.
+        kind: Which of the two checks flagged it.
+        severity: Always 'error', kept for forward compatibility.
         mod_package_name: Stable identity key for the mod.
-        mod_name: Human-readable display name for the mod.
-        target: The bad reference itself: missing effect category name, or missing path string.
-        message: One-line human description suitable for direct UI display.
+        mod_name: Display name.
+        target: The bad reference: missing effect category name, or missing path string.
+        message: One-line description for direct UI display.
     """
 
     kind: Literal["missing_effect_category", "missing_mod_path"]
@@ -28,13 +28,10 @@ class Issue(TypedDict):
 
 
 def _is_file_safe(path: str) -> bool:
-    """Return True if `path` points to an existing file, False for any other outcome.
+    """Return True if `path` is an existing file, swallowing any OSError so nothing propagates out of the validator.
 
-    Wraps `Path.is_file()` in a broad OSError catch so no filesystem exception
-    can propagate out of the validator.
-
-    @param path: The filesystem path string to check.
-    @returns: True if the file exists, False otherwise.
+    @param path: Path string to check.
+    @returns: True if the file exists.
     """
     try:
         return Path(path).is_file()
@@ -45,16 +42,12 @@ def _is_file_safe(path: str) -> bool:
 def validate_registries(mods: list[dict], effects: dict) -> list[Issue]:
     """Validate cross-references in the mod and effects registries.
 
-    For each mod, runs two checks in order:
-    1. If `modified_attributes` is present and non-empty, each entry that is not a key
-       in `effects` produces a `missing_effect_category` issue.
-    2. If `path` is missing, None, or empty, produces a `missing_mod_path` issue with
-       `target=""`, except for the vanilla entry which has no pack by design. Otherwise, if the
-       path does not exist on disk, produces a `missing_mod_path` issue with `target=path`.
+    Each `modified_attributes` entry that is not a key in `effects` gives a `missing_effect_category` issue. A missing, None or empty `path` gives a
+    `missing_mod_path` issue with `target=""` (except the vanilla entry, which has no pack by design), and a path not on disk gives one with `target=path`.
 
-    @param mods: List of mod dicts as returned by `load_supported_mods`.
-    @param effects: Dict of effect categories as returned by `load_supported_effects`.
-    @returns: List of `Issue` dicts sorted by `(mod_name, kind, target)`.
+    @param mods: Mod dicts from `load_supported_mods`.
+    @param effects: Effect categories from `load_supported_effects`.
+    @returns: `Issue` dicts sorted by `(mod_name, kind, target)`.
     """
     issues: list[Issue] = []
 
@@ -62,7 +55,6 @@ def validate_registries(mods: list[dict], effects: dict) -> list[Issue]:
         mod_package_name: str = mod.get("package_name", "")
         mod_name: str = mod.get("name", "")
 
-        # Category check.
         modified_attributes = mod.get("modified_attributes")
         if modified_attributes:
             for entry in modified_attributes:

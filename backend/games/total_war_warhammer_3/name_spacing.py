@@ -1,7 +1,7 @@
 """Split joined pinyin names in WH3 translations into one capitalized word per syllable.
 
-Claude tends to write romanized Chinese names with their syllables run together ("Miaoying" for 妙影). The official game writes named characters and places
-with spaces ("Miao Ying", "Yuan Bo"), so every new translation is passed through `space_pinyin_names` before it is saved.
+Claude tends to run romanized syllables together ("Miaoying") while the game writes names with spaces ("Miao Ying"), so every new translation
+passes through `space_pinyin_names` before it is saved.
 """
 
 from __future__ import annotations
@@ -16,11 +16,11 @@ _HAN_RUN_RE = re.compile(r"[一-鿿]+")
 # A capitalized English word, e.g. "Miaoying" in "[Lord of Raging Gale] Miaoying's".
 _WORD_RE = re.compile(r"(?<![A-Za-z])[A-Z][a-z]+(?![A-Za-z])")
 
-# Names are 2 to 4 characters long. Single characters are never split.
+# Names are 2 to 4 characters, and single characters are never split.
 _MIN_CHARS = 2
 _MAX_CHARS = 4
 
-# Most readings to try for one run of characters, so a run full of characters with several readings stays cheap.
+# Cap on readings tried per run so characters with several readings stay cheap.
 _MAX_READINGS = 16
 
 
@@ -28,10 +28,10 @@ def _spaced_forms(source: str) -> dict[str, str]:
     """Map the joined pinyin of every 2 to 4 character run in `source` to its spaced, capitalized form.
 
     Args:
-        source: The source text.
+        source: Source text.
 
     Returns:
-        Joined lowercase pinyin (e.g. `miaoying`) -> spaced form (e.g. `Miao Ying`). Longer runs win when two runs share a joined form.
+        Joined lowercase pinyin (`miaoying`) to spaced form (`Miao Ying`). Longer runs win when two share a joined form.
     """
     from pypinyin import Style, pinyin
 
@@ -61,16 +61,17 @@ def glossary_words(terms: Iterable[str]) -> frozenset[str]:
 def space_pinyin_names(source: str, english: str, keep: frozenset[str] = frozenset()) -> str:
     """Rewrite joined pinyin names in `english` with one capitalized word per syllable.
 
-    Only a capitalized word that is exactly the joined pinyin of characters in this row's `source` changes, so ordinary English words, names from other
-    rows, spellings that are not pinyin, and names that are already spaced or hyphenated are left alone.
+    Only a capitalized word that is exactly the joined pinyin of characters in this row's `source` changes.
+    Ordinary English words, names from other rows,
+    non-pinyin spellings and names already spaced or hyphenated are left alone.
 
     Args:
-        source: The Chinese source text of the row.
-        english: The English translation of the row.
-        keep: Lowercase words to never split, usually from `glossary_words` so the mod glossary's spelling wins (e.g. "Fu Yuanshan").
+        source: Chinese source text of the row.
+        english: English translation of the row.
+        keep: Lowercase words never split, so the mod glossary's spelling wins.
 
     Returns:
-        The translation with joined names split, e.g. "[Lord of Raging Gale] Miaoying" -> "[Lord of Raging Gale] Miao Ying".
+        Translation with joined names split, e.g. "[Lord of Raging Gale] Miao Ying".
     """
     if not source or not english or not _HAN_RUN_RE.search(source):
         return english

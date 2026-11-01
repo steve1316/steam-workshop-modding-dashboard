@@ -1,8 +1,6 @@
-"""REST endpoints for the WH3 translation pipeline.
+"""REST endpoints for the WH3 translation pipeline, mounted under `/api/games/total_war_warhammer_3/translation`.
 
-All endpoints are mounted under `/api/games/total_war_warhammer_3/translation`.
-Heavy I/O (RPFM extract, TSV scan) is wrapped behind module-level helpers so
-tests can monkeypatch them in isolation.
+Heavy I/O (RPFM extract, TSV scan) sits behind module-level helpers so tests can monkeypatch them.
 """
 
 from __future__ import annotations
@@ -79,10 +77,10 @@ def _extract_translation_strings(mod: WH3TranslationMod) -> dict[str, dict[str, 
     """Read all `.loc.tsv` files under `mod.local_source_dir/text/**`.
 
     Args:
-        mod: The translation mod whose local source dir to scan.
+        mod: Translation mod whose local source dir to scan.
 
     Returns:
-        Dict mapping normalized filename to `{key: LocRow}`.
+        Normalized filename to `{key: LocRow}`.
     """
     out: dict[str, dict[str, LocRow]] = {}
     text_dir = mod.local_source_dir / "text"
@@ -97,19 +95,13 @@ def _extract_translation_strings(mod: WH3TranslationMod) -> dict[str, dict[str, 
 def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, LocRow]]:
     """Extract `.loc` strings from every parent `.pack` declared on `mod`.
 
-    Resolves `rpfm_cli_path` the same way `script_runner._preflight` does: prefer
-    `config.TW3_RPFM_CLI_PATH` when set, otherwise fall back to `rpfm_cli.exe`
-    inside `config.TW3_HELPER_PATH`.
+    Resolves `rpfm_cli_path` like `script_runner._preflight`: `config.TW3_RPFM_CLI_PATH` if set, else `rpfm_cli.exe` in `config.TW3_HELPER_PATH`.
 
     Args:
-        mod: The translation mod whose parent packs to extract.
+        mod: Translation mod whose parent packs to extract.
 
     Returns:
-        Merged dict mapping normalized filename to `{key: LocRow}` across all parents.
-
-    Raises:
-        HTTPException: If neither `TW3_RPFM_CLI_PATH` nor `<TW3_HELPER_PATH>/rpfm_cli.exe`
-            resolves to a file on disk, or the Steam library drive is not configured.
+        Normalized filename to `{key: LocRow}`, merged across all parents.
     """
     rpfm_str = config.TW3_RPFM_CLI_PATH or ""
     if rpfm_str:
@@ -139,16 +131,13 @@ def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, L
 
 
 def _require_mod(mod_id: str) -> WH3TranslationMod:
-    """Look up a mod by ID or raise 404.
+    """Look up a mod by id or raise 404.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
         The matching `WH3TranslationMod`.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not in the registry.
     """
     mod = get_translation_mod(mod_id)
     if mod is None:
@@ -160,10 +149,10 @@ def _serialize_drift_row(row: DriftRow) -> dict:
     """Convert a `DriftRow` to a JSON-serializable dict.
 
     Args:
-        row: The drift row to serialize.
+        row: Drift row to serialize.
 
     Returns:
-        Dict with `source_filename`, `key`, `parent_text`, `translation_text`, `status`, and `provider`.
+        Dict with `source_filename`, `key`, `parent_text`, `translation_text`, `status` and `provider`.
     """
     return {
         "source_filename": row.source_filename,
@@ -176,19 +165,19 @@ def _serialize_drift_row(row: DriftRow) -> dict:
 
 
 def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list[DriftRow]:
-    """Overlay `translations.json` entries onto computed drift rows so in-flight edits and clears reflect immediately.
+    """Overlay `translations.json` onto computed drift rows so in-flight edits and clears show immediately.
 
-    A non-empty override supplies its text/provider and promotes an untranslated row to `translated`. An empty-string override is an explicit clear: the row
-    shows empty text and is marked `untranslated` (when it has parent text) so the `.loc.tsv` content does not show through. Rows with no override keep their
-    `.loc.tsv` status, with `provider` defaulting to `manual` when text is present and `None` when absent. Both `get_strings` and `rescan` use this so the
-    table and the per-status counts never disagree.
+    A non-empty override supplies its text/provider and promotes an untranslated row to `translated`. An empty-string override is an explicit clear,
+    so the row shows empty text and is `untranslated` (when it has parent text) rather than the `.loc.tsv` content. Rows with no override keep their
+    `.loc.tsv` status, with `provider` `manual` when text is present and `None` otherwise.
+    `get_strings` and `rescan` both use this so the table and counts agree.
 
     Args:
-        drift: Rows produced by `compute_drift` from the parent and `.loc.tsv` sources.
-        raw_translations: The mod's `translations.json` mapping (`key -> {text, provider}`).
+        drift: Rows from `compute_drift`.
+        raw_translations: The mod's `translations.json` (`key -> {text, provider}`).
 
     Returns:
-        A new list of `DriftRow` with overrides applied, preserving the input order.
+        New `DriftRow` list with overrides applied, in input order.
     """
     overlaid: list[DriftRow] = []
     for row in drift:
@@ -196,7 +185,7 @@ def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list
         has_override = isinstance(entry, dict) and "text" in entry
         if has_override and entry["text"]:
             override_provider = entry.get("provider") or "manual"
-            # If the row was untranslated on the file system but translations.json has it, promote it to translated per the parent hash.
+            # Present in translations.json but untranslated on disk, so promote it.
             new_status = "translated" if row.status == "untranslated" else row.status
             overlaid.append(
                 DriftRow(
@@ -209,7 +198,7 @@ def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list
                 )
             )
         elif has_override:
-            # Empty-string override = explicitly cleared. Show empty and mark untranslated so the .loc.tsv content does not show through.
+            # Explicit clear: show empty and mark untranslated so the .loc.tsv content does not show through.
             cleared_status = "untranslated" if row.parent_text is not None else row.status
             overlaid.append(
                 DriftRow(
@@ -222,7 +211,7 @@ def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list
                 )
             )
         else:
-            # Existing .loc.tsv translation (or untranslated). Default provider to "manual" when text is present, None when absent.
+            # Existing .loc.tsv translation or untranslated, with provider "manual" when text is present.
             provider = "manual" if row.translation_text else None
             overlaid.append(
                 DriftRow(
@@ -238,18 +227,16 @@ def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list
 
 
 def _find_parent_preview_image(mod: WH3TranslationMod) -> Path | None:
-    """Resolve a preview `.png` for the translation mod by inspecting its parent workshop folder.
+    """Resolve a preview `.png` for the translation mod from its parent workshop folder.
 
-    Each Steam Workshop mod includes a single preview `.png` in its content folder. For a
-    translation mod we surface the FIRST parent's preview so dashboard cards visually anchor
-    to the game content being translated.
+    Each Workshop mod has a single preview `.png` in its content folder.
+    The FIRST parent's preview is used so dashboard cards anchor to the translated game content.
 
     Args:
         mod: Translation mod whose parent folder(s) to scan.
 
     Returns:
-        Filesystem `Path` to the first `.png` found in the first existing parent folder. `None`
-        when no parent folder is reachable on disk or no `.png` is present.
+        First `.png` in the first existing parent folder, or `None` if no folder is reachable or none has a `.png`.
     """
     for parent_id in mod.parent_workshop_ids:
         folder = tw3_workshop_content_dir(parent_id)
@@ -263,15 +250,13 @@ def _find_parent_preview_image(mod: WH3TranslationMod) -> Path | None:
 def _preview_url_for(mod: WH3TranslationMod) -> str | None:
     """Build the preview-image route URL for a mod, or `None` when no preview file is found.
 
-    Returns a path relative to `API_BASE` so the frontend can concatenate `${API_BASE}${url}`
-    the same way it does for Chrono Ark mod previews.
+    Relative to `API_BASE` so the frontend can concatenate `${API_BASE}${url}` as it does for Chrono Ark previews.
 
     Args:
         mod: Translation mod to check.
 
     Returns:
-        Relative path `/games/total_war_warhammer_3/translation/mods/{id}/preview` when a preview
-        file exists, otherwise `None`.
+        `/games/total_war_warhammer_3/translation/mods/{id}/preview`, or `None`.
     """
     if _find_parent_preview_image(mod) is None:
         return None
@@ -281,18 +266,16 @@ def _preview_url_for(mod: WH3TranslationMod) -> str | None:
 def _has_unsynced_changes(mod_id: str, translation: dict[str, dict[str, LocRow]]) -> bool:
     """Return `True` when translations.json holds entries whose text differs from the user's `.loc.tsv`.
 
-    Compares each `translations.json` entry against the current `.loc.tsv` content for the same key. A key present in `translations.json` with text
-    that does not match (or has no matching `.loc.tsv` row) counts as unsynced. An empty-string override against non-empty `.loc.tsv` text is a pending
-    clear and counts too. Mirrors Chrono Ark's `has_changes` semantics.
+    A key whose text does not match, or has no `.loc.tsv` row, counts as unsynced.
+    An empty-string override against non-empty `.loc.tsv` text is a pending clear and counts too.
+    Mirrors Chrono Ark's `has_changes`.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        translation: Already-extracted translation map (`source_filename -> {key: LocRow}`). The caller
-            passes the same value returned by `_extract_translation_strings(mod)` to avoid a second
-            filesystem scan on the rescan hot path.
+        mod_id: Workshop id of the translation mod.
+        translation: Already-extracted map from `_extract_translation_strings(mod)`, passed in to avoid a second scan on the rescan hot path.
 
     Returns:
-        `True` when any translations.json entry text differs from on-disk `.loc.tsv` text. `False` otherwise.
+        `True` when any entry differs from the on-disk text.
     """
     raw = store.load_translations_raw(mod_id)
     if not raw:
@@ -305,7 +288,7 @@ def _has_unsynced_changes(mod_id: str, translation: dict[str, dict[str, LocRow]]
         if not isinstance(entry, dict) or "text" not in entry:
             continue
         text = entry["text"] or ""
-        # An empty override that differs from non-empty .loc.tsv text is a pending clear, so it still counts as unsynced.
+        # An empty override differing from non-empty .loc.tsv text is a pending clear.
         if (loc_by_key.get(key) or "") != text:
             return True
     return False
@@ -325,7 +308,7 @@ class TranslationModSummary(BaseModel):
     local_source_dir: str
     source_language: str
     target_language: str
-    # Relative URL to the parent mod's preview image. `None` when no preview file is reachable on disk.
+    # Relative URL to the parent mod's preview image, `None` when no preview file is reachable.
     preview_image_url: str | None = None
 
 
@@ -334,12 +317,12 @@ class RescanSummary(BaseModel):
 
     mod_id: str
     counts: dict[str, int]
-    # Zero-filled tally of the canonical five-state model (synced/untouched/pending/missing/untranslatable), mirroring the per-row `canonical_status`.
+    # Zero-filled tally of the canonical six-state model, mirroring the per-row `canonical_status`.
     canonical_counts: dict[str, int]
     scanned_at: str
-    # True when translations.json holds entries whose text does not match the user's `.loc.tsv` files.
+    # True when translations.json has entries whose text does not match the user's `.loc.tsv` files.
     has_unsynced_changes: bool = False
-    # True when any of `source_game / character_name / background` in mod-context is non-empty.
+    # True when any of `source_game / character_name / background` is non-empty.
     has_mod_context: bool = False
 
 
@@ -355,11 +338,11 @@ class ModContext(BaseModel):
     source_game: str = ""
     character_name: str = ""
     background: str = ""
-    # Per-mod override for source language. None falls back to the registry default.
+    # Per-mod source language override, None falls back to the registry default.
     source_language_override: str | None = None
-    # Per-mod override for target language. None falls back to the registry default.
+    # Per-mod target language override, None falls back to the registry default.
     target_language_override: str | None = None
-    # When True, translated names that are not in the glossary are also sent with every prompt.
+    # When True, translated names not in the glossary are also sent with every prompt.
     include_translated_names: bool = False
 
 
@@ -373,7 +356,7 @@ def list_translation_mods() -> list[TranslationModSummary]:
     """Return the static registry of WH3 translation mods.
 
     Returns:
-        List of `TranslationModSummary` entries, one per registered mod.
+        One `TranslationModSummary` per registered mod.
     """
     return [
         TranslationModSummary(
@@ -391,16 +374,13 @@ def list_translation_mods() -> list[TranslationModSummary]:
 
 @router.get("/mods/{mod_id}/preview")
 def get_preview(mod_id: str) -> FileResponse:
-    """Stream the parent mod's preview `.png` image for the given translation mod.
+    """Stream the parent mod's preview `.png` for the translation mod.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        `FileResponse` serving the first `.png` found in the first existing parent workshop folder.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered or no preview file is reachable on disk.
+        `FileResponse` for the first `.png` in the first existing parent workshop folder.
     """
     mod = _require_mod(mod_id)
     png = _find_parent_preview_image(mod)
@@ -411,16 +391,13 @@ def get_preview(mod_id: str) -> FileResponse:
 
 @router.post("/mods/{mod_id}/rescan", response_model=RescanSummary)
 def rescan(mod_id: str) -> RescanSummary:
-    """Re-extract parent strings, re-read local translations, compute drift.
+    """Re-extract parent strings, re-read local translations and compute drift.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        `RescanSummary` with per-status counts, scan timestamp, `has_unsynced_changes`, and `has_mod_context`.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        `RescanSummary` with per-status counts, scan timestamp, `has_unsynced_changes` and `has_mod_context`.
     """
     mod = _require_mod(mod_id)
     parent = _extract_all_parent_strings(mod)
@@ -429,21 +406,21 @@ def rescan(mod_id: str) -> RescanSummary:
 
     drift = compute_drift(parent=parent, translation=translation, snapshot=snapshot)
 
-    # Add entries for never-before-seen keys and backfill text on matching ones. Drifted keys keep their old entry so they stay changed.
+    # Adds never-seen keys and backfills text on matching ones. Drifted keys keep their old entry so they stay changed.
     store.save_parent_snapshot(mod_id, refresh_unchanged(snapshot, parent))
 
-    # Count from the overlaid rows (not raw drift) so empty-string clears and in-flight overrides match the strings view exactly.
+    # Count from the overlaid rows, not raw drift, so empty-string clears and in-flight overrides match the strings view.
     raw_translations = store.load_translations_raw(mod_id)
     overlaid = _overlay_translations(drift, raw_translations)
-    # Rows with a blank parent source have nothing to translate, so they are left out of the progress counts like Chrono Ark does.
+    # Blank parent source has nothing to translate, so it is left out of the progress counts like Chrono Ark.
     counts: dict[str, int] = {"translated": 0, "untranslated": 0, "stale": 0, "orphan": 0}
     for row in overlaid:
         if row.parent_text is not None and not row.parent_text.strip():
             continue
         counts[row.status] += 1
 
-    # Canonical six-state tally for the shared status pills. Zero-filled so the dict always carries every state, matching Chrono Ark. Orphan rows are
-    # excluded so the counts match the orphan-free strings table.
+    # Canonical six-state tally for the shared status pills, zero-filled so every state is present.
+    # Orphan rows are excluded to match the strings table.
     canonical_counts: dict[str, int] = {"synced": 0, "untouched": 0, "pending": 0, "changed": 0, "missing": 0, "untranslatable": 0}
     for srow in to_status_rows([d for d in drift if d.status != "orphan"], raw_translations):
         canonical_counts[srow.status] += 1
@@ -465,8 +442,8 @@ def _drift_and_overlay(mod_id: str, mod: WH3TranslationMod) -> tuple[list[DriftR
     """Compute a mod's drift rows and overlay `translations.json` onto them.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        mod: The registered translation mod.
+        mod_id: Workshop id of the translation mod.
+        mod: Registered translation mod.
 
     Returns:
         `(drift, raw_translations, overlaid)`, where `overlaid` has `translations.json` applied and orphan rows removed.
@@ -475,7 +452,7 @@ def _drift_and_overlay(mod_id: str, mod: WH3TranslationMod) -> tuple[list[DriftR
     translation = _extract_translation_strings(mod)
     drift = compute_drift(parent=parent, translation=translation, snapshot=store.load_parent_snapshot(mod_id))
     raw_translations = store.load_translations_raw(mod_id)
-    # Orphan strings (translated keys whose parent source no longer exists) are hidden from the table; they are pruned from disk on the next sync.
+    # Orphans (translated keys whose parent source is gone) are hidden from the table and pruned from disk on the next sync.
     overlaid = [r for r in _overlay_translations(drift, raw_translations) if r.status != "orphan"]
     return drift, raw_translations, overlaid
 
@@ -484,23 +461,20 @@ def _drift_and_overlay(mod_id: str, mod: WH3TranslationMod) -> tuple[list[DriftR
 def get_strings(mod_id: str, status: Literal["translated", "untranslated", "stale", "orphan"] | None = None) -> list[dict]:
     """Return drift rows for a mod, optionally filtered by status.
 
-    Overlays `translations.json` onto the drift rows so any in-flight edits (user PUTs, Claude batches) reflect immediately - their `translation_text`
-    and `provider` come from translations.json when present, otherwise from the user's `.loc.tsv` content with `provider` defaulting to `"manual"`.
-    An empty-string override is treated as an explicit clear: the row shows empty text and `untranslated` status rather than the `.loc.tsv` content.
+    Overlays `translations.json` so in-flight edits (user PUTs, Claude batches) show immediately, taking `translation_text` and `provider` from it when present.
+    Otherwise they come from the `.loc.tsv` with `provider` defaulting to `"manual"`.
+    An empty-string override is an explicit clear, shown as empty and `untranslated`.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        status: Optional status filter (`"translated"`, `"untranslated"`, `"stale"`, `"orphan"`).
+        mod_id: Workshop id of the translation mod.
+        status: Optional filter (`"translated"`, `"untranslated"`, `"stale"`, `"orphan"`).
 
     Returns:
-        List of serialized `DriftRow` dicts.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        Serialized `DriftRow` dicts.
     """
     mod = _require_mod(mod_id)
     drift, raw_translations, overlaid = _drift_and_overlay(mod_id, mod)
-    # Pre-overlay translation_text is the on-disk .loc.tsv value - the "previous" translation (analogous to Chrono Ark's original_english).
+    # Pre-overlay translation_text is the on-disk .loc.tsv value, i.e. the "previous" translation (like Chrono Ark's original_english).
     previous_by_key = {r.key: r.translation_text for r in drift}
     canonical = {(r.source_file, r.key): r.status for r in to_status_rows(drift, raw_translations)}
 
@@ -513,16 +487,13 @@ def get_strings(mod_id: str, status: Literal["translated", "untranslated", "stal
 def current_shipped_strings(mod_id: str) -> dict[str, dict[str, str]]:
     """Return what the next publish of a mod will ship, hashed for changenote diffing.
 
-    Uses the same overlaid rows as `get_strings`, which are what Sync writes, so the result is already right before the sync-first step has run.
+    Uses the same overlaid rows as `get_strings`, which are what Sync writes, so it is already right before the sync-first step runs.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
         `{source_filename: {key: hash}}` from `translation_change_notes.shipped_strings`.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
     """
     mod = _require_mod(mod_id)
     _, _, overlaid = _drift_and_overlay(mod_id, mod)
@@ -534,15 +505,12 @@ def put_string(mod_id: str, key: str, edit: TranslationEdit) -> dict:
     """Persist a translation edit.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        key: The string key to save.
-        edit: Request body containing the translated text.
+        mod_id: Workshop id of the translation mod.
+        key: String key to save.
+        edit: Body with the translated text.
 
     Returns:
-        `{"status": "ok"}` on success.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        `{"status": "ok"}`.
     """
     mod = _require_mod(mod_id)
     raw = store.load_translations_raw(mod_id)
@@ -555,7 +523,7 @@ def put_string(mod_id: str, key: str, edit: TranslationEdit) -> dict:
         "provider": "manual",
     }
     store.save_translations_raw(mod_id, raw)
-    # A manual edit settles a changed row: accept the current source as its baseline. Best effort, since extraction may need RPFM.
+    # A manual edit settles a changed row, so accept the current source as its baseline. Best effort since extraction may need RPFM.
     try:
         store.save_parent_snapshot(mod_id, accept_keys(store.load_parent_snapshot(mod_id), _extract_all_parent_strings(mod), {key}))
     except Exception as e:
@@ -568,14 +536,10 @@ def get_mod_context(mod_id: str) -> dict:
     """Return the mod context for a registered translation mod.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        Dict with mod context fields (`source_game`, `character_name`, `background`), the per-mod language overrides
-        (`source_language_override`, `target_language_override`), and `include_translated_names`.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        Mod context fields (`source_game`, `character_name`, `background`), the per-mod language overrides, and `include_translated_names`.
     """
     _require_mod(mod_id)
     ctx = store.load_character_context(mod_id)
@@ -596,15 +560,11 @@ class TranslateBatchRequest(BaseModel):
 def translate_batch(mod_id: str, req: TranslateBatchRequest) -> dict:
     """Translate the given keys via Claude and persist into `translations.json`.
 
-    `ClaudeProvider.translate_batch` takes `entries: list[tuple[str, str]]` and
-    builds the system + user prompts internally via `TranslationProvider.build_prompt`.
-    We pass the WH3 adapter's translation-context strings as kwargs so the prompt
-    is WH3-specific.
+    `ClaudeProvider.translate_batch` builds the prompts itself via `TranslationProvider.build_prompt`, so the WH3 translation-context strings are passed as kwargs.
 
     Args:
-        mod_id: Workshop ID of the WH3 translation mod.
-        req: List of loc keys to translate. Source text is looked up from the
-            most recent parent extraction.
+        mod_id: Workshop id of the WH3 mod.
+        req: Loc keys to translate, with source text looked up from the latest parent extraction.
 
     Returns:
         `{"translated": N, "suggested_terms": [...]}`.
@@ -612,7 +572,7 @@ def translate_batch(mod_id: str, req: TranslateBatchRequest) -> dict:
     mod = _require_mod(mod_id)
     parent = _extract_all_parent_strings(mod)
 
-    # Flatten parent into {key: source_text} for the keys the user wants translated.
+    # Flatten parent into {key: source_text} for the requested keys.
     src: dict[str, str] = {}
     for rows in parent.values():
         for key, row in rows.items():
@@ -682,14 +642,11 @@ def put_mod_context(mod_id: str, ctx: ModContext) -> dict:
     """Save mod context for a registered translation mod.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        ctx: Request body containing the context fields plus optional language overrides.
+        mod_id: Workshop id of the translation mod.
+        ctx: Context fields plus optional language overrides.
 
     Returns:
-        `{"status": "ok"}` on success.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        `{"status": "ok"}`.
     """
     _require_mod(mod_id)
     store.save_character_context(mod_id, ctx.model_dump())
@@ -712,7 +669,7 @@ class SnapshotCreateRequest(BaseModel):
 
 
 class GlossaryEntry(BaseModel):
-    """One glossary entry. `english` is the key; `source` and `category` are the values."""
+    """One glossary entry, keyed by `english` with `source` and `category` values."""
 
     english: str
     source: str = ""
@@ -728,16 +685,17 @@ class GlossaryApplyAllRequest(BaseModel):
 
 @router.post("/mods/{mod_id}/clear-translations")
 def clear_translations(mod_id: str) -> dict:
-    """Clear all English by writing empty-string overrides for every key that currently has text. Takes a pre-clear auto-snapshot.
+    """Clear all English by writing empty-string overrides for every key that currently has text, after a pre-clear auto-snapshot.
 
-    The empty overrides mask the user's `.loc.tsv` content so cleared rows show as untranslated. The `.loc.tsv` files are not touched here - the blanks
-    are persisted to disk on the next Sync, mirroring how AI/manual translations land in translations.json first and sync later.
+    The empty overrides mask the `.loc.tsv` content so cleared rows show as untranslated.
+    The files are untouched here and the blanks reach disk on the next Sync,
+    as with AI/manual translations.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        `{"cleared": N}` - number of keys that had English and were overridden with an empty string.
+        `{"cleared": N}`, the number of keys overridden with an empty string.
     """
     mod = _require_mod(mod_id)
     snapshot_store.create_snapshot(mod_id, label="pre-clear-translations", kind="auto", local_source_dir=mod.local_source_dir)
@@ -745,7 +703,7 @@ def clear_translations(mod_id: str) -> dict:
     raw = store.load_translations_raw(mod_id)
     translation = _extract_translation_strings(mod)
 
-    # Collect every key that currently shows English, from translations.json or the user's .loc.tsv files.
+    # Every key that currently shows English, from translations.json or the .loc.tsv files.
     keys_with_english: set[str] = set()
     for key, entry in raw.items():
         if isinstance(entry, dict) and entry.get("text"):
@@ -755,7 +713,7 @@ def clear_translations(mod_id: str) -> dict:
             if row.text:
                 keys_with_english.add(key)
 
-    # Write empty-string overrides so the cleared state masks the .loc.tsv content and shows as untranslated until synced.
+    # Empty-string overrides mask the .loc.tsv content so rows show as untranslated until synced.
     now = datetime.now(timezone.utc).isoformat()
     cleared: dict[str, dict] = {}
     for key in keys_with_english:
@@ -775,16 +733,16 @@ def sync_changes(mod_id: str) -> dict:
     """Apply translations.json into the user's .loc.tsv files (surgical patch).
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        `{"per_file": {absolute_path: count}, "removed_orphans": N, "pack_built": bool, "pack_error": str | None}` describing the writeback, orphan pruning, and pack rebuild.
+        `{"per_file": {absolute_path: count}, "removed_orphans": N, "pack_built": bool, "pack_error": str | None}` for the writeback, orphan pruning and pack rebuild.
     """
     mod = _require_mod(mod_id)
     snapshot_store.create_snapshot(mod_id, label="pre-sync", kind="auto", local_source_dir=mod.local_source_dir)
 
-    # Prune orphan strings (translated keys whose parent source no longer exists) from the user's .loc.tsv files and translations.json. The pre-sync
-    # snapshot above keeps them recoverable.
+    # Prune orphans (translated keys whose parent source is gone) from the .loc.tsv files and translations.json.
+    # The pre-sync snapshot keeps them recoverable.
     parent = _extract_all_parent_strings(mod)
     translation = _extract_translation_strings(mod)
     snapshot = store.load_parent_snapshot(mod_id)
@@ -804,11 +762,11 @@ def sync_changes(mod_id: str) -> dict:
     drift = get_strings(mod_id)
     per_file = sync_translations_to_loc_tsv(mod, drift)
 
-    # Keys whose source drifted keep their old snapshot entry so they stay changed. Update Changed and Accept re-baseline those explicitly.
+    # Drifted keys keep their old snapshot entry so they stay changed. Update Changed and Accept re-baseline those explicitly.
     store.save_parent_snapshot(mod_id, refresh_unchanged(store.load_parent_snapshot(mod_id), parent))
 
-    # Rebuild the published .pack from the freshly written loose files. Non-fatal: the writeback already succeeded, so any
-    # build problem is reported as a warning rather than failing the sync. Skipped when nothing was written.
+    # Rebuild the published .pack from the freshly written files.
+    # Non-fatal since the writeback already succeeded, so problems are a warning. Skipped when nothing was written.
     pack_built = False
     pack_error: str | None = None
     if sum(per_file.values()) > 0:
@@ -836,17 +794,14 @@ class AcceptChangedRequest(BaseModel):
 
 @router.post("/mods/{mod_id}/accept-changed")
 def accept_changed(mod_id: str, req: AcceptChangedRequest) -> dict:
-    """Accept the current source text as the baseline for changed rows, keeping their existing translations.
+    """Accept the current source text as the baseline for changed rows, keeping their translations.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        req: The keys to accept, or `None` for every changed row.
+        mod_id: Workshop id of the translation mod.
+        req: Keys to accept, or `None` for every changed row.
 
     Returns:
-        `{"accepted": N}` where N counts the rows re-baselined.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        `{"accepted": N}`, the rows re-baselined.
     """
     mod = _require_mod(mod_id)
     parent = _extract_all_parent_strings(mod)
@@ -864,10 +819,10 @@ def get_snapshots(mod_id: str) -> list[dict]:
     """Return snapshot metadata for a mod, newest first.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        List of `{ulid, created_at, label, kind}` entries; empty when no snapshots exist.
+        `{ulid, created_at, label, kind}` entries, empty when none exist.
     """
     _require_mod(mod_id)
     return snapshot_store.list_snapshots(mod_id)
@@ -878,11 +833,11 @@ def post_snapshot(mod_id: str, req: SnapshotCreateRequest) -> dict:
     """Create a manual snapshot of the mod's full state.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        req: Request body with the human-readable snapshot label.
+        mod_id: Workshop id of the WH3 mod.
+        req: Body with the snapshot label.
 
     Returns:
-        `{"ulid": str, "label": str, "kind": "manual"}` for the new snapshot.
+        `{"ulid": str, "label": str, "kind": "manual"}`.
     """
     mod = _require_mod(mod_id)
     sid = snapshot_store.create_snapshot(mod_id, label=req.label, kind="manual", local_source_dir=mod.local_source_dir)
@@ -891,17 +846,14 @@ def post_snapshot(mod_id: str, req: SnapshotCreateRequest) -> dict:
 
 @router.post("/mods/{mod_id}/snapshots/{sid}/restore")
 def post_restore_snapshot(mod_id: str, sid: str) -> dict:
-    """Restore a mod's state from a snapshot. Auto-creates a pre-restore snapshot first.
+    """Restore a mod's state from a snapshot, auto-creating a pre-restore snapshot first.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         sid: ULID of the snapshot to restore.
 
     Returns:
-        `{"status": "ok"}` on success.
-
-    Raises:
-        HTTPException: 404 when the snapshot does not exist.
+        `{"status": "ok"}`.
     """
     mod = _require_mod(mod_id)
     try:
@@ -916,11 +868,11 @@ def delete_snapshot_route(mod_id: str, sid: str) -> dict:
     """Delete one snapshot from a mod's history.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         sid: ULID of the snapshot to delete.
 
     Returns:
-        `{"status": "ok"}` on success.
+        `{"status": "ok"}`.
     """
     _require_mod(mod_id)
     snapshot_store.delete_snapshot(mod_id, sid)
@@ -932,7 +884,7 @@ def get_base_glossary() -> dict:
     """Return the WH3 base-game terminology glossary.
 
     Returns:
-        `{"terms": {...}}`; empty when the glossary has not been built yet.
+        `{"terms": {...}}`, empty when not built yet.
     """
     return glossary_store.load_base_glossary()
 
@@ -942,10 +894,10 @@ def get_glossary(mod_id: str) -> dict:
     """Return the per-mod glossary.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        Glossary dict keyed by English term.
+        Glossary keyed by English term.
     """
     _require_mod(mod_id)
     return glossary_store.load_glossary(mod_id)
@@ -956,11 +908,11 @@ def post_glossary_term(mod_id: str, entry: GlossaryEntry) -> dict:
     """Add or replace a glossary entry.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        entry: Glossary entry with `english`, `source`, `category`.
+        mod_id: Workshop id of the WH3 mod.
+        entry: Entry with `english`, `source`, `category`.
 
     Returns:
-        `{"status": "ok"}` on success.
+        `{"status": "ok"}`.
     """
     _require_mod(mod_id)
     glossary_store.add_term(mod_id, entry.model_dump())
@@ -970,18 +922,18 @@ def post_glossary_term(mod_id: str, entry: GlossaryEntry) -> dict:
 def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new_english: str) -> int:
     """Rename `old_english` to `new_english` in every translation whose source text contains `source`.
 
-    Rows are read from the translation pack with translations.json overlaid, so a translation that is only in the pack is renamed too. Changed rows are
-    saved to translations.json and show as pending until the next Sync.
+    Rows come from the translation pack with translations.json overlaid, so pack-only translations are renamed too. Changed rows are saved to
+    translations.json and show as pending until the next Sync.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        source: The term's source text. Nothing is renamed when it is empty.
-        old_english: The English to replace, matched as a whole term.
-        new_english: The English to put in its place.
+        mod: Resolved `WH3TranslationMod`.
+        mod_id: Workshop id of the WH3 mod.
+        source: Term's source text, and nothing is renamed when empty.
+        old_english: English to replace, matched as a whole term.
+        new_english: Replacement English.
 
     Returns:
-        The number of translations that changed.
+        Number of translations changed.
     """
     if not source or old_english == new_english:
         return 0
@@ -1012,12 +964,12 @@ def put_glossary_term(mod_id: str, english: str, entry: GlossaryEntry) -> dict:
     A new English also replaces the old English in every translation whose source contains the term's old source, after a restorable snapshot.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         english: Existing English term key to update.
-        entry: New `{english, source, category}` values. A different `english` renames the entry.
+        entry: New `{english, source, category}`, where a different `english` renames the entry.
 
     Returns:
-        `{"status": "ok", "replaced": N}`, where N counts the translations the rename changed.
+        `{"status": "ok", "replaced": N}`, where N counts translations the rename changed.
     """
     mod = _require_mod(mod_id)
     old_source = (glossary_store.load_glossary(mod_id).get(english) or {}).get("source", "")
@@ -1031,13 +983,13 @@ def put_glossary_term(mod_id: str, english: str, entry: GlossaryEntry) -> dict:
 
 @router.delete("/mods/{mod_id}/glossary")
 def delete_all_glossary_terms(mod_id: str) -> dict:
-    """Remove every term from a mod's glossary, taking a restorable snapshot first when there is anything to delete.
+    """Remove every term from a mod's glossary, taking a restorable snapshot first if there is anything to delete.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        `{"status": "success", "deleted": N}` with the number of terms removed.
+        `{"status": "success", "deleted": N}`.
     """
     mod = _require_mod(mod_id)
     if glossary_store.load_glossary(mod_id):
@@ -1051,11 +1003,11 @@ def delete_glossary_term(mod_id: str, english: str) -> dict:
     """Delete a glossary entry by English term.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         english: English term key to delete.
 
     Returns:
-        `{"status": "ok"}` on success.
+        `{"status": "ok"}`.
     """
     _require_mod(mod_id)
     glossary_store.delete_term(mod_id, english)
@@ -1067,11 +1019,11 @@ def post_glossary_apply_all(mod_id: str, req: GlossaryApplyAllRequest) -> dict:
     """Word-boundary find-and-replace `old_english` -> `new_english` across all translations.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        req: Request body with `old_english` and `new_english`.
+        mod_id: Workshop id of the WH3 mod.
+        req: Body with `old_english` and `new_english`.
 
     Returns:
-        `{"replaced": N}` - total count of substitutions performed.
+        `{"replaced": N}`, the total substitutions.
     """
     mod = _require_mod(mod_id)
     snapshot_store.create_snapshot(mod_id, label=f"pre-apply-all rename {req.old_english}", kind="auto", local_source_dir=mod.local_source_dir)
@@ -1081,13 +1033,13 @@ def post_glossary_apply_all(mod_id: str, req: GlossaryApplyAllRequest) -> dict:
 
 @router.get("/mods/{mod_id}/api-responses")
 def get_api_responses(mod_id: str) -> list[dict]:
-    """List all API response entries for a mod, newest first.
+    """List a mod's API response entries, newest first.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        List of audit entries (newest first); empty when no log exists.
+        Audit entries, empty if no log exists.
     """
     _require_mod(mod_id)
     return api_responses_store.list_entries(mod_id)
@@ -1103,13 +1055,10 @@ def open_mod_folder(mod_id: str) -> dict:
     """Open the mod's local source directory in the OS file explorer.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        `{"status": "ok"}` when the explorer launches successfully.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered or the local source dir does not exist.
+        `{"status": "ok"}`.
     """
     mod = _require_mod(mod_id)
     folder = mod.local_source_dir
@@ -1128,17 +1077,14 @@ def open_mod_folder(mod_id: str) -> dict:
 def open_source_file(mod_id: str, filename: str) -> dict:
     """Open one of the mod's source `.loc.tsv` files in the OS default application.
 
-    Resolves the normalized parent filename to the user's actual on-disk file (which may carry the mod prefix) and opens it.
+    Resolves the normalized parent filename to the user's on-disk file, which may carry the mod prefix.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        filename: The normalized `.loc.tsv` filename shown in the Source column (e.g. `"units.loc.tsv"`).
+        mod_id: Workshop id of the translation mod.
+        filename: Normalized `.loc.tsv` filename from the Source column (e.g. `"units.loc.tsv"`).
 
     Returns:
-        `{"status": "ok", "path": <resolved path>}` when the file opens.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered or the source file cannot be found.
+        `{"status": "ok", "path": <resolved path>}`.
     """
     mod = _require_mod(mod_id)
     target = _find_existing_user_file(mod, filename)

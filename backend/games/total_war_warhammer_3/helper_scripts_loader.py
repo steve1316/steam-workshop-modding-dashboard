@@ -1,10 +1,8 @@
 """Live importlib-based loader for the helper_scripts registry constants.
 
-Reads `SUPPORTED_MODS` from `data/supported_mods.py` and `SUPPORTED_EFFECTS` from
-`data/dynamic_rors_effects.py`. The registry files import other helper_scripts packages
-(e.g. `from core.utilities import STEAM_LIBRARY_DRIVE`), so the loader prepends the
-helper_scripts directory to `sys.path` for the duration of the import and restores it
-afterwards. Errors surface as typed exceptions for the route layer to translate into HTTP responses.
+Reads `SUPPORTED_MODS` from `data/supported_mods.py` and `SUPPORTED_EFFECTS` from `data/dynamic_rors_effects.py`.
+The registry files import other helper_scripts packages, so `sys.path` is prepended with that directory during the import.
+Errors are typed for the routes.
 """
 
 from __future__ import annotations
@@ -24,19 +22,15 @@ SUPPORTED_EFFECTS_FILE = "data/dynamic_rors_effects.py"
 
 
 def _derive_workshop_id(path: str | None) -> str | None:
-    """Extract the Steam Workshop item id from a TW3 `.pack` file path.
+    """Extract the Workshop item id from a TW3 `.pack` file path.
 
-    The local Steam Workshop convention is `<...>\\1142710\\<workshop_id>\\<file>.pack`,
-    so the workshop id is the immediate parent directory's name when its parent
-    is the TW3 appid folder. Returns `None` for paths that do not match this
-    convention or for empty / non-string inputs.
+    The Steam convention is `<...>\\1142710\\<workshop_id>\\<file>.pack`, so the id is the parent directory name when its parent is the TW3 appid folder.
 
     Args:
-        path: Filesystem path to a `.pack` file, or None.
+        path: `.pack` file path, or None.
 
     Returns:
-        The workshop id as a string, or None when the path is empty or does not
-        match the expected `1142710/<workshop_id>/<file>.pack` shape.
+        Workshop id, or None when the path is empty or does not match the convention.
     """
     if not path or not isinstance(path, str):
         return None
@@ -53,7 +47,7 @@ def _sys_path_prepended(directory: Path) -> Iterator[None]:
     """Prepend `directory` to `sys.path` for the duration of the context.
 
     Args:
-        directory: Path to insert at index 0 of `sys.path`.
+        directory: Path to insert at index 0.
     """
     entry = str(directory)
     sys.path.insert(0, entry)
@@ -91,17 +85,11 @@ def _load_constant(helper_scripts_path: Path, filename: str, constant: str) -> A
 
     Args:
         helper_scripts_path: Configured `helper_scripts/` directory.
-        filename: The .py file to import, relative to `helper_scripts_path` (e.g. 'data/supported_mods.py').
-        constant: The module-level constant to read (e.g. 'SUPPORTED_MODS').
-
-    Raises:
-        HelperScriptsNotConfiguredError: When `helper_scripts_path` is missing.
-        RegistryFileMissingError: When `filename` is not present.
-        RegistryFileSyntaxError: When the file fails to compile.
-        RegistryConstantNotFoundError: When the constant is not declared.
+        filename: .py file relative to `helper_scripts_path`.
+        constant: Module-level constant to read.
 
     Returns:
-        The value of the named constant.
+        The constant's value.
     """
     if not helper_scripts_path or not helper_scripts_path.is_dir():
         raise HelperScriptsNotConfiguredError(str(helper_scripts_path))
@@ -128,20 +116,13 @@ def _load_constant(helper_scripts_path: Path, filename: str, constant: str) -> A
 
 
 def load_supported_mods(helper_scripts_path: Path) -> list[dict]:
-    """Live-import `SUPPORTED_MODS` from `data/supported_mods.py` in the given directory.
+    """Live-import `SUPPORTED_MODS` from `data/supported_mods.py`.
 
     Args:
         helper_scripts_path: Configured `helper_scripts/` directory.
 
-    Raises:
-        HelperScriptsNotConfiguredError: When `helper_scripts_path` is missing or not a directory.
-        RegistryFileMissingError: When `data/supported_mods.py` is absent.
-        RegistryFileSyntaxError: When the file fails to compile.
-        RegistryConstantNotFoundError: When `SUPPORTED_MODS` is not declared.
-
     Returns:
-        The `SUPPORTED_MODS` list of dicts, each augmented with a derived `workshop_id` field
-        (None when the path does not follow the TW3 workshop convention).
+        `SUPPORTED_MODS` dicts, each with a derived `workshop_id` (None when the path does not follow the TW3 convention).
     """
     mods = _load_constant(helper_scripts_path, SUPPORTED_MODS_FILE, "SUPPORTED_MODS")
     for mod in mods:
@@ -150,16 +131,10 @@ def load_supported_mods(helper_scripts_path: Path) -> list[dict]:
 
 
 def load_supported_effects(helper_scripts_path: Path) -> dict:
-    """Live-import `SUPPORTED_EFFECTS` from `data/dynamic_rors_effects.py` in the given directory.
+    """Live-import `SUPPORTED_EFFECTS` from `data/dynamic_rors_effects.py`.
 
     Args:
         helper_scripts_path: Configured `helper_scripts/` directory.
-
-    Raises:
-        HelperScriptsNotConfiguredError: When `helper_scripts_path` is missing or not a directory.
-        RegistryFileMissingError: When `data/dynamic_rors_effects.py` is absent.
-        RegistryFileSyntaxError: When the file fails to compile.
-        RegistryConstantNotFoundError: When `SUPPORTED_EFFECTS` is not declared.
 
     Returns:
         The `SUPPORTED_EFFECTS` dict.
@@ -168,33 +143,25 @@ def load_supported_effects(helper_scripts_path: Path) -> dict:
 
 
 def supported_mods_source_path(helper_scripts_path: Path) -> Path:
-    """Return the absolute path to `data/supported_mods.py` inside helper_scripts.
+    """Return the path to `data/supported_mods.py` inside helper_scripts.
 
     Args:
         helper_scripts_path: Configured `helper_scripts/` directory.
 
     Returns:
-        Path to the `.py` file. May not exist. Callers should validate.
+        Path to the file, which may not exist.
     """
     return helper_scripts_path / SUPPORTED_MODS_FILE
 
 
 def load_supported_effects_categories(helper_scripts_path: Path) -> list[str]:
-    """Return the top-level category names from `SUPPORTED_EFFECTS`.
-
-    Used by the Supported Mods CRUD form's Modified Attributes autocomplete.
+    """Return the sorted top-level category names from `SUPPORTED_EFFECTS`.
 
     Args:
         helper_scripts_path: Configured `helper_scripts/` directory.
 
-    Raises:
-        HelperScriptsNotConfiguredError: When `helper_scripts_path` is missing.
-        RegistryFileMissingError: When `data/dynamic_rors_effects.py` is absent.
-        RegistryFileSyntaxError: When the file fails to compile.
-        RegistryConstantNotFoundError: When `SUPPORTED_EFFECTS` is not declared.
-
     Returns:
-        Sorted list of top-level keys from `SUPPORTED_EFFECTS`.
+        Sorted top-level keys.
     """
     effects = load_supported_effects(helper_scripts_path)
     return sorted(effects.keys())

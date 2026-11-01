@@ -1,12 +1,7 @@
 """Registry of WH3 translation mods the user maintains.
 
-Each entry pairs a user-published translation workshop ID with the parent
-mod(s) whose `.loc` strings the translation covers. The local source dir is
-the absolute path to the loose `.loc.tsv` files the user edits.
-
-`Cathay Dragons Battle in the Field` is intentionally omitted from this
-initial registry: the spec flags that no local source dir is confirmed for
-parent workshop ID `3061752415`. Add it once the user confirms the dir.
+Each entry pairs a published translation Workshop id with the parent mod(s) whose `.loc` strings it covers and the local dir of loose `.loc.tsv` files.
+`Cathay Dragons Battle in the Field` is omitted until a local source dir is confirmed for parent id `3061752415`.
 """
 
 from __future__ import annotations
@@ -20,18 +15,13 @@ class WH3TranslationMod:
     """One translation mod entry.
 
     Attributes:
-        workshop_id: Steam Workshop ID of the published translation mod.
-        display_name: Human-readable name shown in the dashboard.
-        parent_workshop_ids: Steam Workshop IDs of the parent mod(s) whose
-            strings this translation covers. Multiple IDs are used for
-            collection translations (e.g. Deer24).
-        local_source_dir: Absolute path to the directory holding the loose
-            `.loc.tsv` files the user edits.
-        source_language: Source language of the parent mod's text.
-            Currently always `"Chinese"`.
-        target_language: Target language. Currently always `"English"`.
-        prefix: Load-order prefix used when creating brand-new `.loc.tsv`
-            files inside `<local_source_dir>/text/`. Defaults to `"@@"`.
+        workshop_id: Workshop id of the published translation mod.
+        display_name: Name shown in the dashboard.
+        parent_workshop_ids: Parent mod ids whose strings this covers, several for collection translations (e.g. Deer24).
+        local_source_dir: Absolute path to the loose `.loc.tsv` files the user edits.
+        source_language: Parent text language, currently always `"Chinese"`.
+        target_language: Target language, currently always `"English"`.
+        prefix: Load-order prefix for new `.loc.tsv` files in `<local_source_dir>/text/`.
     """
 
     workshop_id: str
@@ -87,13 +77,13 @@ WH3_TRANSLATION_MODS: tuple[WH3TranslationMod, ...] = (
 
 
 def get_translation_mod(workshop_id: str) -> WH3TranslationMod | None:
-    """Look up a translation mod by its workshop ID.
+    """Look up a translation mod by its Workshop id.
 
     Args:
-        workshop_id: Steam Workshop ID of the translation mod.
+        workshop_id: Workshop id of the translation mod.
 
     Returns:
-        The matching `WH3TranslationMod`, or `None` if not registered.
+        The matching mod, or `None` if not registered.
     """
     for mod in WH3_TRANSLATION_MODS:
         if mod.workshop_id == workshop_id:

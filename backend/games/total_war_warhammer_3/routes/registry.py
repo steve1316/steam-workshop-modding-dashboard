@@ -33,11 +33,7 @@ def get_supported_mods():
     """Return SUPPORTED_MODS from the configured helper_scripts directory.
 
     Returns:
-        `{"mods": [...]}` on success.
-
-    Raises:
-        HTTPException(503): When helper_scripts_path is unset or the file is missing.
-        HTTPException(500): When the file fails to load (syntax error, missing constant).
+        `{"mods": [...]}`.
     """
     try:
         mods = load_supported_mods(helper_scripts_path())
@@ -55,17 +51,13 @@ class SupportedModBody(BaseModel):
 
 
 def _write_and_reload(new_source: str) -> list[dict]:
-    """Backup, write, and reload the SUPPORTED_MODS source file.
+    """Back up, write and reload the SUPPORTED_MODS source file.
 
     Args:
-        new_source: The mutated `supported_mods.py` text to persist.
+        new_source: Mutated `supported_mods.py` text.
 
     Returns:
-        The freshly loaded list of mods.
-
-    Raises:
-        HTTPException(500): When the post-write reload fails (after restoring backup).
-        HTTPException(503): When helper_scripts_path is unset.
+        Freshly loaded mods.
     """
     source_path = supported_mods_source_path(helper_scripts_path())
     if not source_path.is_file():
@@ -82,18 +74,13 @@ def _write_and_reload(new_source: str) -> list[dict]:
 
 @router.post("/supported-mods")
 def post_supported_mods(body: SupportedModBody):
-    """Add a new entry to SUPPORTED_MODS and persist to disk.
+    """Add a new entry to SUPPORTED_MODS and persist it.
 
     Args:
-        body: Wrapper containing the new entry payload.
+        body: Wrapper with the new entry.
 
     Returns:
-        `{"mods": [...]}` - the freshly loaded list.
-
-    Raises:
-        HTTPException(409): When `package_name` is already present.
-        HTTPException(503): When helper_scripts is unset or missing.
-        HTTPException(500): When the file fails to parse or write.
+        `{"mods": [...]}`, the reloaded list.
     """
     try:
         source_path = supported_mods_source_path(helper_scripts_path())
@@ -109,19 +96,14 @@ def post_supported_mods(body: SupportedModBody):
 
 @router.put("/supported-mods/{package_name}")
 def put_supported_mods(package_name: str, body: SupportedModBody):
-    """Replace an existing SUPPORTED_MODS entry, keyed by `package_name`.
+    """Replace the SUPPORTED_MODS entry keyed by `package_name`.
 
     Args:
         package_name: Package name of the entry to replace.
-        body: Wrapper containing the replacement entry payload.
+        body: Wrapper with the replacement entry.
 
     Returns:
-        `{"mods": [...]}` - the freshly loaded list.
-
-    Raises:
-        HTTPException(404): When no entry with `package_name` exists.
-        HTTPException(503): When helper_scripts is unset or missing.
-        HTTPException(500): When the file fails to parse or write.
+        `{"mods": [...]}`, the reloaded list.
     """
     try:
         source_path = supported_mods_source_path(helper_scripts_path())
@@ -137,18 +119,13 @@ def put_supported_mods(package_name: str, body: SupportedModBody):
 
 @router.delete("/supported-mods/{package_name}")
 def delete_supported_mods(package_name: str):
-    """Remove an existing SUPPORTED_MODS entry, keyed by `package_name`.
+    """Remove the SUPPORTED_MODS entry keyed by `package_name`.
 
     Args:
         package_name: Package name of the entry to remove.
 
     Returns:
-        `{"mods": [...]}` - the freshly loaded list.
-
-    Raises:
-        HTTPException(404): When no entry with `package_name` exists.
-        HTTPException(503): When helper_scripts is unset or missing.
-        HTTPException(500): When the file fails to parse or write.
+        `{"mods": [...]}`, the reloaded list.
     """
     try:
         source_path = supported_mods_source_path(helper_scripts_path())
@@ -164,16 +141,10 @@ def delete_supported_mods(package_name: str):
 
 @router.get("/supported-effects")
 def get_supported_effects():
-    """Return the top-level keys of `SUPPORTED_EFFECTS`.
-
-    Used by the Supported Mods CRUD form's Modified Attributes autocomplete.
+    """Return the top-level keys of `SUPPORTED_EFFECTS` for the Modified Attributes autocomplete.
 
     Returns:
-        `{"categories": [...]}` on success.
-
-    Raises:
-        HTTPException(503): When helper_scripts_path is unset or the file is missing.
-        HTTPException(500): When the file fails to load.
+        `{"categories": [...]}`.
     """
     try:
         categories = load_supported_effects_categories(helper_scripts_path())

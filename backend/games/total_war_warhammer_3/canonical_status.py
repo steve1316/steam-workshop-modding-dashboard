@@ -1,11 +1,8 @@
 """Map WH3 drift rows to the canonical six-state status model.
 
-WH3's native drift model (translated/untranslated/stale/orphan) plus its
-`translations.json` overlay are folded into the shared `RowStatus` so the WH3
-page renders the same status chips as Chrono Ark. `synced` means the effective
-translation already matches what is written on disk in the `.loc.tsv` (no pending
-differing override). A source-text drift (`stale`) becomes `changed`, and an unsynced edit with no drift is `pending`. `orphan` and
-`untranslated` become `missing`. A row whose parent source is blank becomes `untranslatable`. WH3 has no `untouched` state, so it never emits it.
+WH3's drift states plus the `translations.json` overlay fold into the shared `RowStatus`. `synced` means the effective translation already
+matches the `.loc.tsv` on disk. Source drift (`stale`) becomes `changed`, an unsynced edit with no drift is `pending`, and `orphan` and `untranslated`
+become `missing`. A blank parent source is `untranslatable`. WH3 has no `untouched` state.
 """
 
 from __future__ import annotations
@@ -15,14 +12,14 @@ from backend.translation.status import StatusRow, classify_status
 
 
 def to_status_rows(drift: list[DriftRow], raw_translations: dict) -> list[StatusRow]:
-    """Map drift rows plus the translations.json overlay to canonical StatusRows.
+    """Map drift rows plus the translations.json overlay to canonical `StatusRow`s.
 
     Args:
-        drift: Rows from `compute_drift` (parent vs `.loc.tsv` vs snapshot).
-        raw_translations: The mod's `translations.json` mapping (`key -> {text, provider}`).
+        drift: Rows from `compute_drift`.
+        raw_translations: The mod's `translations.json` (`key -> {text, provider}`).
 
     Returns:
-        One `StatusRow` per drift row, in input order, carrying the canonical status.
+        One `StatusRow` per drift row, in input order.
     """
     rows: list[StatusRow] = []
     for row in drift:
@@ -39,7 +36,7 @@ def to_status_rows(drift: list[DriftRow], raw_translations: dict) -> list[Status
         else:
             provider = "manual" if loc_text else None
 
-        # A blank parent source has nothing to translate.
+        # Blank parent source has nothing to translate.
         untranslatable_reason = "Source text is empty" if row.parent_text is not None and not row.parent_text.strip() else None
 
         if row.status == "orphan":

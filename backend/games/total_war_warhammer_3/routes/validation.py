@@ -22,11 +22,7 @@ def get_validation():
     """Run FK validation against the configured mod and effects registries.
 
     Returns:
-        `{"issues": [...]}` on success. The list is empty when no issues are found.
-
-    Raises:
-        HTTPException(503): When helper_scripts_path is unset or a registry file is missing.
-        HTTPException(500): When a registry file fails to load (syntax error, missing constant).
+        `{"issues": [...]}`, empty when none are found.
     """
     try:
         mods = load_supported_mods(helper_scripts_path())

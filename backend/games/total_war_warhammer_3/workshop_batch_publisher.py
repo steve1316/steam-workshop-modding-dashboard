@@ -1,8 +1,7 @@
 """Serialized batch orchestrator on top of `workshop_publisher` for pushing many TW3 mods at once.
 
-Wraps the single-flight per-mod publisher in a background task that runs items one at a time, each with its own changelog. Surfaces per-mod status
-(pending/running/done/failed) and a unified event stream the SSE route can fan out to one or more subscribers, including late-joining ones that
-reconnect mid-batch.
+Runs items one at a time in a background task, each with its own changelog. Surfaces per-mod status and an event stream
+the SSE route fans out to subscribers, including ones that reconnect mid-batch.
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ ItemStatus = Literal["pending", "running", "done", "failed"]
 
 @dataclass
 class BatchItem:
-    """One mod's slot in a batch publish, updated in place as the orchestrator progresses."""
+    """One mod's slot in a batch publish, updated in place as the batch progresses."""
 
     workshop_id: str
     """ Steam Workshop item id being updated. """
@@ -69,7 +68,7 @@ class BatchHandle:
 
 
 class BatchInProgressError(Exception):
-    """Raised when `start_batch` is called while another batch (or a single-mod publish) is active."""
+    """`start_batch` was called while another batch or single-mod publish is active."""
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +84,7 @@ _current_batch_id: str | None = None
 
 
 def _reset_state() -> None:
-    """Clear all batch state. Test-only helper."""
+    """Clear all batch state. Test-only."""
     global _current_batch_id
     _batches.clear()
     _current_batch_id = None
@@ -102,22 +101,15 @@ def start_batch(
     steamcmd_path: str,
     steam_username: str,
 ) -> BatchHandle:
-    """Start orchestrating a sequential batch publish.
-
-    The function returns immediately after spawning the background task; callers receive a `BatchHandle` they can use to
-    look up the batch id, subscribe to the event stream, or await `done_event` for completion.
+    """Start a sequential batch publish and return immediately after spawning the background task.
 
     Args:
-        items: list of `{"workshop_id": str, "title": str, "changenote": str}` dicts in run order.
-        steamcmd_path: path to `steamcmd.exe` forwarded to `workshop_publisher.start_publish`.
-        steam_username: Steam account username forwarded to `workshop_publisher.start_publish`.
-
-    Raises:
-        ValueError: when `items` is empty or any item's `changenote` is blank.
-        BatchInProgressError: when another batch is active or a single-mod publish is in progress.
+        items: `{"workshop_id", "title", "changenote"}` dicts in run order.
+        steamcmd_path: Path to `steamcmd.exe`, forwarded to `workshop_publisher.start_publish`.
+        steam_username: Steam username, forwarded to `workshop_publisher.start_publish`.
 
     Returns:
-        The created `BatchHandle`.
+        Handle with the batch id, event stream and `done_event`.
     """
     global _current_batch_id
 
@@ -149,9 +141,9 @@ def start_batch(
 
 
 def current_batch() -> BatchHandle | None:
-    """Return the active batch handle, or None when no batch is running.
+    """Return the active batch handle, or None.
 
-    A completed batch is retained in `_batches` for late stream reconnects, but is no longer considered "current".
+    A completed batch stays in `_batches` for late stream reconnects but is not "current".
     """
     if _current_batch_id is None:
         return None
@@ -162,7 +154,7 @@ def current_batch() -> BatchHandle | None:
 
 
 def get_batch(batch_id: str) -> BatchHandle | None:
-    """Return the batch handle for `batch_id`, or None if it is unknown."""
+    """Return the handle for `batch_id`, or None if unknown."""
     return _batches.get(batch_id)
 
 
@@ -170,13 +162,10 @@ async def stream_batch(batch_id: str) -> AsyncIterator[dict]:
     """Yield every event seen so far for `batch_id`, then live-tail new ones until the batch ends.
 
     Args:
-        batch_id: the id returned from `start_batch`.
-
-    Raises:
-        KeyError: when no batch exists for `batch_id`.
+        batch_id: Id from `start_batch`.
 
     Yields:
-        Event dicts of the form `{"event": <type>, "data": <payload>}`.
+        `{"event": <type>, "data": <payload>}` dicts.
     """
     handle = _batches.get(batch_id)
     if handle is None:
@@ -211,8 +200,8 @@ async def stream_batch(batch_id: str) -> AsyncIterator[dict]:
 def _emit(handle: BatchHandle, event_type: str, data: dict) -> None:
     """Append an event to the replay buffer and fan it out to every live subscriber.
 
-    The replay buffer is capped at `_EVENTS_LOG_MAX`; older entries are dropped. Subscriber queues that are full drop
-    their oldest entry and inject a synthetic throttle notice so callers know there's a gap.
+    The buffer is capped at `_EVENTS_LOG_MAX`, dropping the oldest.
+    A full subscriber queue drops its oldest entry and gets a synthetic throttle notice marking the gap.
     """
     event = {"event": event_type, "data": data}
     handle.events_log.append(event)
@@ -239,7 +228,7 @@ def _emit(handle: BatchHandle, event_type: str, data: dict) -> None:
 
 
 def _close_subscribers(handle: BatchHandle) -> None:
-    """Push the sentinel that tells every subscriber's stream_batch loop to break."""
+    """Push the sentinel that makes each subscriber's `stream_batch` loop break."""
     for q in list(handle._subscribers):
         try:
             q.put_nowait(None)
@@ -248,7 +237,7 @@ def _close_subscribers(handle: BatchHandle) -> None:
 
 
 async def _run_batch(handle: BatchHandle, *, steamcmd_path: str, steam_username: str) -> None:
-    """Background task body: publish each batch item sequentially and emit events as they happen."""
+    """Background task: publish each item sequentially and emit events."""
     global _current_batch_id
 
     _emit(
@@ -287,7 +276,7 @@ async def _run_batch(handle: BatchHandle, *, steamcmd_path: str, steam_username:
                 failed += 1
                 continue
 
-            # Capture what is about to be uploaded off the event loop, since the compat capture runs a subprocess.
+            # Capture off the event loop since the compat capture runs a subprocess.
             on_exit = await asyncio.to_thread(publish_notes.make_recorder, item.workshop_id, item.changenote)
             try:
                 wp.start_publish(
@@ -354,7 +343,7 @@ async def _run_batch(handle: BatchHandle, *, steamcmd_path: str, steam_username:
 
 
 def _finalize_item(item: BatchItem, *, status: ItemStatus, exit_code: int | None, error: str | None) -> None:
-    """Stamp the terminal fields on a `BatchItem` once its publish call has finished."""
+    """Stamp the terminal fields on a `BatchItem` once its publish has finished."""
     item.status = status
     item.exit_code = exit_code
     item.error = error
@@ -362,7 +351,7 @@ def _finalize_item(item: BatchItem, *, status: ItemStatus, exit_code: int | None
 
 
 def _emit_mod_finished(handle: BatchHandle, item: BatchItem, *, duration: float) -> None:
-    """Emit the `mod_finished` event using the terminal fields on `item`."""
+    """Emit `mod_finished` from the terminal fields on `item`."""
     _emit(
         handle,
         "mod_finished",

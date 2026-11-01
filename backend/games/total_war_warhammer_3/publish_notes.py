@@ -1,7 +1,7 @@
 """Changenote generation and upload recording for WH3 Workshop publishes.
 
-Registered translation mods diff against their published baseline. Every other Workshop id is treated as a compat pack and goes through
-totalwar-modding's change note CLI. `make_recorder` captures what is about to be uploaded and returns the hook `start_publish` calls on exit.
+Registered translation mods diff against their published baseline, and every other id is a compat pack using totalwar-modding's change note CLI.
+`make_recorder` captures what is about to be uploaded and returns the hook `start_publish` calls on exit.
 """
 
 from __future__ import annotations
@@ -26,8 +26,7 @@ def change_notes_for(ids: list[str]) -> dict:
         ids: Workshop ids of translation mods and compat packs, in any mix.
 
     Returns:
-        `{"notes": {id: {"note", "pending", "kind"} | None}, "errors": [str]}`. A failed builder adds its message to `errors` and maps its ids
-        to None, so one failure never hides the other notes.
+        `{"notes": {id: {"note", "pending", "kind"} | None}, "errors": [str]}`. A failed builder adds to `errors` and maps its ids to None.
     """
     notes: dict[str, dict | None] = {}
     errors: list[str] = []
@@ -65,10 +64,10 @@ def make_recorder(workshop_id: str, changenote: str) -> OnExit | None:
 
     Args:
         workshop_id: Workshop id being published.
-        changenote: The changenote sent with the upload.
+        changenote: Changenote sent with the upload.
 
     Returns:
-        The `on_exit` hook, or None when there is nothing to record for this item (it is not a generated pack).
+        The `on_exit` hook, or None when this item is not a generated pack.
     """
     try:
         if get_translation_mod(workshop_id) is not None:
@@ -81,7 +80,7 @@ def make_recorder(workshop_id: str, changenote: str) -> OnExit | None:
                     exit_code: SteamCMD's exit code.
 
                 Returns:
-                    A status line on a successful record, or None otherwise.
+                    Status line on success, else None.
                 """
                 if exit_code == 0:
                     tcn.save_baseline(workshop_id, shipped, changenote)
@@ -102,7 +101,7 @@ def make_recorder(workshop_id: str, changenote: str) -> OnExit | None:
                 exit_code: SteamCMD's exit code.
 
             Returns:
-                A status line on a successful record, or None otherwise.
+                Status line on success, else None.
             """
             if exit_code == 0:
                 ccn.record(workshop_id, pack_sha, changenote)
@@ -115,13 +114,13 @@ def make_recorder(workshop_id: str, changenote: str) -> OnExit | None:
         reason = str(exc)
 
         def record_capture_failed(exit_code: int | None) -> str | None:
-            """Report that the upload was not recorded, since its state could not be captured when it started.
+            """Report that the upload was not recorded because its state could not be captured at the start.
 
             Args:
                 exit_code: SteamCMD's exit code.
 
             Returns:
-                A status line on a successful upload, or None otherwise.
+                Status line on a successful upload, else None.
             """
             if exit_code == 0:
                 return f"This upload was not recorded, so the next changenote may repeat these changes: {reason}"

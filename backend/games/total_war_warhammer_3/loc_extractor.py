@@ -23,7 +23,7 @@ class LocRow:
     Attributes:
         key: Localization key (column 0).
         text: Translated or source text (column 1).
-        tooltip: Whether this entry is shown as a tooltip (column 2).
+        tooltip: Whether the entry is shown as a tooltip (column 2).
     """
 
     key: str
@@ -32,13 +32,13 @@ class LocRow:
 
 
 def _parse_tooltip(value: str) -> bool:
-    """Parse the tooltip column. Accepts `true` / `false` case-insensitively.
+    """Parse the tooltip column, accepting `true` / `false` case-insensitively.
 
     Args:
-        value: Raw string from the tooltip column.
+        value: Raw tooltip cell.
 
     Returns:
-        True if the value is `true` (case-insensitive), False otherwise.
+        True if the value is `true`.
     """
     return value.strip().lower() == "true"
 
@@ -46,17 +46,15 @@ def _parse_tooltip(value: str) -> bool:
 def escape_loc_text(text: str) -> str:
     """Escape a translation string so it occupies a single RPFM loc TSV cell.
 
-    A real newline or tab in the cell would break the one-row-per-entry TSV structure that `--tsv-to-binary` requires
-    (continuation lines get parsed as bogus rows whose key column holds stray text). RPFM's TSV form escapes the loc
-    line-break marker, so a rendered line break is stored as `\\\\n` (backslash, backslash, n) and a literal backslash as
-    `\\\\`. Convert real newlines/tabs (and folded carriage returns) accordingly to match how the user's loc files - and
-    RPFM's own exports - represent them.
+    A real newline or tab would break the one-row-per-entry structure `--tsv-to-binary` requires (continuation lines become bogus rows).
+    RPFM stores a rendered line break as `\\\\n` (backslash, backslash, n) and a literal backslash as `\\\\`, so real newlines, tabs
+    and folded carriage returns are converted to match.
 
     Args:
-        text: The raw translation text (may contain real newlines, tabs, or backslashes).
+        text: Raw translation text.
 
     Returns:
-        A single-line string safe to write as a loc TSV text cell.
+        Single-line string safe for a loc TSV text cell.
     """
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = text.replace("\\", "\\\\")
@@ -70,10 +68,10 @@ def unescape_loc_text(text: str) -> str:
     bare `\\\\` -> a single backslash. A lone `\\` (not doubled) is left as-is.
 
     Args:
-        text: A loc TSV text cell as read from disk.
+        text: Loc TSV text cell as read from disk.
 
     Returns:
-        The text with the escape sequences turned back into real newlines, tabs, and backslashes.
+        Text with real newlines, tabs and backslashes.
     """
     out: list[str] = []
     i = 0
@@ -100,17 +98,14 @@ def unescape_loc_text(text: str) -> str:
 def read_translation_loc_tsv(path: Path) -> dict[str, LocRow]:
     """Parse a `.loc.tsv` file into a dict keyed by loc key.
 
-    Skips the literal header row and the RPFM `#Loc;1;...` metadata row. The `text` cell is unescaped via `unescape_loc_text`
-    so callers see real newlines/tabs. Whitespace-only `text` cells are preserved verbatim.
+    Skips the header row and the RPFM `#Loc;1;...` metadata row.
+    The `text` cell is unescaped via `unescape_loc_text`, and whitespace-only cells are kept verbatim.
 
     Args:
-        path: Filesystem path to the `.loc.tsv` file.
+        path: `.loc.tsv` file.
 
     Returns:
-        Dictionary mapping `key` to `LocRow`.
-
-    Raises:
-        FileNotFoundError: If `path` does not exist.
+        `key` to `LocRow`.
     """
     if not path.exists():
         raise FileNotFoundError(f"loc.tsv not found: {path}")
@@ -126,7 +121,7 @@ def read_translation_loc_tsv(path: Path) -> dict[str, LocRow]:
             if parts[0].startswith("#Loc"):
                 continue  # RPFM metadata
             if len(parts) < 3:
-                # malformed row - pad missing columns with empty strings
+                # malformed row - pad missing columns
                 parts = parts + [""] * (3 - len(parts))
             key, text, tooltip = parts[0], unescape_loc_text(parts[1]), parts[2]
             if not key:
@@ -136,16 +131,15 @@ def read_translation_loc_tsv(path: Path) -> dict[str, LocRow]:
 
 
 def normalize_loc_filename(name: str) -> str:
-    """Strip leading non-alphanumeric prefix and lowercase.
+    """Strip the leading non-alphanumeric prefix and lowercase.
 
-    Removes RPFM load-order prefixes like `@@` and `!!!` so that translation
-    and parent loc files can be matched up regardless of prefix.
+    Removes RPFM load-order prefixes like `@@` and `!!!` so translation and parent loc files match regardless of prefix.
 
     Args:
-        name: The `.loc.tsv` filename (basename only).
+        name: `.loc.tsv` basename.
 
     Returns:
-        Normalized lowercase filename with leading non-alphanumeric prefix removed.
+        Normalized lowercase filename.
     """
     stripped = re.sub(r"^[^A-Za-z0-9]+", "", name)
     return stripped.lower()
@@ -155,10 +149,10 @@ def _pack_mtime_path(cache_dir: Path) -> Path:
     """Return the path to the cached mtime sentinel file.
 
     Args:
-        cache_dir: The per-pack cache directory.
+        cache_dir: Per-pack cache directory.
 
     Returns:
-        Path to `pack_mtime.txt` inside `cache_dir`.
+        `pack_mtime.txt` inside `cache_dir`.
     """
     return cache_dir / "pack_mtime.txt"
 
@@ -167,22 +161,22 @@ def _extracted_dir(cache_dir: Path) -> Path:
     """Return the directory where RPFM writes extracted TSV files.
 
     Args:
-        cache_dir: The per-pack cache directory.
+        cache_dir: Per-pack cache directory.
 
     Returns:
-        Path to the `extracted` subdirectory inside `cache_dir`.
+        `extracted` subdirectory of `cache_dir`.
     """
     return cache_dir / "extracted"
 
 
 def _read_cached_mtime(cache_dir: Path) -> int | None:
-    """Read the previously-recorded pack mtime from disk.
+    """Read the previously recorded pack mtime.
 
     Args:
-        cache_dir: The per-pack cache directory.
+        cache_dir: Per-pack cache directory.
 
     Returns:
-        The cached mtime as an integer, or None if unavailable.
+        Cached mtime, or None if unavailable.
     """
     p = _pack_mtime_path(cache_dir)
     if not p.exists():
@@ -194,13 +188,13 @@ def _read_cached_mtime(cache_dir: Path) -> int | None:
 
 
 def _read_all_extracted(cache_dir: Path) -> dict[str, dict[str, LocRow]]:
-    """Parse every `.loc.tsv` file in the extracted subdirectory.
+    """Parse every `.loc.tsv` in the extracted subdirectory.
 
     Args:
-        cache_dir: The per-pack cache directory.
+        cache_dir: Per-pack cache directory.
 
     Returns:
-        Dictionary mapping normalized loc filename to its parsed rows.
+        Normalized loc filename to its parsed rows.
     """
     out: dict[str, dict[str, LocRow]] = {}
     extracted = _extracted_dir(cache_dir)
@@ -218,20 +212,15 @@ def extract_parent_pack_strings(
 ) -> dict[str, dict[str, LocRow]]:
     """Extract all `.loc` tables from a binary `.pack` via RPFM CLI.
 
-    Re-extracts only when the source `.pack` mtime differs from the cached
-    mtime. Otherwise returns the previously-extracted TSVs from disk.
+    Re-extracts only when the `.pack` mtime differs from the cached one, otherwise returns the TSVs already on disk.
 
     Args:
-        pack_path: Absolute path to the parent `.pack` file.
-        rpfm_cli_path: Absolute path to the `rpfm_cli` executable.
-        cache_dir: Per-parent-mod cache directory. Created if absent.
+        pack_path: Parent `.pack` file.
+        rpfm_cli_path: `rpfm_cli` executable.
+        cache_dir: Per-parent-mod cache directory, created if absent.
 
     Returns:
         `{normalized_loc_filename: {loc_key: LocRow}}`.
-
-    Raises:
-        FileNotFoundError: If `pack_path` does not exist.
-        RuntimeError: If the RPFM CLI subprocess returns a non-zero exit code.
     """
     if not pack_path.exists():
         raise FileNotFoundError(f"pack not found: {pack_path}")
@@ -243,12 +232,12 @@ def extract_parent_pack_strings(
     if cached_mtime == current_mtime and _extracted_dir(cache_dir).exists():
         return _read_all_extracted(cache_dir)
 
-    # Start from an empty folder so loc files removed from the pack do not linger from an earlier extract.
+    # Start empty so loc files removed from the pack do not linger from an earlier extract.
     extracted = _extracted_dir(cache_dir)
     shutil.rmtree(extracted, ignore_errors=True)
     extracted.mkdir(parents=True, exist_ok=True)
 
-    # Locate the schema next to rpfm_cli.exe so .loc tables decode into TSV during extract.
+    # Schema sits next to rpfm_cli.exe so .loc tables decode into TSV.
     schema_path = rpfm_cli_path.parent / "schemas" / "schema_wh3.ron"
 
     cmd = [

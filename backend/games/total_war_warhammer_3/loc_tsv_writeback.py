@@ -1,13 +1,7 @@
 """Surgical writeback from `translations.json` into user `.loc.tsv` files.
 
-The strategy preserves the user's existing row ordering, blank lines, RPFM
-metadata header, and any rows we don't have translations for. For each
-`(key, text)` patch:
-  * If the key already exists in the file, replace column 1 (the text column)
-    on its row. Column 2 (`tooltip`) is preserved verbatim.
-  * If the key is new, append a row `key\\ttext\\ttrue` at the end.
-If the target file does not exist, create it with the standard header +
-RPFM metadata line, then append rows.
+Preserves the user's row ordering, blank lines, RPFM metadata header and untouched rows. An existing key has column 1 (text) replaced and the
+`tooltip` column kept verbatim. A new key is appended as `key\\ttext\\ttrue`. A missing file is created with the standard header + metadata line.
 """
 
 from __future__ import annotations
@@ -20,13 +14,13 @@ from backend.core.json_store import write_text_atomic
 
 
 def read_loc_tsv_lines(path: Path) -> list[str]:
-    """Read a `.loc.tsv` file as a list of lines (no trailing newline).
+    """Read a `.loc.tsv` file as lines with no trailing newline.
 
     Args:
-        path: Filesystem path to the `.loc.tsv` file.
+        path: `.loc.tsv` file.
 
     Returns:
-        List of line strings.
+        Line strings.
     """
     return path.read_text(encoding="utf-8").splitlines()
 
@@ -35,8 +29,7 @@ def _new_loc_tsv_skeleton(path: Path) -> list[str]:
     """Build the two-line header for a brand-new `.loc.tsv` file.
 
     Args:
-        path: Filesystem path the file will be written to. Used to derive the
-            RPFM metadata line's `text/<stem>.loc` reference.
+        path: File path, used to derive the metadata line's `text/<stem>.loc`.
 
     Returns:
         Two-line list: `["key\\ttext\\ttooltip", "#Loc;1;text/<stem>.loc\\t\\t"]`.
@@ -52,17 +45,13 @@ def _new_loc_tsv_skeleton(path: Path) -> list[str]:
 def apply_row_patches(path: Path, patches: dict[str, str]) -> None:
     """Surgically apply translation patches to a `.loc.tsv` file.
 
-    For each `(key, new_text)` in `patches`:
-      * If `key` already exists in the file, replace column 1 (text) on that
-        row, preserving column 2 (tooltip) and the rest of the file verbatim.
-      * Otherwise, append `key\\t<new_text>\\ttrue` at the end.
-
-    If the file does not exist, it is created with the standard 2-line header
-    before patches are appended.
+    An existing key has its text column replaced, with the tooltip column and the rest of the file kept verbatim.
+    A new key is appended as `key<TAB>text<TAB>true`.
+    A missing file is created with the standard 2-line header first.
 
     Args:
-        path: Filesystem path to the `.loc.tsv` file to patch.
-        patches: Mapping of loc key to new translated text.
+        path: `.loc.tsv` file to patch.
+        patches: Loc key to new translated text.
     """
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,17 +82,16 @@ def apply_row_patches(path: Path, patches: dict[str, str]) -> None:
 
 
 def remove_keys_from_loc_tsv(mod: WH3TranslationMod, keys_by_file: dict[str, set[str]]) -> dict[str, int]:
-    """Delete the given keys from each user `.loc.tsv` file, rewriting it without those rows.
+    """Delete the given keys from each user `.loc.tsv` file, keeping the two-line header.
 
-    Used to prune orphan strings (translated keys whose parent source no longer exists) during sync. Rows are matched by their key (column 0); the
-    two-line header is always preserved. Files that do not exist on disk are skipped.
+    Prunes orphan strings (translated keys whose parent source is gone) during sync. Files missing on disk are skipped.
 
     Args:
-        mod: The translation mod whose `.loc.tsv` files to prune.
-        keys_by_file: Mapping of normalized `.loc.tsv` filename to the set of keys to remove from it.
+        mod: Translation mod whose `.loc.tsv` files to prune.
+        keys_by_file: Normalized `.loc.tsv` filename to the keys to remove.
 
     Returns:
-        Mapping `{absolute_path: removed_count}` for each file that actually had rows removed.
+        `{absolute_path: removed_count}` for each file that had rows removed.
     """
     result: dict[str, int] = {}
     for fname, keys in keys_by_file.items():
@@ -132,17 +120,14 @@ def remove_keys_from_loc_tsv(mod: WH3TranslationMod, keys_by_file: dict[str, set
 
 
 def _find_existing_user_file(mod: WH3TranslationMod, normalized_filename: str) -> Path | None:
-    """Find the user's `.loc.tsv` file that maps to a normalized parent filename.
-
-    Walks `mod.local_source_dir/text/**` looking for any `.loc.tsv` whose
-    `normalize_loc_filename(name)` matches.
+    """Find the user's `.loc.tsv` file matching a normalized parent filename under `mod.local_source_dir/text/**`.
 
     Args:
-        mod: The translation mod whose source dir to search.
-        normalized_filename: The target normalized filename, e.g. `"def_units.loc.tsv"`.
+        mod: Translation mod whose source dir to search.
+        normalized_filename: Target name, e.g. `"def_units.loc.tsv"`.
 
     Returns:
-        Path to the matching file if found; otherwise `None`.
+        Matching path, or `None`.
     """
     text_dir = mod.local_source_dir / "text"
     if not text_dir.exists():
@@ -156,16 +141,16 @@ def _find_existing_user_file(mod: WH3TranslationMod, normalized_filename: str) -
 def sync_translations_to_loc_tsv(mod: WH3TranslationMod, drift_rows: list[dict]) -> dict[str, int]:
     """Apply each drift row's `translation_text` to the matching user `.loc.tsv`.
 
-    Drift rows with `translation_text is None` are skipped. Rows are grouped by `source_filename`. Each group is applied to either the user's existing
-    matching file (resolved via `_find_existing_user_file`) or a new file created at `<local_source_dir>/text/<mod.prefix><source_filename>` when no
-    match exists.
+    Rows with `translation_text is None` are skipped and the rest are grouped by `source_filename`.
+    Each group goes to the user's existing matching file
+    (via `_find_existing_user_file`), or to a new `<local_source_dir>/text/<mod.prefix><source_filename>` when none matches.
 
     Args:
-        mod: The translation mod whose `.loc.tsv` files to update.
-        drift_rows: List of drift-row dicts (as returned by `GET /strings`). Each row needs at minimum `source_filename`, `key`, `translation_text`.
+        mod: Translation mod whose `.loc.tsv` files to update.
+        drift_rows: Drift-row dicts from `GET /strings`, needing `source_filename`, `key` and `translation_text`.
 
     Returns:
-        Mapping `{absolute_path: patch_count}` describing how many keys were written to each file.
+        `{absolute_path: patch_count}` of keys written per file.
     """
     by_file: dict[str, dict[str, str]] = {}
     for row in drift_rows:

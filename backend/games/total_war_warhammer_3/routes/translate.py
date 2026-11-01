@@ -1,8 +1,8 @@
 """CA-parity translate endpoints for WH3: `/translate/preview`, `/translate/batch`, `/translate/cancel`.
 
-These mirror Chrono Ark's `/translate` contract so the shared `useIterativeTranslation` hook, `TranslationConfirmModal`, and `GlossarySuggestionModal` drive
-WH3 translation identically. The heavy lifting (parent extraction, drift/overlay, glossary prompt, persistence) is reused from the sibling `translation` module
-so monkeypatched test fakes and any future changes stay in one place. The provider call goes through the game-agnostic `run_batch` orchestrator.
+Mirrors Chrono Ark's `/translate` contract so the shared `useIterativeTranslation` hook and modals drive WH3 identically.
+Parent extraction, drift/overlay, glossary prompt and persistence are reused from the sibling `translation` module so test fakes and changes stay in one place.
+The provider call goes through the game-agnostic `run_batch` orchestrator.
 """
 
 from __future__ import annotations
@@ -43,16 +43,16 @@ class NameSuggestionsRequest(BaseModel):
 def _glossary_prompt(mod_id: str, source_lang: str, target_lang: str, mod=None) -> str:
     """Build the combined base + mod glossary prompt section for a batch.
 
-    When `mod` is given and the mod's `include_translated_names` setting is on, translated names that are not in the glossary are sent as extra terms.
+    When `mod` is given and the mod's `include_translated_names` setting is on, translated names not in the glossary are sent as extra terms.
 
     Args:
-        mod_id: Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
         source_lang: Source language name.
         target_lang: Target language name.
-        mod: The resolved `WH3TranslationMod`, needed to read translated names. None leaves them out.
+        mod: Resolved `WH3TranslationMod`, needed to read translated names. None leaves them out.
 
     Returns:
-        The combined glossary prompt, or a placeholder when no terms apply.
+        Combined glossary prompt, or a placeholder when no terms apply.
     """
     base_glossary = _t.glossary_store.load_base_glossary()
     mod_terms = _t.glossary_store.mod_glossary_as_terms(mod_id, source_lang)
@@ -73,11 +73,11 @@ def _overlaid_rows(mod, mod_id: str) -> tuple[list, dict[str, str]]:
     """Return the mod's drift rows with translations.json overlaid, plus each key's parent source text.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
-        mod_id: Workshop ID of the translation mod.
+        mod: Resolved `WH3TranslationMod`.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        The overlaid `DriftRow` list and a key -> parent source text map.
+        Overlaid `DriftRow` list and a key -> parent source text map.
     """
     parent = _t._extract_all_parent_strings(mod)
     translation = _t._extract_translation_strings(mod)
@@ -95,14 +95,13 @@ def _overlaid_rows(mod, mod_id: str) -> tuple[list, dict[str, str]]:
 def _translated_name_terms(mod, mod_id: str, categories: list[str] | None = None) -> list[dict]:
     """Return one term per translated name row that the mod glossary does not already cover.
 
-    A name is covered when its English is a glossary term or its source text is already a glossary term's source. Rows come from the translation pack with
-    translations.json overlaid, so names translated by hand or already in the pack count too. Colour and icon tags are stripped, and each English name is
-    returned once.
+    A name is covered when its English is a glossary term or its source is already a term's source. Rows come from the translation pack with
+    translations.json overlaid, so hand-translated names count too. Colour and icon tags are stripped and each English name is returned once.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
-        mod_id: Workshop ID of the translation mod.
-        categories: Only include these name categories. None includes every category.
+        mod: Resolved `WH3TranslationMod`.
+        mod_id: Workshop id of the translation mod.
+        categories: Only these name categories, None for every category.
 
     Returns:
         `{english, source, category}` dicts in parent order.
@@ -131,12 +130,12 @@ def _untranslated_entries(mod, mod_id: str, key_filter=None) -> list[tuple[str, 
     """Return (key, source_text) tuples for every untranslated row, honoring the translations.json overlay.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
-        mod_id: Workshop ID of the translation mod.
-        key_filter: Optional predicate `(key) -> bool`; when given, only keys for which it returns True are included.
+        mod: Resolved `WH3TranslationMod`.
+        mod_id: Workshop id of the translation mod.
+        key_filter: Optional `(key) -> bool` predicate limiting which keys are included.
 
     Returns:
-        (key, source_text) tuples for rows whose overlaid drift status is `untranslated` and which still have parent source text.
+        Rows whose overlaid status is `untranslated` and that still have parent source text.
     """
     overlaid, src_by_key = _overlaid_rows(mod, mod_id)
     return [(r.key, src_by_key.get(r.key, "")) for r in overlaid if r.status == "untranslated" and src_by_key.get(r.key) and (key_filter is None or key_filter(r.key))]
@@ -148,11 +147,11 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
     A row is changed when its source drifted from the snapshot and it still has a translation. Rows whose new source is blank are left out.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
-        mod_id: Workshop ID of the translation mod.
+        mod: Resolved `WH3TranslationMod`.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        The entries in drift order, and a key -> `Revision` map holding the recorded old source and the translation shown in the table.
+        Entries in drift order, and a key -> `Revision` map of the recorded old source and the translation shown in the table.
     """
     parent = _t._extract_all_parent_strings(mod)
     snapshot = _t.store.load_parent_snapshot(mod_id)
@@ -171,15 +170,15 @@ def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str,
 async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "English") -> dict:
     """Return the system prompt a WH3 translation run would send, for the Settings preview.
 
-    Mirrors `preview`: Claude (WH3 always translates with Claude), the WH3 game context, format rules and style examples, and the base glossary
-    filtered to the prompt categories. No mod is involved, so a mod's own glossary terms are not included.
+    Mirrors `preview` with Claude, the WH3 game context, format rules, style examples and the base glossary filtered to the prompt categories.
+    No mod is involved, so mod glossary terms are not included.
 
     Args:
-        source_lang: Source language to build the prompt for (e.g. `"Chinese"`).
+        source_lang: Source language to build the prompt for.
         target_lang: Language being translated into.
 
     Returns:
-        A dict with `provider`, `source_lang` and `system_prompt`.
+        Dict with `provider`, `source_lang` and `system_prompt`.
     """
     provider = _t.ClaudeProvider()
     adapter = _t.TotalWarWarhammer3Adapter()
@@ -199,18 +198,15 @@ async def get_system_prompt(source_lang: str = "Chinese", target_lang: str = "En
 
 @router.post("/preview")
 async def preview(req: TranslationRequest) -> dict:
-    """Preview the prompts, cost estimate, and batch plan for translating a WH3 mod's untranslated rows (or its changed rows when `scope == "changed"`).
+    """Preview the prompts, cost estimate and batch plan for translating a mod's untranslated rows (or changed rows when `scope == "changed"`).
 
     Args:
-        req: Translation request carrying the mod id and optional provider override.
+        req: Request with the mod id and optional provider override.
 
     Returns:
-        `total_strings`, `total_batches`, `batch_size`, `provider`, `previews` (keyed by source language), `estimates` (keyed by source language), and
-        a flat `batch_plan` the frontend hook iterates over. A names preview also returns `stages`, each with its own `batch_plan`, in `NAME_STAGES` order.
-        When nothing is untranslated, returns `total_strings == 0` with an empty `previews`.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        `total_strings`, `total_batches`, `batch_size`, `provider`, `previews` and `estimates` (both keyed by source language), and a flat `batch_plan` the frontend iterates.
+        A names preview also returns `stages` in `NAME_STAGES` order, each with its own `batch_plan`.
+        With nothing untranslated, `total_strings == 0` and `previews` is empty.
     """
     mod = _t._require_mod(req.mod_id)
     source_lang = mod.source_language
@@ -232,7 +228,7 @@ async def preview(req: TranslationRequest) -> dict:
     chunks: list[list[tuple[str, str]]] = []
     stages: list[dict] = []
     if names_only:
-        # One stage at a time, so a batch never mixes two stages and the frontend can pause for review between them.
+        # One stage at a time so a batch never mixes stages and the frontend can pause for review between them.
         for stage in NAME_STAGES:
             stage_entries = [e for e in entries if classify_name_key(e[0]) in stage["categories"]]
             if not stage_entries:
@@ -311,9 +307,9 @@ def _log_batch_call(mod_id: str, keys: list[str], raw_responses: list[dict], err
     """Record a translate-batch Claude call in the mod's API-responses log, with Claude's raw reply text.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        keys: Keys that were sent.
-        raw_responses: The provider's raw response records for this batch.
+        mod_id: Workshop id of the WH3 mod.
+        keys: Keys sent.
+        raw_responses: Provider's raw response records for this batch.
         error: Error message when the call failed.
     """
     _t.api_responses_store.append(
@@ -332,19 +328,14 @@ def _log_batch_call(mod_id: str, keys: list[str], raw_responses: list[dict], err
 async def translate_batch(req: BatchTranslationRequest) -> dict:
     """Translate one batch of keys via Claude and persist into translations.json.
 
-    Designed for the iterative frontend loop: the hook posts one batch at a time so the user can review glossary suggestions between batches. Results are
-    written incrementally and the provider's suggested glossary terms are returned for review.
+    Built for the iterative frontend loop, which posts one batch at a time so the user can review glossary suggestions between batches.
+    Results are written incrementally and the provider's suggested terms are returned for review.
 
     Args:
-        req: Batch request with `mod_id`, explicit `keys`, `source_lang`, optional provider override, `is_first_batch`, and `mode` (`update` revises changed rows).
+        req: Request with `mod_id`, `keys`, `source_lang`, optional provider override, `is_first_batch` and `mode` (`update` revises changed rows).
 
     Returns:
         `{"status": "success", "translated": N, "translations": {key: text}, "suggestions": [...]}`.
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
-        HTTPException: 400 if none of the provided keys have source text.
-        HTTPException: 502 if the provider errors.
     """
     mod = _t._require_mod(req.mod_id)
     source_lang = req.source_lang
@@ -389,8 +380,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
         _log_batch_call(req.mod_id, keys, provider.last_raw_responses, error=str(e))
         raise HTTPException(status_code=502, detail=str(e))
 
-    # Split joined pinyin names ("Miaoying" -> "Miao Ying") in the translations and suggested terms before anything is saved. The API log keeps
-    # Claude's raw output.
+    # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps Claude's raw output.
     # Words the mod glossary spells joined ("Fu Yuanshan") are kept.
     existing_glossary = _t.glossary_store.load_glossary(req.mod_id)
     keep = glossary_words(existing_glossary)
@@ -398,8 +388,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     spaced = {key: space_pinyin_names(source_by_key.get(key, ""), text, keep) for key, text in translations.items()}
     _suggestions = [{**s, "english": space_pinyin_names(s.get("source", ""), s["english"], keep)} if s.get("english") else s for s in _suggestions]
 
-    # Persist the provider's glossary suggestions so the shared review modal can accept/dismiss them between batches. Drop any term already in the mod
-    # glossary so the user only reviews genuinely new terms (matching Chrono Ark's review behavior).
+    # Persist the provider's suggestions for the review modal, dropping terms already in the mod glossary so the user only reviews new ones (as in Chrono Ark).
     suggestions = [s for s in _suggestions if s.get("english") and s["english"] not in existing_glossary]
     if suggestions:
         suggestion_manager.add_suggestions(req.mod_id, suggestions, storage_path=game_storage_path(GAME_ID))
@@ -422,17 +411,15 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
 async def name_suggestions(req: NameSuggestionsRequest) -> dict:
     """Turn the mod's translated name rows into glossary suggestions and persist them for review.
 
-    Called after each stage of the Translate Names pass (with that stage's `categories`) and by Suggest from Translated Names (with no filter). Names the
-    glossary already covers are skipped. Results go through the shared suggestion store, so the existing review modal and accept/dismiss endpoints handle them.
+    Called after each Translate Names stage (with its `categories`) and by Suggest from Translated Names (no filter).
+    Names the glossary already covers are skipped.
+    Results go through the shared suggestion store, so the existing review modal and accept/dismiss endpoints handle them.
 
     Args:
-        req: The mod id and an optional category filter.
+        req: Mod id and optional category filter.
 
     Returns:
-        `{"suggestions": [...]}` - the newly persisted name suggestions (may be empty).
-
-    Raises:
-        HTTPException: 404 if `mod_id` is not registered.
+        `{"suggestions": [...]}` of the newly persisted name suggestions, possibly empty.
     """
     mod = _t._require_mod(req.mod_id)
     source_lang = mod.source_language
@@ -446,13 +433,13 @@ async def name_suggestions(req: NameSuggestionsRequest) -> dict:
 async def cancel(mod_id: str = "") -> dict:
     """Signal cancellation of an in-progress translation run.
 
-    WH3 uses non-streaming Claude, so a batch already in flight cannot be aborted mid-call. Cancellation is driven client-side by stopping the batch loop.
-    This endpoint exists for parity with Chrono Ark and is a safe no-op.
+    WH3 uses non-streaming Claude, so an in-flight batch cannot be aborted and cancellation is driven client-side by stopping the batch loop.
+    This exists for parity with Chrono Ark and is a safe no-op.
 
     Args:
-        mod_id: Workshop ID of the translation mod (accepted for parity; unused).
+        mod_id: Workshop id of the translation mod, accepted for parity but unused.
 
     Returns:
-        `{"cancelled": False}` - nothing was aborted server-side.
+        `{"cancelled": False}`, since nothing was aborted server-side.
     """
     return {"cancelled": False}

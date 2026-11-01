@@ -1,9 +1,8 @@
 """Diff WH3 translation `.loc.tsv` files against parent-mod source strings.
 
-The drift snapshot stores SHA-256 hashes of parent source text per
-`(filename, key)`. On rescan, a key is `stale` if the current parent text
-hashes to a value different from the snapshot. Keys present only in the
-translation are `orphan`; keys present only in the parent, or with empty translation text, are `untranslated`.
+The drift snapshot stores SHA-256 hashes of parent text per `(filename, key)`.
+A key is `stale` when the current parent hash differs from the snapshot.
+Keys only in the translation are `orphan`. Keys only in the parent, or with empty translation text, are `untranslated`.
 """
 
 from __future__ import annotations
@@ -22,13 +21,12 @@ class DriftRow:
     """One row in the drift report.
 
     Attributes:
-        source_filename: Normalized parent `.loc.tsv` filename this row belongs to.
+        source_filename: Normalized parent `.loc.tsv` filename.
         key: Localization key.
-        parent_text: Current parent source text, or `None` for orphan rows.
-        translation_text: Current translation text, or `None` for untranslated rows.
-        status: One of `translated`, `untranslated`, `stale`, `orphan`.
-        provider: Who/what produced the current translation - `"claude"`, `"manual"`,
-            or `None` when the row is untranslated. Defaults to `None`.
+        parent_text: Current parent text, `None` for orphan rows.
+        translation_text: Current translation, `None` for untranslated rows.
+        status: `translated`, `untranslated`, `stale` or `orphan`.
+        provider: `"claude"`, `"manual"`, or `None` when untranslated.
     """
 
     source_filename: str
@@ -40,13 +38,13 @@ class DriftRow:
 
 
 def hash_text(text: str) -> str:
-    """Return the SHA-256 hex digest of `text` (UTF-8 encoded).
+    """Return the SHA-256 hex digest of the UTF-8 encoded `text`.
 
     Args:
-        text: The string to hash.
+        text: String to hash.
 
     Returns:
-        64-character lowercase hex string of the SHA-256 digest.
+        64-character lowercase hex digest.
     """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -55,7 +53,7 @@ def make_entry(text: str) -> dict[str, str]:
     """Build a parent snapshot entry for `text`.
 
     Args:
-        text: The parent source text to record.
+        text: Parent source text to record.
 
     Returns:
         `{"hash": sha256_hex, "text": text}`.
@@ -67,7 +65,7 @@ def entry_hash(entry: str | dict | None) -> str | None:
     """Return the recorded hash of a snapshot entry.
 
     Args:
-        entry: A `{hash, text}` dict, a legacy bare hash string, or `None`.
+        entry: `{hash, text}` dict, a legacy bare hash string, or `None`.
 
     Returns:
         The hash, or `None` when there is no entry.
@@ -83,10 +81,10 @@ def entry_text(entry: str | dict | None) -> str | None:
     """Return the recorded source text of a snapshot entry.
 
     Args:
-        entry: A `{hash, text}` dict, a legacy bare hash string, or `None`.
+        entry: `{hash, text}` dict, a legacy bare hash string, or `None`.
 
     Returns:
-        The recorded text, or `None` for a legacy or missing entry.
+        The text, or `None` for a legacy or missing entry.
     """
     return entry.get("text") if isinstance(entry, dict) else None
 
@@ -100,14 +98,12 @@ def compute_drift(
     """Compute per-row drift status.
 
     Args:
-        parent: `{filename: {key: LocRow}}` extracted from the parent `.pack`.
-        translation: `{filename: {key: LocRow}}` parsed from the user's local
-            translation `.loc.tsv` files.
-        snapshot: `{filename: {key: entry}}` recording the parent source text the
-            user last saw / acted on. An entry is a `{hash, text}` dict or a legacy sha256_hex string.
+        parent: `{filename: {key: LocRow}}` from the parent `.pack`.
+        translation: `{filename: {key: LocRow}}` from the user's translation `.loc.tsv` files.
+        snapshot: `{filename: {key: entry}}` of the parent text the user last acted on, entries being `{hash, text}` or a legacy sha256 string.
 
     Returns:
-        Sorted list of `DriftRow` (filename ascending, then key ascending).
+        `DriftRow`s sorted by filename then key.
     """
     rows: list[DriftRow] = []
     all_filenames = set(parent) | set(translation)
@@ -130,7 +126,7 @@ def compute_drift(
                 rows.append(DriftRow(filename, key, p_row.text, None, "untranslated"))
                 continue
 
-            # An empty .loc.tsv entry is a placeholder, not a translation.
+            # An empty entry is a placeholder, not a translation.
             if not t_row.text:
                 rows.append(DriftRow(filename, key, p_row.text, t_row.text, "untranslated"))
                 continue

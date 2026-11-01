@@ -1,4 +1,4 @@
-"""HTTP routes for TW3 Steam Workshop preview images served from disk."""
+"""HTTP routes for TW3 Workshop preview images, pack metadata and publishing."""
 
 from __future__ import annotations
 
@@ -32,18 +32,13 @@ _MEDIA_TYPES = {
 
 @router.get("/packs/{workshop_id}/preview")
 def get_pack_preview(workshop_id: str):
-    """Stream the first image file inside the local Steam Workshop folder for `workshop_id`.
+    """Stream the first image file inside the local Workshop folder for `workshop_id`.
 
     Args:
-        workshop_id: Numeric Steam Workshop item id.
+        workshop_id: Numeric Workshop item id.
 
     Returns:
-        `FileResponse` for the resolved image file.
-
-    Raises:
-        HTTPException(400): When `workshop_id` is not purely numeric.
-        HTTPException(404): When the Steam library drive is unset, the workshop
-            folder does not exist on disk, or no image file is found inside.
+        `FileResponse` for the image.
     """
     if not _WORKSHOP_ID_RE.fullmatch(workshop_id):
         raise HTTPException(status_code=400, detail="workshop_id must be numeric")
@@ -52,7 +47,7 @@ def get_pack_preview(workshop_id: str):
     if folder is None or not folder.is_dir():
         raise HTTPException(status_code=404, detail="workshop folder not found")
 
-    # Sort entries for deterministic ordering when a folder contains multiple images.
+    # Sorted for deterministic ordering when a folder holds several images.
     for entry in sorted(folder.iterdir()):
         if entry.is_file() and entry.suffix.lower() in _IMAGE_SUFFIXES:
             return FileResponse(entry, media_type=_MEDIA_TYPES[entry.suffix.lower()])
@@ -64,20 +59,14 @@ def get_pack_preview(workshop_id: str):
 def get_pack_last_modified(workshop_id: str):
     """Return the newest mtime among files inside the local Workshop folder for `workshop_id`.
 
-    Used by the TW3 Dashboard to surface "Rebuilt Nh ago" beneath each pack card. The newest mtime across the
-    folder's files captures the last time the user rebuilt or otherwise touched the pack on disk. Also returns the Steam Workshop
-    `timeupdated` for the item from Steam's manifest, which is when it was last published.
+    Used by the Dashboard to show "Rebuilt Nh ago" on each pack card.
+    Also returns the Steam manifest's `timeupdated` for the item, which is when it was last published.
 
     Args:
-        workshop_id: Numeric Steam Workshop item id.
+        workshop_id: Numeric Workshop item id.
 
     Returns:
-        `{"last_modified_unix": float | None, "published_unix": float | None}` - the most recent mtime in the folder as a unix timestamp
-        (`None` when the folder has no files), and the Steam `timeupdated` as a unix timestamp (`None` when the manifest lacks the item).
-
-    Raises:
-        HTTPException(400): When `workshop_id` is not purely numeric.
-        HTTPException(404): When the Steam library drive is unset or the workshop folder does not exist on disk.
+        `{"last_modified_unix": float | None, "published_unix": float | None}`, the newest folder mtime (`None` if no files) and the manifest `timeupdated` (`None` if missing).
     """
     if not _WORKSHOP_ID_RE.fullmatch(workshop_id):
         raise HTTPException(status_code=400, detail="workshop_id must be numeric")
@@ -93,7 +82,7 @@ def get_pack_last_modified(workshop_id: str):
             if newest is None or mtime > newest:
                 newest = mtime
 
-    # Steam's manifest lags behind a fresh upload, so take whichever is newer of it and the time this app recorded.
+    # Steam's manifest lags a fresh upload, so take the newer of it and the time this app recorded.
     manifest = parent_updated_at([workshop_id])
     candidates = [t for t in (manifest.timestamp() if manifest else None, published_times.get(workshop_id)) if t is not None]
     return {"last_modified_unix": newest, "published_unix": max(candidates) if candidates else None}
@@ -101,18 +90,13 @@ def get_pack_last_modified(workshop_id: str):
 
 @router.post("/packs/{workshop_id}/open")
 def open_pack_folder(workshop_id: str):
-    """Open the local Steam Workshop folder for `workshop_id` in the system file explorer.
+    """Open the local Workshop folder for `workshop_id` in the system file explorer.
 
     Args:
-        workshop_id: Numeric Steam Workshop item id.
+        workshop_id: Numeric Workshop item id.
 
     Returns:
-        `{"status": "success"}` when the folder is opened.
-
-    Raises:
-        HTTPException(400): When `workshop_id` is not purely numeric.
-        HTTPException(404): When the Steam library drive is unset or the workshop folder does not exist on disk.
-        HTTPException(500): When the OS call to open the folder fails.
+        `{"status": "success"}`.
     """
     if not _WORKSHOP_ID_RE.fullmatch(workshop_id):
         raise HTTPException(status_code=400, detail="workshop_id must be numeric")
@@ -140,7 +124,7 @@ def post_change_notes(body: ChangeNotesBody):
     """Generate a Workshop changenote for each requested item from what changed since its last recorded upload.
 
     Args:
-        body: Request body with the Workshop `ids`.
+        body: Body with the Workshop `ids`.
 
     Returns:
         `{"notes": {id: {"note", "pending", "kind"} | None}, "errors": [str]}`. Builder failures land in `errors` and map their ids to None.
@@ -158,25 +142,16 @@ class PublishBody(BaseModel):
 
 @router.post("/packs/{workshop_id}/publish")
 def post_pack_publish(workshop_id: str, body: PublishBody):
-    """Spawn SteamCMD to push the local workshop folder as an update to the existing Workshop item.
+    """Spawn SteamCMD to push the local Workshop folder as an update to the existing item.
 
-    Single-flight - a 409 is returned if another publish is still running. Live progress is
-    available via `GET /packs/{workshop_id}/publish/stream`.
+    Single-flight, so a 409 is returned if another publish is running. Live progress is on `GET /packs/{workshop_id}/publish/stream`.
 
     Args:
-        workshop_id: Numeric Steam Workshop item id of the existing entry to update.
-        body: Request body with the `changenote` for this update.
+        workshop_id: Workshop id of the entry to update.
+        body: Body with the `changenote`.
 
     Returns:
-        `{"publish_id", "workshop_id", "started_at"}` on success.
-
-    Raises:
-        HTTPException(400): When `workshop_id` is not purely numeric, or when preflight checks
-            fail (missing `steamcmd_path`, `steam_username`, or content folder). Detail body
-            for preflight failures is `{"missing": [...]}`.
-        HTTPException(404): When the Steam library drive is unset or the workshop folder does not
-            exist on disk.
-        HTTPException(409): When another publish is already in progress.
+        `{"publish_id", "workshop_id", "started_at"}`.
     """
     if not _WORKSHOP_ID_RE.fullmatch(workshop_id):
         raise HTTPException(status_code=400, detail="workshop_id must be numeric")
@@ -185,12 +160,11 @@ def post_pack_publish(workshop_id: str, body: PublishBody):
     if folder is None or not folder.is_dir():
         raise HTTPException(status_code=404, detail="workshop folder not found")
 
-    # Check before make_recorder, since its pack-hashing preview can take up to 60s and would otherwise
-    # delay reporting that a publish (single or batch) is already in progress.
+    # Check before make_recorder, since its pack-hashing preview can take up to 60s and would delay reporting a publish already in progress.
     if wbp.current_batch() is not None or not wp.is_idle():
         raise HTTPException(status_code=409, detail="a publish is already in progress")
 
-    # Capture what is about to be uploaded so a successful publish can be recorded for the next changenote.
+    # Capture the upload state so a successful publish can be recorded for the next changenote.
     on_exit = publish_notes.make_recorder(workshop_id, body.changenote)
     try:
         handle = wp.start_publish(
@@ -215,21 +189,16 @@ def post_pack_publish(workshop_id: str, body: PublishBody):
 
 @router.get("/packs/{workshop_id}/publish/stream")
 async def get_pack_publish_stream(workshop_id: str):
-    """Server-sent events: stream buffered + new SteamCMD log lines until publish ends.
+    """Server-sent events: stream buffered + new SteamCMD log lines until the publish ends.
 
-    Each `data:` event carries one stdout line. A final `event: done` arrives when SteamCMD
-    exits (or immediately if no publish has ever started in this session). The `workshop_id`
-    path parameter is validated for shape but not cross-checked against the active publish -
-    only one publish runs at a time.
+    Each `data:` event carries one stdout line, and a final `event: done` arrives when SteamCMD exits or immediately if no publish ever started.
+    `workshop_id` is validated for shape only, since just one publish runs at a time.
 
     Args:
-        workshop_id: Numeric Steam Workshop item id (validated for shape only).
+        workshop_id: Numeric Workshop item id.
 
     Returns:
-        A `StreamingResponse` with `text/event-stream` content type.
-
-    Raises:
-        HTTPException(400): When `workshop_id` is not purely numeric.
+        `StreamingResponse` with `text/event-stream`.
     """
     if not _WORKSHOP_ID_RE.fullmatch(workshop_id):
         raise HTTPException(status_code=400, detail="workshop_id must be numeric")
@@ -278,19 +247,14 @@ class PublishAllBody(BaseModel):
 async def post_publish_all(body: PublishAllBody):
     """Start a serialized batch that publishes every eligible mod with its own changenote.
 
-    Pre-filters items whose `workshop_id` is blank or non-numeric; those appear only in the response's `skipped` list and
-    in the SSE `mod_skipped` events. The batch runs as a detached background task so the modal can close and reconnect
-    via the stream endpoint.
+    Items with a blank or non-numeric `workshop_id` appear only in the response's `skipped` list and the SSE `mod_skipped` events.
+    The batch runs as a detached task so the modal can close and reconnect via the stream endpoint.
 
     Args:
-        body: Request body with the per-mod items.
+        body: Body with the per-mod items.
 
     Returns:
-        `{"batch_id", "started_at", "queued", "skipped"}` on success.
-
-    Raises:
-        HTTPException(400): empty items list, an eligible item with a blank changenote, or no items had a valid workshop_id.
-        HTTPException(409): another batch (or a single-mod publish) is already in progress.
+        `{"batch_id", "started_at", "queued", "skipped"}`.
     """
     if not body.items:
         raise HTTPException(status_code=400, detail="items must not be empty")
@@ -331,16 +295,13 @@ async def post_publish_all(body: PublishAllBody):
 
 @router.get("/packs/publish-all/stream/{batch_id}")
 async def get_publish_all_stream(batch_id: str):
-    """Server-sent events: replay every event a batch has emitted so far, then live-tail until it ends.
+    """Server-sent events: replay every event a batch has emitted, then live-tail until it ends.
 
     Args:
-        batch_id: id returned from POST `/packs/publish-all`.
+        batch_id: Id from POST `/packs/publish-all`.
 
     Returns:
-        `StreamingResponse` with `text/event-stream` content type.
-
-    Raises:
-        HTTPException(404): when `batch_id` is unknown.
+        `StreamingResponse` with `text/event-stream`.
     """
     if wbp.get_batch(batch_id) is None:
         raise HTTPException(status_code=404, detail="batch_id not found")

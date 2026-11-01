@@ -1,13 +1,8 @@
 """Full-state snapshots for WH3 translation mods.
 
-Each snapshot captures translations.json, parent_snapshot.json,
-api_responses.json, the mod glossary (glossary.json), and the entire contents
-of every `.loc.tsv` under the mod's local source dir at the time of the snapshot. Snapshots are
-stored per-mod under `<root>/mods/{id}/snapshots/`. The store keeps the
-last 20 entries per mod; older ones are pruned automatically.
-
-Snapshot identifiers are monotonic-millisecond + random-suffix strings that
-sort lexicographically by creation time.
+Each snapshot captures translations.json, parent_snapshot.json, api_responses.json, the mod glossary and every `.loc.tsv` under the mod's local source dir.
+Stored per mod under `<root>/mods/{id}/snapshots/`, keeping the last 20.
+Ids are monotonic-millisecond + random-suffix strings that sort by creation time.
 """
 
 from __future__ import annotations
@@ -39,7 +34,7 @@ def _index_path(mod_id: str) -> Path:
 
 
 def _new_ulid() -> str:
-    """Return a sortable-by-time snapshot identifier."""
+    """Return a time-sortable snapshot id."""
     return f"{int(time.time() * 1000):013d}-{secrets.token_hex(4)}"
 
 
@@ -91,13 +86,13 @@ def create_snapshot(mod_id: str, *, label: str, kind: str, local_source_dir: Pat
     """Create a full-state snapshot for a WH3 translation mod.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         label: Human-readable description (e.g. `"Auto before Translate"`).
         kind: `"auto"` or `"manual"`.
-        local_source_dir: Optional mod source directory whose `.loc.tsv` files should be included in the snapshot. Pass `None` to skip.
+        local_source_dir: Source dir whose `.loc.tsv` files are included, or `None` to skip.
 
     Returns:
-        The snapshot identifier (ULID-like).
+        Snapshot id.
     """
     sid = _new_ulid()
     mod_dir = _mod_dir(mod_id)
@@ -121,7 +116,7 @@ def create_snapshot(mod_id: str, *, label: str, kind: str, local_source_dir: Pat
     index = _read_index(mod_id)
     index.append({"ulid": sid, "created_at": snapshot["created_at"], "label": label, "kind": kind})
 
-    # Prune oldest when over cap.
+    # Prune oldest over the cap.
     while len(index) > MAX_SNAPSHOTS:
         oldest = index.pop(0)
         try:
@@ -137,10 +132,10 @@ def list_snapshots(mod_id: str) -> list[dict]:
     """List snapshot metadata for a mod, newest first.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        List of `{ulid, created_at, label, kind}`; empty when no snapshots exist.
+        `{ulid, created_at, label, kind}` entries, empty when none exist.
     """
     return list(reversed(_read_index(mod_id)))
 
@@ -149,8 +144,8 @@ def delete_snapshot(mod_id: str, sid: str) -> None:
     """Delete one snapshot and remove it from the index.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        sid: The snapshot identifier to delete.
+        mod_id: Workshop id of the WH3 mod.
+        sid: Snapshot id to delete.
     """
     index = _read_index(mod_id)
     index = [e for e in index if e["ulid"] != sid]
@@ -162,19 +157,15 @@ def delete_snapshot(mod_id: str, sid: str) -> None:
 
 
 def restore_snapshot(mod_id: str, sid: str, *, local_source_dir: Path | None = None) -> None:
-    """Restore a mod's state from a snapshot, taking an auto pre-restore snapshot first.
+    """Restore a mod's state from a snapshot after taking an auto pre-restore snapshot.
 
-    Writes translations.json, parent_snapshot.json, api_responses.json, the glossary, and
-    every captured `.loc.tsv` file back to disk verbatim. Snapshots taken before glossaries were
-    captured have no `glossary` key, so restoring one leaves the current glossary as it is.
+    Writes every captured file back verbatim.
+    Snapshots from before glossaries were captured have no `glossary` key, so the current glossary is left alone.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        sid: The snapshot identifier to restore.
-        local_source_dir: The mod's source directory for re-gathering `.loc.tsv` files into the pre-restore safety snapshot.
-
-    Raises:
-        FileNotFoundError: When the requested snapshot does not exist on disk.
+        mod_id: Workshop id of the WH3 mod.
+        sid: Snapshot id to restore.
+        local_source_dir: Source dir re-gathered into the pre-restore snapshot.
     """
     try:
         snap_path = safe_child(_snapshots_dir(mod_id), f"{sid}.json")

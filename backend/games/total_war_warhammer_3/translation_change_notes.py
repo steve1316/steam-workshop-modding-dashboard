@@ -1,7 +1,7 @@
 """Changenotes for WH3 translation mods, built by diffing the strings about to ship against those shipped at the last publish.
 
-The baseline lives in `<root>/mods/{id}/published_baseline.json`, outside `snapshots/`, so snapshot pruning never removes it. It stores a hash per
-`(source file, key)` because only equality matters for the diff.
+The baseline lives in `<root>/mods/{id}/published_baseline.json`, outside `snapshots/` so pruning never removes it.
+It stores a hash per `(source file, key)`.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def _baseline_path(mod_id: str) -> Path:
     """Return the published baseline path for a mod.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
         `<root>/mods/{mod_id}/published_baseline.json`.
@@ -44,7 +44,7 @@ def shipped_strings(rows: Iterable[DriftRow]) -> dict[str, dict[str, str]]:
         rows: Drift rows with `translations.json` already overlaid.
 
     Returns:
-        `{source_filename: {key: hash}}` for every non-orphan row with non-empty translated text.
+        `{source_filename: {key: hash}}` for non-orphan rows with translated text.
     """
     shipped: dict[str, dict[str, str]] = {}
     for row in rows:
@@ -58,10 +58,10 @@ def load_baseline(mod_id: str) -> dict | None:
     """Read the strings recorded at the mod's last successful publish.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        `{"published_at", "changenote", "strings"}`, or None when the mod was never published from the app or the file is unreadable.
+        `{"published_at", "changenote", "strings"}`, or None when never published from the app or unreadable.
     """
     try:
         with _baseline_path(mod_id).open("r", encoding="utf-8") as f:
@@ -75,9 +75,9 @@ def save_baseline(mod_id: str, strings: dict[str, dict[str, str]], changenote: s
     """Atomically record the strings a successful publish shipped.
 
     Args:
-        mod_id: Steam Workshop ID of the translation mod.
-        strings: The shipped set captured when the upload started.
-        changenote: The changenote sent with the upload.
+        mod_id: Workshop id of the translation mod.
+        strings: Shipped set captured when the upload started.
+        changenote: Changenote sent with the upload.
     """
     path = _baseline_path(mod_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -104,13 +104,13 @@ def diff_counts(baseline: dict[str, dict[str, str]], shipped: dict[str, dict[str
 
 
 def parent_updated_at(parent_ids: Iterable[str]) -> datetime | None:
-    """Find when the most recently updated parent mod was last updated, from Steam's Workshop manifest.
+    """Find when the most recently updated parent mod was updated, from Steam's Workshop manifest.
 
     Args:
-        parent_ids: Workshop ids of the translation mod's parent mods.
+        parent_ids: Workshop ids of the mod's parent mods.
 
     Returns:
-        The latest `timeupdated` among the parents as a local time, or None when the manifest is missing or lists none of them.
+        Latest `timeupdated` among the parents as local time, or None when the manifest is missing or lists none.
     """
     path = tw3_workshop_manifest_path()
     if path is None:
@@ -128,7 +128,7 @@ def format_update_time(when: datetime) -> str:
     """Format a time the way the Steam Workshop shows it.
 
     Args:
-        when: The time to format.
+        when: Time to format.
 
     Returns:
         e.g. `Oct 5 @ 10:53am`.
@@ -141,13 +141,12 @@ def build_note(baseline: dict | None, shipped: dict[str, dict[str, str]], parent
     """Build a translation mod's changenote, naming when its parent mods were last updated.
 
     Args:
-        baseline: The mod's published baseline, or None when it has none.
-        shipped: The shipped set about to be published.
-        parent_updated: When the most recently updated parent mod was last updated, or None when unknown.
+        baseline: Published baseline, or None.
+        shipped: Shipped set about to be published.
+        parent_updated: When the latest parent was updated, or None when unknown.
 
     Returns:
-        `(note, pending)`. The note is `GENERIC_NOTE` alone when `parent_updated` is unknown. It is pending without a baseline or when the
-        shipped set differs from it.
+        `(note, pending)`. The note is `GENERIC_NOTE` alone when `parent_updated` is unknown. Pending means no baseline or a differing shipped set.
     """
     note = GENERIC_NOTE
     if parent_updated is not None:

@@ -1,8 +1,6 @@
 """WH3-specific text injected into LLM translation prompts.
 
-Consumed by `TotalWarWarhammer3Adapter` via the `TranslationCapability`
-methods `get_translation_context`, `get_format_preservation_rules`,
-`get_style_examples`, and `get_glossary_categories`.
+Consumed by `TotalWarWarhammer3Adapter` through the `TranslationCapability` methods.
 """
 
 from __future__ import annotations
@@ -52,7 +50,6 @@ GLOSSARY_CATEGORIES: dict[str, str | list[str]] = {
     "items": "Item, weapon, and armor names.",
 }
 
-# Base-glossary categories injected into the translation prompt. `regions` is intentionally
-# excluded - it holds ~900 proper nouns that would bloat every prompt. They remain available
-# in the glossary file and the Glossary page.
+# Base-glossary categories injected into the translation prompt. `regions` is excluded because its ~900 proper nouns would bloat every prompt.
+# They stay in the glossary file and the Glossary page.
 BASE_GLOSSARY_PROMPT_CATEGORIES: list[str] = ["stats", "attributes", "ui_terms"]

@@ -1,7 +1,7 @@
 """Pure helpers that build new WH3 parent source snapshots.
 
-A snapshot maps `filename -> key -> {hash, text}` for the parent source text the user last translated against. Drifted entries are kept so the row
-stays `changed` until it is updated or accepted.
+A snapshot maps `filename -> key -> {hash, text}` for the parent text the user last translated against.
+Drifted entries are kept so the row stays `changed`.
 """
 
 from __future__ import annotations
@@ -17,15 +17,15 @@ def _copy(snapshot: dict) -> dict:
 def refresh_unchanged(snapshot: dict, parent: dict[str, dict[str, LocRow]]) -> dict:
     """Return a copy of `snapshot` with current entries for every parent key whose source did not drift.
 
-    New keys get an entry. Keys whose recorded hash matches the current text are rewritten as `{hash, text}`, which backfills the text of legacy
-    entries. Keys whose recorded hash differs keep their old entry. Keys missing from `parent` are kept as they are.
+    New keys get an entry. A matching hash is rewritten as `{hash, text}`, which backfills legacy text. A differing hash keeps the old entry.
+    Keys missing from `parent` are kept.
 
     Args:
-        snapshot: The current snapshot, `{filename: {key: entry}}`.
+        snapshot: Current snapshot, `{filename: {key: entry}}`.
         parent: Current parent strings, `{filename: {key: LocRow}}`.
 
     Returns:
-        A new snapshot dict. The input is not modified.
+        New snapshot dict, input unmodified.
     """
     out = _copy(snapshot)
     for filename, rows in parent.items():
@@ -41,12 +41,12 @@ def accept_keys(snapshot: dict, parent: dict[str, dict[str, LocRow]], keys: set[
     """Return a copy of `snapshot` where each key in `keys` takes the current parent text as its baseline.
 
     Args:
-        snapshot: The current snapshot, `{filename: {key: entry}}`.
+        snapshot: Current snapshot, `{filename: {key: entry}}`.
         parent: Current parent strings, `{filename: {key: LocRow}}`.
-        keys: Localization keys to re-baseline.
+        keys: Loc keys to re-baseline.
 
     Returns:
-        A new snapshot dict. The input is not modified.
+        New snapshot dict, input unmodified.
     """
     out = _copy(snapshot)
     for filename, rows in parent.items():

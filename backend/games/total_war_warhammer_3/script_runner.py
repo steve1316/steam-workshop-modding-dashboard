@@ -1,9 +1,7 @@
 """Subprocess-based runner for the helper_scripts/update_*.py family.
 
-Provides single-flight execution (one run at a time), a bounded stdout deque
-for log buffering, a daemon-thread reader, and an async generator (`stream_lines`)
-that drives the SSE route. Public surface: `start_run`, `current_run`, `is_idle`,
-`cancel_run`, `stream_lines`.
+Single-flight execution with a bounded stdout deque, a daemon-thread reader, and an async generator (`stream_lines`) that drives the SSE route.
+Public surface: `start_run`, `current_run`, `is_idle`, `cancel_run`, `stream_lines`.
 """
 
 from __future__ import annotations
@@ -28,8 +26,7 @@ from typing import AsyncIterator
 class ScriptDef:
     """A registered helper_scripts entry: how to launch it plus its CLI args.
 
-    Set exactly one of `module` (run with `python -m` from the helper_scripts root, as the
-    reorganized generators and tools expect) or `filename` (a script file at the root, like `update.py`).
+    Set exactly one of `module` (run with `python -m` from the helper_scripts root) or `filename` (a script at the root, like `update.py`).
     """
 
     module: str = ""
@@ -40,7 +37,7 @@ class ScriptDef:
     """ CLI arguments passed to the script on each invocation. """
 
     def argv(self) -> list[str]:
-        """Return the arguments that follow the Python executable to launch this script, without `args`.
+        """Return the arguments after the Python executable to launch this script, without `args`.
 
         Returns:
             `["-m", module]` for a module entry, otherwise `[filename]`.
@@ -62,7 +59,7 @@ SCRIPT_REGISTRY: dict[str, ScriptDef] = {
 PIPELINE_SCRIPT_ID = "update"
 """ Registry key of the top-level pipeline whose per-script progress is tracked in `RunHandle.steps`. """
 
-# Each `update.py` delta unit name mapped to the registry script that rebuilds the same pack on its own.
+# Each `update.py` delta unit name mapped to the registry script that rebuilds the same pack alone.
 PIPELINE_UNIT_SCRIPTS: dict[str, str] = {
     "land_encounters_factions": "process_main_units_tables",
     "dynamic_rors": "update_dynamic_rors",
@@ -96,16 +93,15 @@ _STEP_PATTERNS: list[tuple[re.Pattern[str], StepStatus]] = [
     (re.compile(r"(\w+): up to date\s*$"), StepStatus.SKIPPED),
     (re.compile(r"(\w+) exited with code "), StepStatus.FAILED),
 ]
-# Logged once every rebuild has finished, so the last running unit is done.
+# Logged once every rebuild finishes, so the last running unit is done.
 _PIPELINE_SUMMARY_MARKER = "Delta update summary"
 
 
 @dataclass
 class RunHandle:
-    """In-memory record of the currently or most-recently running script.
+    """In-memory record of the current or most recent script run.
 
-    Set when `start_run` succeeds. `ended_at` and `exit_code` populate when the
-    subprocess exits (including via cancel).
+    `ended_at` and `exit_code` populate when the subprocess exits, including via cancel.
     """
 
     run_id: str
@@ -124,7 +120,7 @@ class RunHandle:
 
 @dataclass
 class _LogLine:
-    """One stdout line from the running subprocess plus its capture timestamp."""
+    """One subprocess stdout line plus its capture timestamp."""
 
     line: str
     """ The raw text line captured from subprocess stdout. """
@@ -139,14 +135,14 @@ class RunnerError(Exception):
 
 
 class RunInProgressError(RunnerError):
-    """Raised when `start_run` is called while another run is active."""
+    """`start_run` was called while another run is active."""
 
 
 class PreflightError(RunnerError):
-    """Raised when `start_run` preflight checks fail.
+    """`start_run` preflight checks failed.
 
     Attributes:
-        missing: List of human-readable strings naming each failed check.
+        missing: Human-readable name of each failed check.
     """
 
     def __init__(self, missing: list[str]):
@@ -155,12 +151,10 @@ class PreflightError(RunnerError):
 
 
 class UnknownScriptError(RunnerError):
-    """Raised when `start_run` is called with an unknown `script_id`."""
+    """`start_run` was called with an unknown `script_id`."""
 
 
-# Module-level state guarded by `_lock`. Accessed by `start_run`, `cancel_run`,
-# `current_run`, `stream_lines`, and the daemon reader thread. All reads and
-# writes outside the daemon thread go through `_lock`.
+# Module state guarded by `_lock`. All reads and writes outside the daemon thread go through it.
 _lock = threading.Lock()
 _current: RunHandle | None = None
 _proc: subprocess.Popen | None = None
@@ -179,15 +173,10 @@ def _preflight(settings: dict) -> Path:
     """Validate runner settings and resolve the helper_scripts directory.
 
     Args:
-        settings: Per-game settings dict with `helper_scripts_path`, `rpfm_cli_path`,
-            and `steam_library_drive` keys. Empty strings are treated as unset.
-
-    Raises:
-        PreflightError: When one or more required paths/settings are missing.
-            The exception's `missing` attribute lists each failed check.
+        settings: Per-game settings with `helper_scripts_path`, `rpfm_cli_path` and `steam_library_drive`, where empty strings count as unset.
 
     Returns:
-        Resolved `Path` to the helper_scripts directory (verified to exist).
+        helper_scripts directory, verified to exist.
     """
     missing: list[str] = []
 
@@ -215,10 +204,10 @@ def _preflight(settings: dict) -> Path:
 
 
 def current_run() -> RunHandle | None:
-    """Return the current or most-recent run handle.
+    """Return the current or most recent run handle.
 
     Returns:
-        The active or last `RunHandle`, or `None` if no run has started this session.
+        The handle, or `None` if no run has started this session.
     """
     return _current
 
@@ -226,10 +215,10 @@ def current_run() -> RunHandle | None:
 def is_idle() -> bool:
     """Return True when no run is active.
 
-    Acquires `_lock` so the check is consistent with `start_run` writes.
+    Takes `_lock` to stay consistent with `start_run`.
 
     Returns:
-        True when there is no current run, or the current run's subprocess has exited.
+        True when there is no current run or its subprocess has exited.
     """
     with _lock:
         proc = _proc
@@ -251,18 +240,11 @@ def start_run(
 
     Args:
         script_id: Key into `SCRIPT_REGISTRY` (or `registry` if overridden).
-        settings: Per-game settings dict (`helper_scripts_path`, `rpfm_cli_path`,
-            `steam_library_drive`).
-        registry: Optional override registry; tests pass `_TEST_SCRIPT_REGISTRY`
-            to point at fixture scripts.
-
-    Raises:
-        UnknownScriptError: When `script_id` is not in the registry.
-        PreflightError: When required paths/settings are missing.
-        RunInProgressError: When another run is already active.
+        settings: Per-game settings (`helper_scripts_path`, `rpfm_cli_path`, `steam_library_drive`).
+        registry: Optional override registry, used by tests for fixture scripts.
 
     Returns:
-        The created `RunHandle` for the new subprocess.
+        Handle for the new subprocess.
     """
     global _current, _proc
     reg = registry if registry is not None else SCRIPT_REGISTRY
@@ -309,10 +291,10 @@ def start_run(
 
 
 def _finish_running_step(handle: RunHandle) -> None:
-    """Mark the pipeline step that is currently running as done.
+    """Mark the currently running pipeline step as done.
 
     Args:
-        handle: The pipeline `RunHandle` whose steps to update.
+        handle: Pipeline handle whose steps to update.
     """
     for script_id, status in handle.steps.items():
         if status is StepStatus.RUNNING:
@@ -320,11 +302,11 @@ def _finish_running_step(handle: RunHandle) -> None:
 
 
 def _track_step(handle: RunHandle, line: str) -> None:
-    """Update the pipeline step statuses from one `update.py` log line. No-op for runs that track no steps.
+    """Update pipeline step statuses from one `update.py` log line, a no-op for runs that track no steps.
 
     Args:
-        handle: The `RunHandle` of the active run.
-        line: One captured stdout line.
+        handle: Active run's handle.
+        line: Captured stdout line.
     """
     if not handle.steps:
         return
@@ -346,8 +328,8 @@ def _reader_thread(proc: subprocess.Popen, handle: RunHandle) -> None:
     """Daemon thread: read stdout into `_log` and notify SSE consumers.
 
     Args:
-        proc: The Popen object whose stdout to drain.
-        handle: The `RunHandle` to update on exit.
+        proc: Popen whose stdout to drain.
+        handle: Handle to update on exit.
     """
     assert proc.stdout is not None
     for seq, raw in enumerate(proc.stdout):
@@ -364,9 +346,8 @@ def _reader_thread(proc: subprocess.Popen, handle: RunHandle) -> None:
 def cancel_run() -> None:
     """Terminate the active run, if any. Idempotent when idle.
 
-    On Windows the runner sends `CTRL_BREAK_EVENT` to the process group so child
-    rpfm_cli processes also die. On non-Windows it falls back to `terminate()`.
-    Forces a kill after a 10-second grace period.
+    On Windows it sends `CTRL_BREAK_EVENT` to the process group so child rpfm_cli processes also die, otherwise it calls `terminate()`.
+    A kill is forced after a 10-second grace period.
     """
     global _proc
     with _lock:
@@ -388,19 +369,18 @@ def cancel_run() -> None:
 
 
 async def stream_lines() -> AsyncIterator[dict]:
-    """Async generator: yield buffered lines, then tail new ones until run ends.
+    """Async generator: yield buffered lines, then tail new ones until the run ends.
 
     Yields:
-        For each captured line: `{"event": "data", "line": str, "ts": iso8601}`.
-        On exit: a single `{"event": "done", "exit_code": int, "duration_seconds": float}`.
-        If no run has ever started: a single `{"event": "done", "exit_code": None}`.
+        Per line `{"event": "data", "line": str, "ts": iso8601}`, then `{"event": "done", "exit_code": int, "duration_seconds": float}`.
+        If no run ever started, a single `{"event": "done", "exit_code": None}`.
     """
     handle = _current
     if handle is None:
         yield {"event": "done", "exit_code": None}
         return
 
-    # Track the last sent sequence number rather than a buffer index. The buffer is bounded, so an index stops advancing once it fills.
+    # Track the last sent sequence number, not a buffer index, because the bounded buffer stops advancing an index once full.
     last_seq = -1
     started = handle.started_at
     while True:
@@ -415,6 +395,5 @@ async def stream_lines() -> AsyncIterator[dict]:
             yield {"event": "done", "exit_code": handle.exit_code, "duration_seconds": duration}
             return
 
-        # Wait briefly for new lines.
         await asyncio.get_event_loop().run_in_executor(None, _event_new_line.wait, 0.5)
         _event_new_line.clear()

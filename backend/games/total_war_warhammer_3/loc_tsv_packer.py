@@ -1,7 +1,6 @@
 """Build a WH3 translation mod's published `.pack` from its loose `.loc.tsv` files via the RPFM CLI.
 
-Mirrors the direct-subprocess pattern in `loc_extractor.py` (schema resolved next to `rpfm_cli.exe`, `cwd` set to its
-directory). Used by the `/sync` route to rebuild the pack right after the loose-file writeback.
+Mirrors the subprocess pattern in `loc_extractor.py`. Used by `/sync` to rebuild the pack after the loose-file writeback.
 """
 
 from __future__ import annotations
@@ -14,7 +13,7 @@ from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationM
 
 
 class PackBuildError(Exception):
-    """Base class for all recoverable pack-rebuild failures (always non-fatal to the sync)."""
+    """Base for all recoverable pack-rebuild failures, which are non-fatal to the sync."""
 
 
 class RpfmNotConfiguredError(PackBuildError):
@@ -22,11 +21,11 @@ class RpfmNotConfiguredError(PackBuildError):
 
 
 class PackNotFoundError(PackBuildError):
-    """No `.pack` exists in the mod's workshop content directory, or the directory itself is missing."""
+    """No `.pack` exists in the mod's workshop content directory, or the directory is missing."""
 
 
 class AmbiguousPackError(PackBuildError):
-    """More than one `.pack` exists in the directory, so the target is ambiguous."""
+    """More than one `.pack` exists, so the target is ambiguous."""
 
 
 class RpfmFailedError(PackBuildError):
@@ -34,21 +33,17 @@ class RpfmFailedError(PackBuildError):
 
 
 class MalformedLocTsvError(PackBuildError):
-    """A loose `.loc.tsv` file has a data row that is not a single 3-column line (e.g. an unescaped embedded newline)."""
+    """A loose `.loc.tsv` data row is not a single 3-column line (e.g. an unescaped embedded newline)."""
 
 
 def validate_loc_tsv_dir(local_source_dir: Path) -> None:
-    """Reject loose `.loc.tsv` files whose data rows are not well-formed single lines before they reach RPFM.
+    """Reject loose `.loc.tsv` files with malformed data rows before they reach RPFM.
 
-    RPFM parses the loc TSV line by line, so a row with an embedded newline (which would split into continuation lines) gets
-    imported as bogus rows whose key column holds stray text. Every non-blank, non-`#` line must have exactly two tab characters
-    (three columns). This is a defensive guard. The writeback escapes specials so well-formed files always pass.
+    RPFM parses line by line, so an embedded newline imports as bogus rows with stray text in the key column.
+    Every non-blank, non-`#` line must have exactly two tabs. This is a defensive guard, since the writeback escapes specials.
 
     Args:
-        local_source_dir: The mod's loose source directory (scanned recursively for `.loc.tsv`).
-
-    Raises:
-        MalformedLocTsvError: When any data row does not have exactly three tab-separated columns.
+        local_source_dir: Mod's loose source directory, scanned recursively.
     """
     for tsv in sorted(local_source_dir.rglob("*.loc.tsv")):
         for line_no, line in enumerate(tsv.read_text(encoding="utf-8").splitlines()):
@@ -62,14 +57,10 @@ def resolve_target_pack(workshop_content_dir: Path) -> Path:
     """Return the single `.pack` inside the workshop content directory.
 
     Args:
-        workshop_content_dir: Local Steam Workshop content folder for the mod.
+        workshop_content_dir: Mod's local Workshop content folder.
 
     Returns:
-        Path to the one `.pack` file in the directory.
-
-    Raises:
-        PackNotFoundError: When the directory is missing or contains no `.pack`.
-        AmbiguousPackError: When the directory contains more than one `.pack`.
+        The one `.pack` file.
     """
     if not workshop_content_dir.exists():
         raise PackNotFoundError(f"workshop content dir does not exist: {workshop_content_dir}")
@@ -82,10 +73,10 @@ def resolve_target_pack(workshop_content_dir: Path) -> Path:
 
 
 def resolve_rpfm_cli_path() -> Path | None:
-    """Resolve `rpfm_cli` the same way the extract path does: prefer `config.TW3_RPFM_CLI_PATH`, else `<TW3_HELPER_PATH>/rpfm_cli.exe`.
+    """Resolve `rpfm_cli` like the extract path: `config.TW3_RPFM_CLI_PATH`, else `<TW3_HELPER_PATH>/rpfm_cli.exe`.
 
     Returns:
-        Path to `rpfm_cli` when it resolves to a file on disk, else None.
+        Path when it resolves to a file, else None.
     """
     rpfm_str = config.TW3_RPFM_CLI_PATH or ""
     if rpfm_str:
@@ -102,11 +93,8 @@ def _run_rpfm(rpfm_cli_path: Path, args: list[str]) -> None:
     """Run `rpfm_cli --game warhammer_3 <args>` from the exe's directory, raising on non-zero exit.
 
     Args:
-        rpfm_cli_path: Path to `rpfm_cli.exe`.
-        args: Additional arguments to pass after `--game warhammer_3`.
-
-    Raises:
-        RpfmFailedError: When `rpfm_cli` cannot be launched or returns a non-zero exit code.
+        rpfm_cli_path: `rpfm_cli.exe` path.
+        args: Arguments after `--game warhammer_3`.
     """
     cmd = [str(rpfm_cli_path), "--game", "warhammer_3", *args]
     try:
@@ -120,23 +108,15 @@ def _run_rpfm(rpfm_cli_path: Path, args: list[str]) -> None:
 def build_translation_pack(mod: WH3TranslationMod, *, rpfm_cli_path: Path, workshop_content_dir: Path) -> Path:
     """Patch the mod's published `.pack` from its loose `local_source_dir/text` via RPFM.
 
-    Clears the pack's `text` folder (so removed/renamed keys don't linger) then re-adds the loose source, converting each
-    `.loc.tsv` back to binary `.loc` via `--tsv-to-binary`.
+    Clears the pack's `text` folder so removed or renamed keys don't linger, then re-adds the source, converting each `.loc.tsv` via `--tsv-to-binary`.
 
     Args:
-        mod: The translation mod whose pack to rebuild.
-        rpfm_cli_path: Path to `rpfm_cli.exe`.
-        workshop_content_dir: The mod's local Steam Workshop content folder (holding its `.pack`).
+        mod: Translation mod whose pack to rebuild.
+        rpfm_cli_path: `rpfm_cli.exe` path.
+        workshop_content_dir: Mod's local Workshop content folder holding its `.pack`.
 
     Returns:
-        Path to the rebuilt `.pack`.
-
-    Raises:
-        RpfmNotConfiguredError: When `rpfm_cli_path` is not a file.
-        MalformedLocTsvError: When a loose `.loc.tsv` row is not a single 3-column line.
-        PackNotFoundError: From `resolve_target_pack` when no pack or dir.
-        AmbiguousPackError: From `resolve_target_pack` when more than one pack.
-        RpfmFailedError: When either RPFM call returns a non-zero exit code.
+        Rebuilt `.pack` path.
     """
     if not rpfm_cli_path.is_file():
         raise RpfmNotConfiguredError(f"rpfm_cli not found: {rpfm_cli_path}")

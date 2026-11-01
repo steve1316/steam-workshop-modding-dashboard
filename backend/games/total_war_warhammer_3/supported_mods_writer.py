@@ -1,9 +1,7 @@
 """libcst-based mutator for the `SUPPORTED_MODS` list inside `helper_scripts/supported_mods.py`.
 
-Exposes three pure functions (`add_entry`, `update_entry`, `remove_entry`) that take
-the file's current text and return new text with the requested mutation applied.
-Preserves comments, formatting, and the `f"{STEAM_LIBRARY_DRIVE}/.../<workshop_id>/<package_name>"`
-path expression used by the existing 167 entries.
+Exposes pure `add_entry`, `update_entry` and `remove_entry` functions that take the file text and return new text.
+Preserves comments, formatting and the `f"{STEAM_LIBRARY_DRIVE}/.../<workshop_id>/<package_name>"` path expression the existing entries use.
 """
 
 from __future__ import annotations
@@ -23,24 +21,24 @@ class WriterError(Exception):
 
 
 class EntryNotFoundError(WriterError):
-    """Raised when a `package_name` is not present in the list."""
+    """A `package_name` is not present in the list."""
 
 
 class DuplicatePackageError(WriterError):
-    """Raised when adding an entry whose `package_name` already exists."""
+    """An added entry's `package_name` already exists."""
 
 
 def _build_path_fstring(workshop_id: str, package_name: str) -> cst.FormattedString:
-    """Build the f-string literal node for a workshop path.
+    """Build the f-string node for a workshop path.
 
     Produces `f"{STEAM_LIBRARY_DRIVE}/SteamLibrary/steamapps/workshop/content/1142710/<workshop_id>/<package_name>"`.
 
     Args:
-        workshop_id: Numeric Steam Workshop item id.
-        package_name: The mod's `.pack` filename (or other package identifier).
+        workshop_id: Numeric Workshop item id.
+        package_name: Mod's `.pack` filename.
 
     Returns:
-        A `cst.FormattedString` node ready to drop into a `cst.DictElement`.
+        Node ready for a `cst.DictElement`.
     """
     return cst.FormattedString(
         parts=[
@@ -53,22 +51,20 @@ def _build_path_fstring(workshop_id: str, package_name: str) -> cst.FormattedStr
 
 
 def _value_to_cst(value: Any) -> cst.BaseExpression:
-    """Convert a Python value to a libcst expression node.
-
-    Supports `str`, `bool`, `int`, `list`, `dict`. Strings emit double-quoted literals.
+    """Convert a Python value (`str`, `bool`, `int`, `list`, `dict`) to a libcst expression node, with strings double-quoted.
 
     Args:
-        value: A JSON-compatible Python value.
+        value: JSON-compatible value.
 
     Returns:
-        A libcst expression node.
+        libcst expression node.
     """
     if isinstance(value, str):
-        # JSON-style double-quoted string.
+        # JSON-style double-quoted string
         escaped = value.replace("\\", "\\\\").replace('"', '\\"')
         return cst.SimpleString(f'"{escaped}"')
     if isinstance(value, bool):
-        # bool must come before int (since bool is a subclass of int).
+        # bool must come before int since bool is a subclass of int
         return cst.Name("True") if value else cst.Name("False")
     if isinstance(value, int):
         return cst.Integer(str(value))
@@ -80,19 +76,17 @@ def _value_to_cst(value: Any) -> cst.BaseExpression:
 
 
 def _build_entry_dict(entry: dict) -> cst.Dict:
-    """Build a `cst.Dict` for a SUPPORTED_MODS entry, with the `path` field handled specially.
+    """Build a `cst.Dict` for a SUPPORTED_MODS entry, with `path` handled specially.
 
-    When the entry contains a `workshop_id` (and no truthy `custom_path`), `path` is emitted
-    as the standard f-string expression. Otherwise, `path` is emitted as a plain string literal
-    (used by entries like `vanilla` with an empty path).
+    Without a truthy `custom_path`, an entry with `workshop_id` gets the standard f-string `path`.
+    Otherwise `path` is a plain string literal (e.g. `vanilla` has an empty path).
 
     Args:
-        entry: Frontend entry payload. Must contain at least `name`, `package_name`,
-            and `modified_attributes`. May contain `workshop_id`, `path`, `pattern_overrides`,
+        entry: Frontend payload needing `name`, `package_name` and `modified_attributes`, and optionally `workshop_id`, `path`, `pattern_overrides`,
             `character_overrides`, `ignore_generation`.
 
     Returns:
-        A `cst.Dict` ready to insert into the SUPPORTED_MODS list.
+        Dict to insert into the SUPPORTED_MODS list.
     """
     elements: list[cst.DictElement] = []
     workshop_id = entry.get("workshop_id") or ""
@@ -122,13 +116,10 @@ def _find_supported_mods_list(module: cst.Module) -> cst.List:
     """Locate the `SUPPORTED_MODS = [...]` assignment's list literal.
 
     Args:
-        module: Parsed libcst Module.
+        module: Parsed libcst module.
 
     Returns:
         The `cst.List` node.
-
-    Raises:
-        WriterError: When the assignment is missing or not a list literal.
     """
     for stmt in module.body:
         if not isinstance(stmt, cst.SimpleStatementLine):
@@ -148,10 +139,10 @@ def _entry_package_name(dict_node: cst.Dict) -> str | None:
     """Read the `package_name` field from a `cst.Dict` entry.
 
     Args:
-        dict_node: A SUPPORTED_MODS entry dict.
+        dict_node: SUPPORTED_MODS entry dict.
 
     Returns:
-        The package_name string, or None when the field is missing or not a SimpleString.
+        The package_name, or None when missing or not a SimpleString.
     """
     for element in dict_node.elements:
         if not isinstance(element, cst.DictElement):
@@ -186,7 +177,7 @@ def _replace_supported_mods_list(module: cst.Module, new_list: cst.List) -> cst.
 
 
 def add_entry(source: str, entry: dict) -> str:
-    """Append a new SUPPORTED_MODS entry and return the new source text.
+    """Append a new SUPPORTED_MODS entry.
 
     Args:
         source: Current `supported_mods.py` text.
@@ -194,10 +185,6 @@ def add_entry(source: str, entry: dict) -> str:
 
     Returns:
         New source text.
-
-    Raises:
-        DuplicatePackageError: When `entry["package_name"]` already exists.
-        WriterError: When `SUPPORTED_MODS` is missing or malformed.
     """
     module = cst.parse_module(source)
     list_node = _find_supported_mods_list(module)
@@ -211,7 +198,7 @@ def add_entry(source: str, entry: dict) -> str:
 
 
 def update_entry(source: str, package_name: str, entry: dict) -> str:
-    """Replace the entry keyed by `package_name` and return the new source text.
+    """Replace the entry keyed by `package_name`.
 
     Args:
         source: Current `supported_mods.py` text.
@@ -220,10 +207,6 @@ def update_entry(source: str, package_name: str, entry: dict) -> str:
 
     Returns:
         New source text.
-
-    Raises:
-        EntryNotFoundError: When no entry with `package_name` exists.
-        WriterError: When `SUPPORTED_MODS` is missing or malformed.
     """
     module = cst.parse_module(source)
     list_node = _find_supported_mods_list(module)
@@ -243,7 +226,7 @@ def update_entry(source: str, package_name: str, entry: dict) -> str:
 
 
 def remove_entry(source: str, package_name: str) -> str:
-    """Remove the entry keyed by `package_name` and return the new source text.
+    """Remove the entry keyed by `package_name`.
 
     Args:
         source: Current `supported_mods.py` text.
@@ -251,10 +234,6 @@ def remove_entry(source: str, package_name: str) -> str:
 
     Returns:
         New source text.
-
-    Raises:
-        EntryNotFoundError: When no entry with `package_name` exists.
-        WriterError: When `SUPPORTED_MODS` is missing or malformed.
     """
     module = cst.parse_module(source)
     list_node = _find_supported_mods_list(module)

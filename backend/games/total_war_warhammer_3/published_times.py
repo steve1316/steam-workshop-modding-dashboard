@@ -1,4 +1,4 @@
-"""When this app last published each Workshop item. Steam's local manifest lags behind a fresh upload, so the card prefers this."""
+"""When this app last published each Workshop item. Steam's local manifest lags a fresh upload, so the card prefers this."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def _load() -> dict[str, float]:
     """Read the stored times.
 
     Returns:
-        `{workshop_id: unix_seconds}`, empty when the file is missing or unreadable.
+        `{workshop_id: unix_seconds}`, empty when missing or unreadable.
     """
     try:
         data = json.loads(_path().read_text(encoding="utf-8"))
@@ -39,8 +39,8 @@ def record(workshop_id: str, when: float | None = None) -> None:
     """Store the time of a successful publish.
 
     Args:
-        workshop_id: Workshop id that was published.
-        when: Unix seconds of the publish. Defaults to now.
+        workshop_id: Published Workshop id.
+        when: Publish time in unix seconds, defaults to now.
     """
     times = _load()
     times[workshop_id] = time.time() if when is None else when

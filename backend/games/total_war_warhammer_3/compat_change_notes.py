@@ -1,7 +1,6 @@
 """Bridge to totalwar-modding's Workshop change notes for WH3 compat packs.
 
-Runs `python -m publish.change_notes` inside the helper_scripts directory, because its publish state paths are relative to that folder.
-The note logic stays in totalwar-modding so `update.py` and the app always agree.
+Runs `python -m publish.change_notes` inside helper_scripts (its publish state paths are relative to it) so `update.py` and the app agree.
 """
 
 from __future__ import annotations
@@ -16,29 +15,25 @@ from pathlib import Path
 from backend import config
 from backend.games.total_war_warhammer_3.routes._paths import helper_scripts_path
 
-# `preview` hashes each pack, which can take a while for large packs. Publish All sends every pack in one call,
-# so the timeout scales with how many ids are requested instead of a single fixed budget.
+# `preview` hashes each pack and can be slow. Publish All sends every pack in one call, so the timeout scales with the id count.
 PREVIEW_TIMEOUT_SECONDS = 60
 PER_PACK_SECONDS = 15
 RECORD_TIMEOUT_SECONDS = 30
 
 
 class ChangeNoteError(Exception):
-    """Raised when the change note CLI cannot be run or returns something unusable."""
+    """Raised when the change note CLI cannot run or returns something unusable."""
 
 
 def _run_cli(args: list[str], timeout: int) -> str:
-    """Run the change note CLI from the helper_scripts directory and return its stdout.
+    """Run the change note CLI from the helper_scripts directory.
 
     Args:
         args: Arguments after `python -m publish.change_notes`.
-        timeout: Seconds to wait before giving up.
+        timeout: Seconds before giving up.
 
     Returns:
-        The captured stdout.
-
-    Raises:
-        ChangeNoteError: When helper_scripts is not configured, the CLI cannot start or times out, or it exits non-zero.
+        Captured stdout.
     """
     helper = helper_scripts_path()
     if not config.TW3_HELPER_PATH or not helper.is_dir():
@@ -73,16 +68,13 @@ def preview(ids: list[str]) -> dict[str, dict | None]:
         ids: Workshop ids of the compat packs.
 
     Returns:
-        Each id mapped to `{"note", "pack_sha", "pending"}`, or None when it is not a generated pack or its pack file is missing.
-
-    Raises:
-        ChangeNoteError: When the CLI fails or does not print a JSON object.
+        Id to `{"note", "pack_sha", "pending"}`, or None when not a generated pack or its file is missing.
     """
     if not ids:
         return {}
     timeout = PREVIEW_TIMEOUT_SECONDS + PER_PACK_SECONDS * len(ids)
     stdout = _run_cli(["preview", *ids], timeout)
-    # Helper imports may print before the JSON, so only the last non-empty line is parsed.
+    # Helper imports may print before the JSON, so parse only the last non-empty line.
     lines = [line for line in stdout.splitlines() if line.strip()]
     try:
         data = json.loads(lines[-1]) if lines else None
@@ -96,15 +88,12 @@ def preview(ids: list[str]) -> dict[str, dict | None]:
 def record(workshop_id: str, pack_sha: str, note: str) -> None:
     """Record a successful compat pack upload in totalwar-modding's publish state.
 
-    The note goes through a UTF-8 temp file so multi-line text with quotes and non-ASCII characters survives intact.
+    The note goes through a UTF-8 temp file so multi-line text with quotes and non-ASCII characters survives.
 
     Args:
         workshop_id: Workshop id of the uploaded pack.
-        pack_sha: SHA-256 of the pack captured when the upload started.
-        note: The changenote sent with the upload.
-
-    Raises:
-        ChangeNoteError: When the CLI fails.
+        pack_sha: Pack SHA-256 captured when the upload started.
+        note: Changenote sent with the upload.
     """
     fd, path = tempfile.mkstemp(prefix=f"changenote_{workshop_id}_", suffix=".txt")
     try:

@@ -1,8 +1,7 @@
 """Glossary-suggestion endpoints for WH3: list, scan, suggest-edits, accept and dismiss.
 
-Mounted at the game root (no prefix) so the shared `GlossarySuggestionModal` can POST to `/mods/{id}/glossary/suggestions/{accept,dismiss}` exactly as it does
-for Chrono Ark. Suggestions come from the iterative `/translate/batch` loop, Scan for Terms and Suggest Edits, and are persisted via the
-shared `suggestion_manager`.
+Mounted at the game root so the shared `GlossarySuggestionModal` can POST to `/mods/{id}/glossary/suggestions/{accept,dismiss}` as it does for Chrono Ark.
+Suggestions come from the `/translate/batch` loop, Scan for Terms and Suggest Edits, and are persisted via the shared `suggestion_manager`.
 """
 
 from __future__ import annotations
@@ -31,13 +30,10 @@ def _require_mod(mod_id: str):
     """Resolve a registered WH3 translation mod or raise 404.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
         The resolved `WH3TranslationMod`.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered.
     """
     mod = get_translation_mod(mod_id)
     if mod is None:
@@ -49,19 +45,16 @@ def _require_mod(mod_id: str):
 def accept_suggestions(mod_id: str, action: SuggestionAction) -> dict:
     """Accept pending glossary suggestions into the mod glossary.
 
-    Moves the specified (or all) pending suggestions into the mod's glossary and removes them from the pending list. An auto-snapshot is taken first. A
-    suggestion with an entry in `action.renames` is saved under the edited English, which also replaces the suggested English in every translation whose
-    source contains the term's source.
+    Moves the specified (or all) suggestions into the glossary after an auto-snapshot.
+    A suggestion with an entry in `action.renames` is saved under the
+    edited English, which also replaces the suggested English in every translation whose source contains the term's source.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        action: Which suggestions to accept - explicit `terms` or `all` - plus any edited English in `renames`.
+        mod_id: Workshop id of the WH3 mod.
+        action: Explicit `terms` or `all`, plus any edited English in `renames`.
 
     Returns:
-        `{"status": "success", "accepted": N, "replaced": M}`, where M counts the translations the renames changed.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered.
+        `{"status": "success", "accepted": N, "replaced": M}`, where M counts translations the renames changed.
     """
     mod = _require_mod(mod_id)
     storage_path = game_storage_path(GAME_ID)
@@ -91,14 +84,11 @@ def dismiss_suggestions(mod_id: str, action: SuggestionAction) -> dict:
     """Dismiss pending glossary suggestions without adding them to the glossary.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
-        action: Which suggestions to dismiss - explicit `terms`, or `all` to clear every pending suggestion.
+        mod_id: Workshop id of the WH3 mod.
+        action: Explicit `terms`, or `all` to clear every pending suggestion.
 
     Returns:
         `{"status": "success"}`.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered.
     """
     _require_mod(mod_id)
     storage_path = game_storage_path(GAME_ID)
@@ -117,11 +107,11 @@ def _sample_parent_entries(mod, limit: int) -> list[tuple[str, str]]:
     """Take up to `limit` key/source pairs from the parent mods' strings.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
-        limit: Maximum number of entries.
+        mod: Resolved `WH3TranslationMod`.
+        limit: Maximum entries.
 
     Returns:
-        A list of `(key, source_text)` pairs.
+        `(key, source_text)` pairs.
     """
     entries: list[tuple[str, str]] = []
     for rows in _extract_all_parent_strings(mod).values():
@@ -136,7 +126,7 @@ def _ask_claude_for_terms(mod, entries: list[tuple[str, str]], glossary_prompt: 
     """Ask Claude for glossary terms about the given entries, without translating them.
 
     Args:
-        mod: The resolved `WH3TranslationMod`.
+        mod: Resolved `WH3TranslationMod`.
         entries: Key/source pairs to show Claude.
         glossary_prompt: Instruction for the suggested terms.
 
@@ -161,9 +151,9 @@ def _log_call(mod_id: str, kind: str, keys: list[str], suggestions: list[dict]) 
     """Record a Claude call in the mod's API-responses log.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         kind: Log entry kind, e.g. "scan-terms".
-        keys: Keys that were sent.
+        keys: Keys sent.
         suggestions: What Claude returned.
     """
     api_responses_store.append(
@@ -183,17 +173,17 @@ def _log_call(mod_id: str, kind: str, keys: list[str], suggestions: list[dict]) 
 
 
 def _save_new_suggestions(mod_id: str, suggestions: list[dict]) -> int:
-    """Save the suggestions that are not already pending or already in the glossary.
+    """Save the suggestions that are not already pending or in the glossary.
 
-    Edit suggestions (those with `edit_of`) are kept even when their English matches a glossary term. Joined pinyin names are split first
-    ("Miaoying" -> "Miao Ying").
+    Edit suggestions (with `edit_of`) are kept even when their English matches a glossary term.
+    Joined pinyin names are split first ("Miaoying" -> "Miao Ying").
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         suggestions: Candidate suggestions.
 
     Returns:
-        How many suggestions were newly saved.
+        Number newly saved.
     """
     storage_path = game_storage_path(GAME_ID)
     glossary = glossary_store.load_glossary(mod_id)
@@ -214,17 +204,17 @@ def _save_new_suggestions(mod_id: str, suggestions: list[dict]) -> int:
 
 
 def _mark_edits(mod_id: str, suggestions: list[dict]) -> list[dict]:
-    """Link Claude's glossary suggestions to the terms they change, since the provider never sends `edit_of` itself.
+    """Link Claude's suggestions to the glossary terms they change, since the provider never sends `edit_of`.
 
-    A suggestion whose English matches a glossary term refines that term, and one whose source text matches a term under a new English name renames
-    it. Both get `edit_of` so accepting them updates the term in place. Suggestions identical to their existing term are dropped.
+    A suggestion whose English matches a term refines it, and one whose source matches a term under a new English name renames it.
+    Both get `edit_of` so accepting updates the term in place. Suggestions identical to their term are dropped.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
         suggestions: Suggestions from Claude.
 
     Returns:
-        The suggestions worth reviewing, with `edit_of` set where they change an existing term.
+        Suggestions worth reviewing, with `edit_of` set where they change a term.
     """
     glossary = glossary_store.load_glossary(mod_id)
     by_english = {k.lower(): k for k in glossary}
@@ -247,13 +237,10 @@ def get_suggestions(mod_id: str) -> list[dict]:
     """List the mod's pending glossary suggestions.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        The pending suggestion dicts.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered.
+        Pending suggestion dicts.
     """
     _require_mod(mod_id)
     return suggestion_manager.load_suggestions(mod_id, game_storage_path(GAME_ID))
@@ -264,13 +251,10 @@ def scan_for_suggestions(mod_id: str) -> dict:
     """Ask Claude for recurring proper nouns in the parent text and save the new ones as pending suggestions.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
         `{"status": "success", "new": N}`.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered.
     """
     mod = _require_mod(mod_id)
     entries = _sample_parent_entries(mod, SCAN_SAMPLE_LIMIT)
@@ -284,13 +268,10 @@ def suggest_edits(mod_id: str) -> dict:
     """Ask Claude for refinements to the current glossary and save them as pending suggestions.
 
     Args:
-        mod_id: Steam Workshop ID of the WH3 translation mod.
+        mod_id: Workshop id of the WH3 mod.
 
     Returns:
         `{"status": "success", "new": N}`.
-
-    Raises:
-        HTTPException: 404 when the mod is not registered.
     """
     mod = _require_mod(mod_id)
     entries = _sample_parent_entries(mod, SUGGEST_EDITS_SAMPLE_LIMIT)
