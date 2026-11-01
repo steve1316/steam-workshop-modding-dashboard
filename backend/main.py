@@ -26,17 +26,16 @@ from backend.data.glossary_manager import (
     print_glossary,
     save_glossary,
 )
-from backend.data.mod_settings import load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
-from backend.data.suggestion_manager import add_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
-from backend.games.chrono_ark.services.translation import prompt_context
+from backend.games.chrono_ark.services.translation import load_mod_strings, persist_batch, prompt_context
 from backend.games.registry import get_adapter, list_games
 from backend.providers.factory import get_provider
 from backend.translation.orchestrator import chunk_entries
+from backend.translation.pipeline import BatchError, BatchJob, run_translation_batch
 
 
 def save_extracted_strings(strings: dict, output_path: Path) -> None:
@@ -148,11 +147,9 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     if not matching:
         print(f"Mod not found: {mod_id}")
         sys.exit(1)
-    mod_path = matching[0].path
 
     print(f"Loading strings for mod {mod_id}...")
-    strings, _ = adapter.extract_strings(mod_path)
-    target_lang = load_target_language_override(mod_id, game_id=GAME_ID) or "English"
+    strings, target_lang = load_mod_strings(mod_id)
     untranslated = adapter.get_untranslated(strings, target_lang)
 
     if not untranslated:
@@ -182,7 +179,7 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 
     if not needs_translation:
         print("All translations found in translation memory!")
-        _apply_translations(mod_id, cached_translations, tm)
+        _apply_translations(mod_id, cached_translations)
         return
 
     provider_name = args.provider or settings.translation_provider
@@ -211,60 +208,41 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         return
 
     print(f"\n  Using provider: {provider.name}")
-    all_translations = dict(cached_translations)
-    all_suggestions = []
+    if cached_translations:
+        _apply_translations(mod_id, cached_translations)
 
+    translated = 0
+    suggested = 0
     for lang, entries in entries_by_lang.items():
         print(f"\n  Translating {len(entries)} {lang} strings...")
-
-        batch_size = settings.batch_size
-        batch_num = 1
-        batches = chunk_entries(entries, batch_size, settings.batch_max_chars)
-        total_batches = len(batches)
-
-        for batch in batches:
-            print(f"    Batch {batch_num}/{total_batches} ({len(batch)} strings)...")
-
+        batches = chunk_entries(entries, settings.batch_size, settings.batch_max_chars)
+        for batch_num, batch in enumerate(batches, start=1):
+            print(f"    Batch {batch_num}/{len(batches)} ({len(batch)} strings)...")
             # Rebuilt per batch so terms added to the mod glossary mid-run apply.
             context = prompt_context(mod_id, lang, target_lang, base_glossary=base_glossary)
-            translations, suggestions = provider.translate_batch(batch, **context.provider_kwargs())
-            all_translations.update(translations)
-            all_suggestions.extend(suggestions)
+            persist = persist_batch(mod_id, provider_name, strings, batch, lang)
+            job = BatchJob(mod_id=mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=batch, context=context, persist=persist)
+            try:
+                outcome = run_translation_batch(job)
+            except BatchError as e:
+                print(f"    Batch failed: {e}")
+                sys.exit(1)
+            translated += len(outcome.translations)
+            suggested += len(outcome.suggestions)
 
-            for key, english in translations.items():
-                source_text = ""
-                for k, t in batch:
-                    if k == key:
-                        source_text = t
-                        break
-                if source_text and english:
-                    tm.store(source_text, english, lang)
-
-            batch_num += 1
-
-    tm.save()
-    tm_stats = tm.get_stats()
-    print(f"\n  Translation memory: {tm_stats['total_entries']} entries ({tm_stats['hit_rate_percent']}% hit rate this session)")
-
-    _apply_translations(mod_id, all_translations, tm)
-
-    if all_suggestions:
-        add_suggestions(mod_id, all_suggestions, game_id=GAME_ID)
-        print(f"  {len(all_suggestions)} glossary term suggestions pending review")
+    tm_entries = TranslationMemory(game_id=GAME_ID).get_stats()["total_entries"]
+    print(f"\n  Translation memory: {tm_entries} entries ({tm.get_stats()['hit_rate_percent']}% hit rate this session)")
+    print(f"  Translated {translated} strings")
+    if suggested:
+        print(f"  {suggested} glossary term suggestions pending review")
 
 
-def _apply_translations(
-    mod_id: str,
-    translations: dict[str, str],
-    tm: TranslationMemory,
-) -> None:
-    """
-    Save translations for the mod and mark them translated.
+def _apply_translations(mod_id: str, translations: dict[str, str]) -> None:
+    """Save translation-memory hits for the mod and mark them translated.
 
     Args:
         mod_id: Mod's Workshop id.
-        translations: Key -> English text.
-        tm: Translation memory to save.
+        translations: Key -> translated text.
     """
     save_translations_bulk(mod_id, translations, game_id=GAME_ID)
 
@@ -272,8 +250,6 @@ def _apply_translations(
     tracker.mark_translated(mod_id, list(translations.keys()))
 
     print(f"\n  Applied {len(translations)} translations")
-
-    tm.save()
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////

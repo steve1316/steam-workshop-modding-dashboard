@@ -1,11 +1,6 @@
-"""Game-agnostic batch-translation helpers. Storage, progress and glossary suggestions stay in each game's route layer."""
+"""Game-agnostic batch helpers: chunking entries for a provider and filling keys it deduplicated."""
 
 from __future__ import annotations
-
-import asyncio
-from typing import Any
-
-from backend.translation.prompt import PromptContext
 
 
 def fill_duplicate_translations(translations: dict[str, str], entries: list[tuple[str, str]]) -> dict[str, str]:
@@ -58,20 +53,3 @@ def chunk_entries(entries: list[tuple[str, str]], max_keys: int, max_chars: int)
     if current:
         chunks.append(current)
     return chunks
-
-
-async def run_batch(provider: Any, entries: list[tuple[str, str]], context: PromptContext) -> tuple[dict[str, str], list[Any]]:
-    """Translate one batch via `provider` in the default executor, then fill deduplicated keys.
-
-    Args:
-        provider: Provider exposing `translate_batch(...)`.
-        entries: (key, source_text) tuples.
-        context: Languages, glossary and game rules for the prompt.
-
-    Returns:
-        (translations keyed by key, suggestion objects).
-    """
-    loop = asyncio.get_running_loop()
-    translations, suggestions = await loop.run_in_executor(None, lambda: provider.translate_batch(entries, **context.provider_kwargs()))
-    fill_duplicate_translations(translations, entries)
-    return translations, suggestions

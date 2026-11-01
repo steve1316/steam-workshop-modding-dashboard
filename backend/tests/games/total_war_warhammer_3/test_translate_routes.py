@@ -109,6 +109,7 @@ def test_batch_uses_the_requested_provider_instead_of_claude(client: TestClient,
     """A batch runs through the provider the request picked and records it on the saved row and in the API log."""
 
     def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
+        self.last_raw_responses = [{"raw_text": "{}"}]
         return ({"k2": "Local Translation"}, [])
 
     monkeypatch.setattr("backend.providers.ollama_provider.OllamaProvider.translate_batch", fake_translate_batch)

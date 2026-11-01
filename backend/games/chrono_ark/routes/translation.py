@@ -9,32 +9,22 @@ from fastapi.responses import StreamingResponse
 
 from backend.core.paths import glossary_path
 from backend.core.settings import settings
-from backend.data import api_response_log
 from backend.data.glossary_manager import (
-    extract_name_key_suggestions,
     load_glossary,
-    load_mod_glossary,
 )
 from backend.data.history_manager import create_backup
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
-from backend.data.progress_tracker import ProgressTracker
-from backend.data.suggestion_manager import add_suggestions, load_suggestions
-from backend.data.translation_memory import TranslationMemory
-from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
-from backend.games.chrono_ark.services.translation import prompt_context
+from backend.games.chrono_ark.services.translation import batch_entries, load_mod_strings, persist_batch, prompt_context
 from backend.routes.helpers import (
     _active_translations,
-    _fill_duplicate_translations,
-    _filter_suggestions,
-    _find_mod_path,
-    _merge_gdata_originals,
     chrono_ark_adapter,
     resolve_source_language,
 )
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
-from backend.translation.orchestrator import chunk_entries, run_batch
+from backend.translation.orchestrator import chunk_entries
+from backend.translation.pipeline import BatchError, BatchJob, record_batch, run_translation_batch
 from backend.translation.planning import plan_batches
 from backend.translation.prompt import PromptContext
 
@@ -103,7 +93,7 @@ async def estimate_all_translation_costs(request: Request):
 
 
 @router.post("/preview")
-async def preview_translation(req: TranslationRequest):
+def preview_translation(req: TranslationRequest):
     """Preview the prompts that would be sent for each source language's batches.
 
     When `req.retranslate` is True, all translatable strings are included even if they already have English.
@@ -114,22 +104,12 @@ async def preview_translation(req: TranslationRequest):
     Returns:
         `total_strings`, `total_batches`, `batch_size`, `provider`, `previews` and `estimates` per source language, and a flat `batch_plan`.
     """
-    mod_path = _find_mod_path(req.mod_id)
-
-    strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
-    _merge_gdata_originals(req.mod_id, strings, target_lang=target_lang)
-
-    # Apply saved translations so user edits (including clears) are respected.
-    saved = load_translations(req.mod_id, game_id=GAME_ID)
-    for key, english in saved.items():
-        if key in strings:
-            strings[key].translations[target_lang] = english
-
+    strings, target_lang = load_mod_strings(req.mod_id)
+    adapter = chrono_ark_adapter()
     if req.retranslate:
-        target = {key: loc_str for key, loc_str in strings.items() if not loc_str.untranslatable_reason or key.startswith("DLL/") if chrono_ark_adapter().detect_source_language(loc_str) is not None}
+        target = {key: loc_str for key, loc_str in strings.items() if not loc_str.untranslatable_reason or key.startswith("DLL/") if adapter.detect_source_language(loc_str) is not None}
     else:
-        target = chrono_ark_adapter().get_untranslated(strings, target_lang)
+        target = adapter.get_untranslated(strings, target_lang)
 
     if not target:
         return {"total_strings": 0, "message": "All strings already translated" if not req.retranslate else "No translatable strings found", "previews": {}}
@@ -141,9 +121,7 @@ async def preview_translation(req: TranslationRequest):
     for key, loc_str in target.items():
         lang = resolve_source_language(loc_str, lang_override)
         if lang:
-            if lang not in by_lang:
-                by_lang[lang] = []
-            by_lang[lang].append((key, loc_str.translations.get(lang, "")))
+            by_lang.setdefault(lang, []).append((key, loc_str.translations.get(lang, "")))
 
     base_glossary = load_glossary(glossary_path(GAME_ID))
     chunks_by_lang = {lang: chunk_entries(entries, settings.batch_size, settings.batch_max_chars) for lang, entries in by_lang.items()}
@@ -174,96 +152,59 @@ async def get_system_prompt(source_lang: str = "Korean", target_lang: str = "Eng
     }
 
 
+def _load_batch(req: BatchTranslationRequest) -> tuple[dict, list[tuple[str, str]], str]:
+    """Load the mod's strings and pick the batch's entries.
+
+    Args:
+        req: Batch request.
+
+    Returns:
+        (the mod's strings, the batch's (key, source_text) tuples, the target language).
+    """
+    strings, target_lang = load_mod_strings(req.mod_id)
+    entries = batch_entries(strings, req.keys, req.source_lang)
+    if not entries:
+        raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
+    return strings, entries, target_lang
+
+
+async def _batch_job(req: BatchTranslationRequest) -> BatchJob:
+    """Build a batch job, starting its provider and backing the mod up before a run's first batch.
+
+    The glossary is reloaded on each call so newly accepted terms apply.
+
+    Args:
+        req: Batch request.
+
+    Returns:
+        The job.
+    """
+    strings, entries, target_lang = await asyncio.to_thread(_load_batch, req)
+    provider_name = req.provider or settings.translation_provider
+    provider = await ready_web_provider(provider_name)
+    if req.is_first_batch:
+        await asyncio.to_thread(create_backup, req.mod_id, "Before translation run", game_id=GAME_ID)
+    context = await asyncio.to_thread(prompt_context, req.mod_id, req.source_lang, target_lang)
+    persist = persist_batch(req.mod_id, provider_name, strings, entries, req.source_lang)
+    return BatchJob(mod_id=req.mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=entries, context=context, persist=persist)
+
+
 @router.post("/batch")
 async def translate_batch(req: BatchTranslationRequest):
     """Translate one batch of explicit keys, for a frontend-driven loop that reviews glossary suggestions between batches.
-
-    The glossary is reloaded on each call so newly accepted terms apply.
 
     Args:
         req: Mod id, keys, source language, and first-batch flag.
 
     Returns:
-        `translations` as `{key: English}`, `suggestions` for review, and the `translated` count.
+        `translations` as `{key: text}`, `suggestions` for review, and the `translated` count.
     """
-    mod_path = _find_mod_path(req.mod_id)
-
-    strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
-    _merge_gdata_originals(req.mod_id, strings, target_lang=target_lang)
-
-    # Saved translations win so user edits (including clears) are respected.
-    saved = load_translations(req.mod_id, game_id=GAME_ID)
-    for key, english in saved.items():
-        if key in strings:
-            strings[key].translations[target_lang] = english
-
-    entries: list[tuple[str, str]] = []
-    for key in req.keys:
-        if key in strings:
-            source_text = strings[key].translations.get(req.source_lang, "")
-            if source_text:
-                entries.append((key, source_text))
-
-    if not entries:
-        raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
-
-    provider_name = req.provider or settings.translation_provider
-    provider = await ready_web_provider(provider_name)
-
-    if req.is_first_batch:
-        create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
-
-    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
-    context = prompt_context(req.mod_id, req.source_lang, target_lang)
-
-    tm = TranslationMemory(game_id=GAME_ID)
-
+    job = await _batch_job(req)
     try:
-        translations, suggestions = await run_batch(provider, entries, context)
-    except Exception as e:
+        outcome = await asyncio.to_thread(run_translation_batch, job)
+    except BatchError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
-
-    for key, english in translations.items():
-        source_text = next((t for k, t in entries if k == key), "")
-        if source_text and english:
-            tm.store(source_text, english, req.source_lang)
-
-    raw_responses = getattr(provider, "last_raw_responses", [])
-    if raw_responses:
-        api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=[k for k, _ in entries], raw_responses=raw_responses)
-
-    save_translations_bulk(req.mod_id, translations, game_id=GAME_ID, provider=provider_name)
-
-    tracker = ProgressTracker(game_id=GAME_ID)
-    tracker.mark_translated(req.mod_id, list(translations.keys()))
-
-    tm.save()
-
-    filtered_suggestions = _filter_suggestions(suggestions, strings)
-
-    # Name-key terms the provider didn't already suggest.
-    existing_suggestions = load_suggestions(req.mod_id, game_id=GAME_ID)
-    name_key_suggestions = extract_name_key_suggestions(
-        translated_keys=list(translations.keys()),
-        strings=strings,
-        translations=translations,
-        source_lang=req.source_lang,
-        existing_suggestions=existing_suggestions + filtered_suggestions,
-        mod_glossary=mod_glossary,
-        term_categories=chrono_ark_adapter().get_glossary_categories(),
-    )
-    filtered_suggestions.extend(name_key_suggestions)
-
-    if filtered_suggestions:
-        add_suggestions(req.mod_id, filtered_suggestions, game_id=GAME_ID)
-
-    return {
-        "status": "success",
-        "translated": len(translations),
-        "translations": translations,
-        "suggestions": filtered_suggestions,
-    }
+    return outcome.response()
 
 
 @router.post("/cancel")
@@ -289,37 +230,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
         req: Batch parameters (mod_id, provider, keys, etc.).
         request: Starlette request, to detect disconnect and stop Ollama early.
     """
-    mod_path = _find_mod_path(req.mod_id)
-
-    strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
-    _merge_gdata_originals(req.mod_id, strings, target_lang=target_lang)
-
-    saved = load_translations(req.mod_id, game_id=GAME_ID)
-    for key, english in saved.items():
-        if key in strings:
-            strings[key].translations[target_lang] = english
-
-    entries: list[tuple[str, str]] = []
-    for key in req.keys:
-        if key in strings:
-            source_text = strings[key].translations.get(req.source_lang, "")
-            if source_text:
-                entries.append((key, source_text))
-
-    if not entries:
-        raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
-
-    provider_name = req.provider or settings.translation_provider
-    provider = await ready_web_provider(provider_name)
-
-    if req.is_first_batch:
-        create_backup(req.mod_id, "Before translation run", game_id=GAME_ID)
-
-    mod_glossary = load_mod_glossary(req.mod_id, game_id=GAME_ID)
-    context = prompt_context(req.mod_id, req.source_lang, target_lang)
-
-    tm = TranslationMemory(game_id=GAME_ID)
+    job = await _batch_job(req)
 
     async def event_stream():
         queue: asyncio.Queue[dict | None] = asyncio.Queue()
@@ -329,7 +240,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
 
         def run_generator():
             try:
-                for event in provider.translate_batch_stream(entries, cancel_event=cancel_event, **context.provider_kwargs()):
+                for event in job.provider.translate_batch_stream(job.entries, cancel_event=cancel_event, **job.context.provider_kwargs()):
                     if cancel_event.is_set():
                         break
                     loop.call_soon_threadsafe(queue.put_nowait, event)
@@ -355,46 +266,10 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                 break
 
             if event.get("type") == "complete":
-                translations = event.get("translations", {})
-                suggestions = event.get("suggestions", [])
-
-                # The LLM drops keys whose source text duplicates another entry's.
-                _fill_duplicate_translations(translations, entries)
-                event["translations"] = translations
-
-                for key, english in translations.items():
-                    source_text = next((t for k, t in entries if k == key), "")
-                    if source_text and english:
-                        tm.store(source_text, english, req.source_lang)
-
-                raw_responses = getattr(provider, "last_raw_responses", [])
-                if raw_responses:
-                    api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=[k for k, _ in entries], raw_responses=raw_responses)
-
-                save_translations_bulk(req.mod_id, translations, game_id=GAME_ID, provider=provider_name)
-
-                tracker = ProgressTracker(game_id=GAME_ID)
-                tracker.mark_translated(req.mod_id, list(translations.keys()))
-
-                tm.save()
-
-                filtered_suggestions = _filter_suggestions(suggestions, strings)
-
-                # Name-key terms the provider didn't already suggest.
-                existing_suggestions = load_suggestions(req.mod_id, game_id=GAME_ID)
-                name_key_suggestions = extract_name_key_suggestions(
-                    translated_keys=list(translations.keys()),
-                    strings=strings,
-                    translations=translations,
-                    source_lang=req.source_lang,
-                    existing_suggestions=existing_suggestions + filtered_suggestions,
-                    mod_glossary=mod_glossary,
-                    term_categories=chrono_ark_adapter().get_glossary_categories(),
-                )
-                filtered_suggestions.extend(name_key_suggestions)
-
-                if filtered_suggestions:
-                    add_suggestions(req.mod_id, filtered_suggestions, game_id=GAME_ID)
+                # The review modal gets the same saved suggestions as a non-streamed batch, not the provider's raw list.
+                outcome = await asyncio.to_thread(record_batch, job, event.get("translations", {}), event.get("suggestions", []))
+                event["translations"] = outcome.translations
+                event["suggestions"] = outcome.suggestions
 
             yield f"data: {json.dumps(event)}\n\n"
 

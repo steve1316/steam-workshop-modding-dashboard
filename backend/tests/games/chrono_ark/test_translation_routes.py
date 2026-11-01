@@ -50,6 +50,30 @@ class _FakeProvider:
         self.target_langs.append(kwargs["target_lang"])
         return {"cost": 0.0, "strings": len(entries)}
 
+    def translate_batch(self, entries, **kwargs):
+        """Translate every entry to a fixed string.
+
+        Args:
+            entries: `(key, text)` pairs in the batch.
+            **kwargs: Prompt parts.
+
+        Returns:
+            (translations by key, no suggestions).
+        """
+        self.last_raw_responses = [{"raw_text": "{}"}]
+        return {key: "Prueba" for key, _ in entries}, []
+
+    def translate_batch_stream(self, entries, cancel_event=None, **kwargs):
+        """Yield one `complete` event, like a non-streaming provider.
+
+        Args:
+            entries: `(key, text)` pairs in the batch.
+            cancel_event: Unused.
+            **kwargs: Prompt parts.
+        """
+        translations, suggestions = self.translate_batch(entries, **kwargs)
+        yield {"type": "complete", "translations": translations, "suggestions": suggestions}
+
 
 @pytest.fixture
 def fake_ca(monkeypatch):
@@ -72,6 +96,7 @@ def fake_ca(monkeypatch):
     monkeypatch.setattr(ca_services, "load_character_context", lambda mod_id, game_id: {})
     monkeypatch.setattr(ca_translation, "load_source_language_override", lambda mod_id, game_id: None)
     monkeypatch.setattr(ca_translation, "load_target_language_override", lambda mod_id, game_id: "Spanish")
+    monkeypatch.setattr(ca_services, "load_target_language_override", lambda mod_id, game_id: "Spanish")
     return provider
 
 
@@ -107,7 +132,7 @@ def test_preview_plans_batches_for_the_untranslated_strings(fake_ca):
 def test_preview_reports_nothing_to_do_when_every_string_is_translated(fake_ca, monkeypatch):
     from backend.web_server import app
 
-    monkeypatch.setattr(ca_translation, "load_translations", lambda mod_id, game_id: {"Buff/B_Test_Name": "Prueba"})
+    monkeypatch.setattr(ca_services, "load_translations", lambda mod_id, game_id: {"Buff/B_Test_Name": "Prueba"})
     res = TestClient(app).post("/api/games/chrono_ark/translate/preview", json={"mod_id": FAKE_MOD.mod_id})
 
     assert res.status_code == 200
@@ -121,3 +146,39 @@ def test_system_prompt_uses_the_requested_languages(fake_ca):
 
     assert res.status_code == 200
     assert res.json() == {"provider": "fake", "source_lang": "Chinese", "system_prompt": "Chinese->French"}
+
+
+def test_batch_saves_the_translations(fake_ca):
+    from backend.data.translation_store import load_translations
+    from backend.web_server import app
+
+    res = TestClient(app).post("/api/games/chrono_ark/translate/batch", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
+
+    assert res.status_code == 200
+    body = res.json()
+    assert (body["translated"], body["translations"]) == (1, {"Buff/B_Test_Name": "Prueba"})
+    # The name key's translation is offered as a glossary term.
+    assert [(t["source"], t["english"]) for t in body["suggestions"]] == [("\ud14c\uc2a4\ud2b8", "Prueba")]
+    assert load_translations(FAKE_MOD.mod_id, game_id="chrono_ark") == {"Buff/B_Test_Name": "Prueba"}
+
+
+def test_batch_rejects_keys_with_no_source_text(fake_ca):
+    from backend.web_server import app
+
+    res = TestClient(app).post("/api/games/chrono_ark/translate/batch", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Missing/Key"], "source_lang": "Korean"})
+
+    assert res.status_code == 400
+
+
+def test_batch_stream_saves_and_returns_the_complete_event(fake_ca):
+    from backend.data.translation_store import load_translations
+    from backend.web_server import app
+
+    res = TestClient(app).post("/api/games/chrono_ark/translate/batch/stream", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
+
+    assert res.status_code == 200
+    events = [json.loads(line[len("data: ") :]) for line in res.text.splitlines() if line.startswith("data: ")]
+    assert [(e["type"], e["translations"]) for e in events] == [("complete", {"Buff/B_Test_Name": "Prueba"})]
+    # The modal gets the saved suggestions, including name-key terms, not the provider's raw (empty) list.
+    assert [t["english"] for t in events[0]["suggestions"]] == ["Prueba"]
+    assert load_translations(FAKE_MOD.mod_id, game_id="chrono_ark") == {"Buff/B_Test_Name": "Prueba"}

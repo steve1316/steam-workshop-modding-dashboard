@@ -2,11 +2,12 @@
 
 Mirrors Chrono Ark's `/translate` contract so the shared `useIterativeTranslation` hook and modals drive WH3 identically.
 Parent extraction, drift/overlay, glossary prompt and persistence are reused from the sibling `translation` module so test fakes and changes stay in one place.
-The provider call goes through the game-agnostic `run_batch` orchestrator.
+Batches run through the shared translate pipeline with a WH3 persistence hook.
 """
 
 from __future__ import annotations
 
+import asyncio
 import re
 from datetime import UTC, datetime
 
@@ -14,7 +15,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.core.settings import settings
-from backend.data import api_response_log, mod_settings, suggestion_manager, translation_store
+from backend.data import mod_settings, suggestion_manager, translation_store
 from backend.data.glossary_manager import get_combined_glossary_prompt
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
@@ -28,7 +29,8 @@ from backend.games.total_war_warhammer_3.translation.source_snapshot import acce
 from backend.providers.base import Revision
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
-from backend.translation.orchestrator import chunk_entries, run_batch
+from backend.translation.orchestrator import chunk_entries
+from backend.translation.pipeline import BatchError, BatchJob, BatchOutcome, PersistHook, run_translation_batch
 from backend.translation.planning import batch_plan_entry, plan_batches
 from backend.translation.prompt import PromptContext
 
@@ -271,23 +273,16 @@ async def preview(req: TranslationRequest) -> dict:
     return result
 
 
-@router.post("/batch")
-async def translate_batch(req: BatchTranslationRequest) -> dict:
-    """Translate one batch of keys with the picked provider and persist into translations.json.
-
-    Built for the iterative frontend loop, which posts one batch at a time so the user can review glossary suggestions between batches.
-    Results are written incrementally and the provider's suggested terms are returned for review.
+def _load_batch(req: BatchTranslationRequest) -> tuple:
+    """Load the mod and pick the batch's entries, or the changed rows' entries and revisions in `update` mode.
 
     Args:
-        req: Request with `mod_id`, `keys`, `source_lang`, optional provider override, `is_first_batch` and `mode` (`update` revises changed rows).
+        req: Batch request.
 
     Returns:
-        `{"status": "success", "translated": N, "translations": {key: text}, "suggestions": [...]}`.
+        (mod, parent strings by table, (key, source_text) tuples, revisions by key).
     """
     mod = _t._require_mod(req.mod_id)
-    source_lang = req.source_lang
-    target_lang = mod.target_language
-
     parent = _t._extract_all_parent_strings(mod)
     wanted = set(req.keys)
     revisions: dict[str, Revision] = {}
@@ -303,45 +298,74 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
                     entries.append((key, row.text))
     if not entries:
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
+    return mod, parent, entries, revisions
 
-    context = _prompt_context(mod, req.mod_id, source_lang, target_lang)
+
+def _persist_batch(mod_id: str, provider_name: str, parent: dict, entries: list[tuple[str, str]]) -> PersistHook:
+    """Build the hook that saves a WH3 batch into translations.json.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        provider_name: Provider id recorded on each saved row.
+        parent: Parent strings by table, for the source snapshot.
+        entries: The batch's (key, source_text) tuples.
+
+    Returns:
+        The persistence hook.
+    """
+
+    def persist(translations: dict[str, str], provider_suggestions: list[dict]) -> BatchOutcome:
+        # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps the raw output.
+        # Words the mod glossary spells joined ("Fu Yuanshan") are kept.
+        existing_glossary = glossary_store.load_glossary(mod_id)
+        keep = glossary_words(existing_glossary)
+        source_by_key = dict(entries)
+        spaced = {key: space_pinyin_names(source_by_key.get(key, ""), text, keep) for key, text in translations.items()}
+        spaced_suggestions = [{**s, "english": space_pinyin_names(s.get("source", ""), s["english"], keep)} if s.get("english") else s for s in provider_suggestions]
+
+        # Drop terms already in the mod glossary so the user only reviews new ones (as in Chrono Ark).
+        suggestions = [s for s in spaced_suggestions if s.get("english") and s["english"] not in existing_glossary]
+        if suggestions:
+            suggestion_manager.add_suggestions(mod_id, suggestions, game_id=GAME_ID)
+
+        raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
+        now = datetime.now(UTC).isoformat()
+        for key, text in spaced.items():
+            existing = raw.get(key, {})
+            raw[key] = {"text": text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": provider_name}
+        translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
+        # Each saved row was translated from the current source, so that source becomes its baseline. It shows as pending until Sync.
+        save_parent_snapshot(mod_id, accept_keys(load_parent_snapshot(mod_id), parent, set(spaced)))
+        return BatchOutcome(spaced, suggestions)
+
+    return persist
+
+
+@router.post("/batch")
+async def translate_batch(req: BatchTranslationRequest) -> dict:
+    """Translate one batch of keys with the picked provider and persist into translations.json.
+
+    Built for the iterative frontend loop, which posts one batch at a time so the user can review glossary suggestions between batches.
+    Results are written incrementally and the provider's suggested terms are returned for review.
+
+    Args:
+        req: Request with `mod_id`, `keys`, `source_lang`, optional provider override, `is_first_batch` and `mode` (`update` revises changed rows).
+
+    Returns:
+        `{"status": "success", "translated": N, "translations": {key: text}, "suggestions": [...]}`.
+    """
+    mod, parent, entries, revisions = await asyncio.to_thread(_load_batch, req)
     provider_name = req.provider or settings.translation_provider
     provider = await ready_web_provider(provider_name)
     provider.revisions = revisions or None
-    provider.last_raw_responses = []
-    keys = [k for k, _ in entries]
-
+    context = await asyncio.to_thread(_prompt_context, mod, req.mod_id, req.source_lang, mod.target_language)
+    persist = _persist_batch(req.mod_id, provider_name, parent, entries)
+    job = BatchJob(mod_id=req.mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=entries, context=context, persist=persist)
     try:
-        translations, _suggestions = await run_batch(provider, entries, context)
-    except Exception as e:
-        api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=keys, raw_responses=provider.last_raw_responses, error=str(e))
+        outcome = await asyncio.to_thread(run_translation_batch, job)
+    except BatchError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
-
-    # Split joined pinyin names ("Miaoying" -> "Miao Ying") in translations and suggested terms before saving. The API log keeps the raw output.
-    # Words the mod glossary spells joined ("Fu Yuanshan") are kept.
-    existing_glossary = glossary_store.load_glossary(req.mod_id)
-    keep = glossary_words(existing_glossary)
-    source_by_key = dict(entries)
-    spaced = {key: space_pinyin_names(source_by_key.get(key, ""), text, keep) for key, text in translations.items()}
-    _suggestions = [{**s, "english": space_pinyin_names(s.get("source", ""), s["english"], keep)} if s.get("english") else s for s in _suggestions]
-
-    # Persist the provider's suggestions for the review modal, dropping terms already in the mod glossary so the user only reviews new ones (as in Chrono Ark).
-    suggestions = [s for s in _suggestions if s.get("english") and s["english"] not in existing_glossary]
-    if suggestions:
-        suggestion_manager.add_suggestions(req.mod_id, suggestions, game_id=GAME_ID)
-
-    raw = translation_store.load_translations_raw(req.mod_id, game_id=GAME_ID)
-    now = datetime.now(UTC).isoformat()
-    for key, text in spaced.items():
-        existing = raw.get(key, {})
-        raw[key] = {"text": text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": provider_name}
-    translation_store.save_translations_raw(req.mod_id, raw, game_id=GAME_ID)
-    # Each saved row was translated from the current source, so that source becomes its baseline. It shows as pending until Sync.
-    save_parent_snapshot(req.mod_id, accept_keys(load_parent_snapshot(req.mod_id), parent, set(spaced)))
-
-    api_response_log.log_batch_call(req.mod_id, game_id=GAME_ID, provider=provider_name, keys=keys, raw_responses=provider.last_raw_responses)
-
-    return {"status": "success", "translated": len(spaced), "translations": spaced, "suggestions": suggestions}
+    return outcome.response()
 
 
 @router.post("/name-suggestions")
