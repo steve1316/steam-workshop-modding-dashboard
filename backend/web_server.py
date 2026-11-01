@@ -34,11 +34,10 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="Steam Workshop Modding Dashboard API", lifespan=lifespan)
 
 
-# Enable CORS for Vite development server.
+# Only the local dashboard may call the API, so other sites open in the browser cannot read or change mod data.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -65,7 +64,7 @@ if _workshop_path and Path(_workshop_path).exists():
 if __name__ == "__main__":
     uvicorn.run(
         app,
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=config.API_PORT,
         log_config={
             "version": 1,
