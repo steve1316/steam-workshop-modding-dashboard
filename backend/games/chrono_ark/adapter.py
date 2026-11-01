@@ -1,7 +1,6 @@
 """Chrono Ark game adapter: CSV/gdata/DLL string extraction and Steam Workshop mod discovery."""
 
 import csv
-import os
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -94,12 +93,9 @@ def _drop_cross_source_duplicates(strings: dict[str, LocString]) -> None:
 class ChronoArkAdapter(GameAdapter, TranslationCapability):
     """Game adapter for Chrono Ark.
 
-    Path constants are overridable via the `SWMT_BASE_GAME_PATH` and `SWMT_WORKSHOP_PATH` env vars.
     `_SOURCE_LANGUAGES` is in detection-priority order and `_SKIP_DLLS` lists dependency DLLs to skip during extraction.
     """
 
-    _BASE_GAME_PATH = Path(os.environ.get("SWMT_BASE_GAME_PATH", r"F:\SteamLibrary\steamapps\common\Chrono Ark\ChronoArk_Data\StreamingAssets"))
-    _WORKSHOP_PATH = Path(os.environ.get("SWMT_WORKSHOP_PATH", r"F:\SteamLibrary\steamapps\workshop\content\1188930"))
     _CSV_FILES = [
         "LangDataDB.csv",
         "LangDialogueDB.csv",
@@ -240,12 +236,12 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return "LangSystemDB.csv"
 
     def get_translation_overrides_dir(self) -> Path | None:
-        """Return the ModTranslationInjector mod directory, derived from `_BASE_GAME_PATH` (`ChronoArk_Data/StreamingAssets`).
+        """Return the ModTranslationInjector mod directory, derived from `settings.base_game_path` (`ChronoArk_Data/StreamingAssets`).
 
         Returns:
             Mod directory, or None if it does not exist.
         """
-        game_root = self._BASE_GAME_PATH.parent.parent
+        game_root = settings.base_game_path.parent.parent
         overrides_dir = game_root / "Mod" / "ModTranslationInjector"
         if not overrides_dir.exists():
             return None
@@ -253,7 +249,11 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
 
     @property
     def base_game_path(self) -> Path | None:
-        return self._BASE_GAME_PATH
+        return settings.base_game_path
+
+    @property
+    def workshop_path(self) -> Path:
+        return settings.workshop_path
 
     @property
     def game_id(self) -> str:
@@ -319,12 +319,12 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         """Discover installed workshop mods by their `ChronoArkMod.json` files.
 
         Args:
-            search_path: Workshop directory override (defaults to `_WORKSHOP_PATH`).
+            search_path: Workshop directory override (defaults to `settings.workshop_path`).
 
         Returns:
             `ModInfo` per mod, sorted by mod_id.
         """
-        workshop_path = search_path or self._WORKSHOP_PATH
+        workshop_path = search_path or settings.workshop_path
         return mod_scanner.scan_workshop(
             workshop_path=workshop_path,
             metadata_filename=self._METADATA_FILENAME,
@@ -337,13 +337,13 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
 
         Args:
             mod_id: Mod's Workshop id.
-            search_path: Workshop directory override (defaults to `_WORKSHOP_PATH`).
+            search_path: Workshop directory override (defaults to `settings.workshop_path`).
 
         Returns:
             The mod's `ModInfo`, or `None` when it is not installed or is ignored.
         """
         return mod_scanner.find_workshop_mod(
-            workshop_path=search_path or self._WORKSHOP_PATH,
+            workshop_path=search_path or settings.workshop_path,
             mod_id=mod_id,
             metadata_filename=self._METADATA_FILENAME,
             skip_dlls=self._SKIP_DLLS,
@@ -426,12 +426,12 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         """Parse the base game's `Lang*.csv` files for glossary building.
 
         Args:
-            game_path: StreamingAssets override (defaults to `_BASE_GAME_PATH`).
+            game_path: StreamingAssets override (defaults to `settings.base_game_path`).
 
         Returns:
             `{key: LocString}`.
         """
-        path = game_path or self._BASE_GAME_PATH
+        path = game_path or settings.base_game_path
         return csv_extractor.extract_base_game_strings(path, self._CSV_FILES)
 
     def detect_source_language(self, loc_string: LocString) -> str | None:

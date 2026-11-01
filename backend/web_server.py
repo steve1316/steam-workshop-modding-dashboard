@@ -57,7 +57,7 @@ def _mount_workshop(target: FastAPI) -> None:
         target: The app to mount on.
     """
     # Only Chrono Ark links /workshop/ thumbnails, so this must not follow whichever game was active at startup.
-    workshop_path = chrono_ark_adapter()._WORKSHOP_PATH
+    workshop_path = chrono_ark_adapter().workshop_path
     if Path(workshop_path).exists():
         target.mount("/api/workshop", StaticFiles(directory=str(workshop_path)), name="workshop")
 

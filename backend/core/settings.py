@@ -84,6 +84,12 @@ class Settings(BaseSettings):
 
     active_game: str = "chrono_ark"
 
+    base_game_path: Path = Path(r"F:\SteamLibrary\steamapps\common\Chrono Ark\ChronoArk_Data\StreamingAssets")
+    """Chrono Ark `StreamingAssets` folder holding the base-game localization CSVs."""
+
+    workshop_path: Path = Path(r"F:\SteamLibrary\steamapps\workshop\content\1188930")
+    """Chrono Ark Steam Workshop content folder."""
+
     steamcmd_path: str = ""
     """Path to steamcmd.exe. Empty disables Publish to Workshop."""
 
