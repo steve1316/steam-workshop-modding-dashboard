@@ -1,9 +1,4 @@
-"""
-Process manager for locally-spawned LLM server processes.
-
-Tracks subprocess.Popen objects by name so the web server can start/stop
-Ollama and llama-server without external service managers.
-"""
+"""Tracks locally spawned Ollama and llama-server processes so the web server can start and stop them."""
 
 import logging
 import subprocess
@@ -16,16 +11,13 @@ _processes: dict[str, tuple[subprocess.Popen, object, object]] = {}
 
 
 def is_managed(name: str) -> bool:
-    """Check whether a live process is tracked under the given name.
-
-    If the process has exited since it was started, it is automatically
-    cleaned up and this returns False.
+    """Check whether a live process is tracked under `name`, cleaning up one that has exited.
 
     Args:
         name: Registry key (e.g. `"ollama"`, `"llamacpp"`).
 
     Returns:
-        True if the process is still running, False otherwise.
+        True if still running.
     """
     entry = _processes.get(name)
     if entry is None:
@@ -42,11 +34,11 @@ def start_process(name: str, args: list[str], log_dir: Path) -> tuple[bool, str]
 
     Args:
         name: Registry key (e.g. `"ollama"`, `"llamacpp"`).
-        args: Command + arguments list for `subprocess.Popen`.
-        log_dir: Directory to write stdout/stderr log files.
+        args: Command and arguments for `subprocess.Popen`.
+        log_dir: Directory for stdout/stderr logs.
 
     Returns:
-        `(success, message)` tuple.
+        `(success, message)`.
     """
     if is_managed(name):
         return False, f"{name} is already running (managed by this app)."
@@ -78,15 +70,13 @@ def start_process(name: str, args: list[str], log_dir: Path) -> tuple[bool, str]
 def stop_process(name: str) -> tuple[bool, str]:
     """Stop a managed process by name.
 
-    Sends SIGTERM first and waits up to 5 seconds. If the process does
-    not exit, it is forcefully killed with SIGKILL.
+    Terminates first and kills if it has not exited after 5 seconds.
 
     Args:
-        name: Registry key of the process to stop.
+        name: Registry key.
 
     Returns:
-        `(success, message)` tuple. Returns failure if the process was
-        not started by this app or has already exited.
+        `(success, message)`, failing if not started by this app or already exited.
     """
     entry = _processes.get(name)
     if entry is None:
@@ -115,7 +105,7 @@ def _cleanup(name: str) -> None:
     """Remove a process from the registry and close its log file handles.
 
     Args:
-        name: Registry key of the process to clean up.
+        name: Registry key.
     """
     entry = _processes.pop(name, None)
     if entry is None:

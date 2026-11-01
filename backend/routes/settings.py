@@ -19,8 +19,7 @@ async def get_game_info():
     """Return metadata about the active game adapter.
 
     Returns:
-        A dict containing `game_id` and `game_name` for the currently
-        configured game.
+        `game_id` and `game_name`.
     """
     return {
         "game_id": current_adapter().game_id,
@@ -33,7 +32,7 @@ async def list_games():
     """Return chassis metadata for all registered game adapters.
 
     Returns:
-        A list of `{game_id, display_name, icon, capabilities}` dicts.
+        `{game_id, display_name, icon, capabilities}` dicts.
     """
     from backend.games.registry import list_games_metadata
 
@@ -42,10 +41,10 @@ async def list_games():
 
 @router.get("/settings")
 async def get_settings():
-    """Return current provider, batch size, masked API key status, and Ollama settings.
+    """Return current settings with API keys masked.
 
     Returns:
-        A `SettingsResponse` with all current configuration values.
+        All configuration values.
     """
     return SettingsResponse(
         provider=config.TRANSLATION_PROVIDER,
@@ -81,7 +80,7 @@ async def get_settings():
 
 @router.post("/settings")
 async def update_settings(payload: SettingsUpdate):
-    """Update provider, batch size, and/or API keys. Persists to .env."""
+    """Update any provided settings and persist them to .env."""
     env_updates: dict[str, str] = {}
 
     if payload.provider is not None:
@@ -198,14 +197,10 @@ async def get_provider_models(provider_id: str):
     """Return the available models and pricing for a given provider.
 
     Args:
-        provider_id: Provider identifier (`"claude"` or `"openai"`).
+        provider_id: `"claude"` or `"openai"`.
 
     Returns:
-        A JSON object with a `models` list containing model ID, label,
-        and per-MTok pricing.
-
-    Raises:
-        HTTPException: If the provider has no model catalog.
+        `models` list with ID, label, and per-MTok pricing.
     """
     if provider_id == "claude":
         from backend.translator.claude_provider import CLAUDE_MODELS
@@ -223,14 +218,11 @@ async def get_stats():
     """Get global statistics for translation memory and progress.
 
     Returns:
-        A dict with `tm_entries` (translation memory size), `tm_hits`
-        (session cache hits), `total_mods`, `global_progress`
-        (percentage), and `total_strings` across all mods.
+        `tm_entries`, `tm_hits` (session cache hits), `total_mods`, `global_progress` (percent), and `total_strings`.
     """
     tm = TranslationMemory()
     stats = tm.get_stats()
 
-    # Also count total mods and translation progress
     tracker = ProgressTracker()
     mods = chrono_ark_adapter().scan_mods()
 

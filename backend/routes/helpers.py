@@ -1,8 +1,4 @@
-"""Shared state and helper functions used across route modules.
-
-Centralises module-level singletons (game adapter, cancel-event dicts,
-env-file path) and pure-logic helpers that multiple routers depend on.
-"""
+"""Shared state and helper functions used across route modules."""
 
 from __future__ import annotations
 
@@ -39,11 +35,7 @@ _adapter: GameAdapter = get_adapter(config.ACTIVE_GAME)
 
 
 def current_adapter() -> GameAdapter:
-    """Return the currently-active game adapter.
-
-    Always reflects `config.ACTIVE_GAME`; rotates lazily after
-    `set_active_game` flips the config value.
-    """
+    """Return the active game adapter, rotating lazily after `set_active_game` flips `config.ACTIVE_GAME`."""
     global _adapter
     if _adapter.game_id != config.ACTIVE_GAME:
         _adapter = get_adapter(config.ACTIVE_GAME)
@@ -55,12 +47,10 @@ _chrono_ark_adapter: GameAdapter | None = None
 
 
 def chrono_ark_adapter() -> GameAdapter:
-    """Return the Chrono Ark adapter used by the routes mounted under `/api/games/chrono_ark`.
-
-    Those routes serve Chrono Ark whatever the persisted `active_game` is, since the game comes from the URL.
+    """Return the Chrono Ark adapter for the `/api/games/chrono_ark` routes, whatever the persisted `active_game` is.
 
     Returns:
-        The cached Chrono Ark adapter instance.
+        Cached adapter.
     """
     global _chrono_ark_adapter
     if _chrono_ark_adapter is None:
@@ -73,9 +63,6 @@ def set_active_game(game_id: str) -> None:
 
     Args:
         game_id: Adapter id to switch to.
-
-    Raises:
-        ValueError: If `game_id` is not a registered adapter.
     """
     global _adapter
     new_adapter = get_adapter(game_id)
@@ -101,17 +88,14 @@ def resolve_source_language(
     loc_str: LocString,
     override: str | None,
 ) -> str | None:
-    """Determine source language for a string, respecting a per-mod override.
-
-    If an override is set and the string has content in that language column,
-    the override is used. Otherwise falls back to auto-detection.
+    """Determine source language for a string, using the per-mod override when that column has content.
 
     Args:
-        loc_str: The localization string to check.
-        override: Per-mod language override, or None for auto-detect.
+        loc_str: String to check.
+        override: Per-mod override, or None for auto-detect.
 
     Returns:
-        The source language name, or None if no source text is found.
+        Source language name, or None if no source text.
     """
     if override:
         if override in loc_str.translations and loc_str.translations[override]:
@@ -121,14 +105,13 @@ def resolve_source_language(
 
 
 def _stamp_raw_responses(responses: list[dict]) -> list[dict]:
-    """Add an ISO-8601 UTC timestamp to each raw API response dict.
+    """Add an ISO-8601 UTC `timestamp` to each raw API response dict.
 
     Args:
-        responses: List of response dicts from the translation provider.
+        responses: Provider response dicts.
 
     Returns:
-        The same list, modified in-place with a `timestamp` key added to
-        each dict.
+        The same list, modified in place.
     """
     now = datetime.now(timezone.utc).isoformat()
     for r in responses:
@@ -140,15 +123,10 @@ def _fill_duplicate_translations(
     translations: dict[str, str],
     entries: list[tuple[str, str]],
 ) -> dict[str, str]:
-    """Fill missing keys whose source text matches an already-translated entry.
-
-    LLMs often deduplicate identical source strings and only return one key in
-    the response.  This copies the translation to every other key that shares
-    the same source text so nothing is left as "Pending translation...".
+    """Copy translations to missing keys that share source text, since LLMs often return only one key per duplicate.
 
     Args:
-        translations: Mutable dict of key -> English text returned by the LLM.
-            Modified in-place to include any missing duplicate keys.
+        translations: Key -> English text from the LLM, modified in place.
         entries: Original (key, source_text) tuples sent to the provider.
     """
     return fill_duplicate_translations(translations, entries)
@@ -158,17 +136,14 @@ def _filter_suggestions(
     suggestions: list[dict],
     strings: dict,
 ) -> list[dict]:
-    """Filter suggestions to only those whose terms appear in actual text.
-
-    Removes suggestions where the source/english term only appears in
-    localization keys but not in the actual source text or English translations.
+    """Drop suggestions whose terms appear only in localization keys, not in actual text.
 
     Args:
-        suggestions: Raw suggestion dicts from the provider.
-        strings: The full strings dict mapping key -> LocalizedString.
+        suggestions: Raw provider suggestions.
+        strings: Key -> LocalizedString.
 
     Returns:
-        Filtered list of suggestion dicts.
+        Filtered suggestions.
     """
     all_source_texts: set[str] = set()
     all_english_texts: set[str] = set()
@@ -192,16 +167,13 @@ def _filter_suggestions(
 
 
 def _find_mod(mod_id: str):
-    """Find a mod by ID, returning the full ModInfo object.
+    """Find a mod by ID, raising 404 if missing.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        The `ModInfo` object for the matching mod.
-
-    Raises:
-        HTTPException: 404 if no mod with the given id is found.
+        Matching `ModInfo`.
     """
     mods = chrono_ark_adapter().scan_mods()
     matching = [m for m in mods if m.mod_id == mod_id]
@@ -211,16 +183,13 @@ def _find_mod(mod_id: str):
 
 
 def _find_mod_path(mod_id: str) -> Path:
-    """Find the mod directory path by scanning all workshop mods.
+    """Find the mod directory path, raising 404 if missing.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        The filesystem `Path` to the mod's root directory.
-
-    Raises:
-        HTTPException: 404 if no mod with the given id is found.
+        Mod's root directory.
     """
     mods = chrono_ark_adapter().scan_mods()
     matching = [m for m in mods if m.mod_id == mod_id]
@@ -236,15 +205,12 @@ def _merge_gdata_originals(
 ) -> None:
     """Restore original source text for gdata entries from backup.
 
-    After exporting translations into gdata JSON files, re-extraction
-    picks up the target language text but loses the original source language.
-    This helper reads the backed-up originals and merges any missing
-    source-language translations back into the live entries.
+    Re-extraction after an export picks up the target language text but loses the original source language.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        strings: Live localization strings to merge into.
-        target_lang: The translation target language (excluded from merge).
+        mod_id: Mod's Workshop id.
+        strings: Live strings to merge into.
+        target_lang: Target language, excluded from the merge.
     """
     from backend.games.chrono_ark import gdata_extractor
 
@@ -252,12 +218,10 @@ def _merge_gdata_originals(
     if not backup_dir.exists():
         return
 
-    # Extract strings from the backed-up originals.
     originals: dict[str, "LocString"] = {}
     for json_file in sorted(backup_dir.glob("*.json")):
         originals.update(gdata_extractor._extract_gdata_file(json_file))
 
-    # Merge: restore any source-language translations missing from live.
     for key, orig in originals.items():
         if key not in strings:
             continue
@@ -268,17 +232,13 @@ def _merge_gdata_originals(
 
 
 def _find_mod_preview_image(mod_path: Path) -> Optional[Path]:
-    """Find a preview image in the mod's root directory.
-
-    Searches for `.png`, `.jpg`, and `.jpeg` files and returns the
-    first match found.
+    """Find the first `.png`, `.jpg`, or `.jpeg` in the mod's root directory.
 
     Args:
-        mod_path: Filesystem path to the mod's root directory.
+        mod_path: Mod's root directory.
 
     Returns:
-        The `Path` to the first image found, or `None` if the mod has
-        no preview image.
+        Image path, or `None` if none.
     """
     for ext in ("*.png", "*.jpg", "*.jpeg"):
         for img in mod_path.glob(ext):
@@ -287,39 +247,30 @@ def _find_mod_preview_image(mod_path: Path) -> Optional[Path]:
 
 
 def _compute_export_snapshot(mod_id: str, mod_path: Path, mod_name: str = "") -> str:
-    """Compute a SHA-256 hash of the current translations, mod CSVs, and overrides.
+    """Compute a SHA-256 hash of the translations, mod CSVs, and the mod's Harmony override entries.
 
-    Combines the `translations.json` content with the mod's CSV file contents
-    and the mod's entries in the Harmony injector override JSONs so we can
-    detect changes on any side (new translations, mod author updates, or
-    external edits to the override files). Excludes timestamps so
-    metadata-only changes don't trigger a false "needs export" signal.
+    Covers every side that can change (new translations, mod author updates, external override edits).
 
     Args:
-        mod_id: The mod's Workshop ID.
-        mod_path: Filesystem path to the mod's root directory.
-        mod_name: Display name used as the key in override JSONs. When empty,
-            looked up via `_find_mod` only if the overrides directory exists.
+        mod_id: Mod's Workshop id.
+        mod_path: Mod's root directory.
+        mod_name: Key in the override JSONs, looked up via `_find_mod` when empty and the overrides directory exists.
 
     Returns:
-        Hex-digest hash string representing the current state.
+        Hex digest.
     """
     h = hashlib.sha256()
 
-    # Hash translation text content only (excludes timestamps so metadata
-    # changes don't trigger a false "needs export" signal).
+    # Text only, so metadata-only changes don't trigger a false "needs export".
     flat = load_translations(mod_id)
     if flat:
         h.update(json.dumps(flat, sort_keys=True).encode("utf-8"))
 
-    # Hash each mod CSV file.
     for csv_path in sorted(_get_mod_csv_paths(mod_path)):
         h.update(csv_path.name.encode("utf-8"))
         h.update(csv_path.read_bytes())
 
-    # Hash this mod's entries in the Harmony injector override JSONs.
-    # Include a sentinel when the overrides directory exists so the hash
-    # changes when the injector is installed or uninstalled.
+    # The sentinel makes the hash change when the injector is installed or uninstalled.
     overrides_dir = chrono_ark_adapter().get_translation_overrides_dir()
     if overrides_dir:
         h.update(b"overrides_dir_present")
@@ -343,17 +294,13 @@ def _compute_export_snapshot(mod_id: str, mod_path: Path, mod_name: str = "") ->
 
 
 def _compute_csv_snapshot(mod_path: Path) -> str:
-    """Compute a SHA-256 hash of only the mod's CSV files.
-
-    Unlike `_compute_export_snapshot`, this excludes translations so it
-    can detect mod-author CSV updates without being affected by new
-    user translations.
+    """Compute a SHA-256 hash of only the mod's CSV files, so author updates show up without user translations affecting it.
 
     Args:
-        mod_path: Filesystem path to the mod's root directory.
+        mod_path: Mod's root directory.
 
     Returns:
-        Hex-digest hash string representing the current CSV state.
+        Hex digest.
     """
     h = hashlib.sha256()
     for csv_path in sorted(_get_mod_csv_paths(mod_path)):
@@ -366,11 +313,10 @@ def _load_last_export_hash(mod_id: str) -> str:
     """Load the snapshot hash saved after the last successful export.
 
     Args:
-        mod_id: The workshop identifier of the mod.
+        mod_id: Mod's Workshop id.
 
     Returns:
-        The hex-digest hash string, or an empty string if no export has
-        been recorded yet.
+        Hex digest, or an empty string if none recorded.
     """
     path = GameStorage("chrono_ark").mod_file(mod_id, "last_export.json")
     if not path.exists():
@@ -386,8 +332,8 @@ def _save_last_export_hash(mod_id: str, snapshot_hash: str) -> None:
     """Save the snapshot hash after a successful export.
 
     Args:
-        mod_id: The workshop identifier of the mod.
-        snapshot_hash: The hex-digest hash string to persist.
+        mod_id: Mod's Workshop id.
+        snapshot_hash: Hex digest to persist.
     """
     path = GameStorage("chrono_ark").mod_file(mod_id, "last_export.json")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -395,16 +341,13 @@ def _save_last_export_hash(mod_id: str, snapshot_hash: str) -> None:
 
 
 def _get_mod_csv_paths(mod_path: Path) -> list[Path]:
-    """Collect all CSV file paths for a mod.
-
-    Gathers CSVs from the `Localization/` subdirectory and any top-level
-    `Lang*.csv` files in the mod root.
+    """Collect CSVs from `Localization/` and top-level `Lang*.csv` files.
 
     Args:
-        mod_path: Filesystem path to the mod's root directory.
+        mod_path: Mod's root directory.
 
     Returns:
-        A list of `Path` objects pointing to each discovered CSV file.
+        CSV paths.
     """
     paths = []
     loc_dir = mod_path / "Localization"
@@ -415,44 +358,34 @@ def _get_mod_csv_paths(mod_path: Path) -> list[Path]:
 
 
 def _recalculate_mod_progress(mod_id: str, mod_path: Path) -> None:
-    """Re-extract strings and recalculate translation progress for a mod.
+    """Re-extract strings and update the `ProgressTracker` snapshot, mirroring `get_mod_detail`.
 
-    Mirrors the progress-update logic in `get_mod_detail`: extracts all
-    localization strings from the mod's files on disk, layers any saved
-    user translations on top, then updates the `ProgressTracker` snapshot
-    so that `get_status` returns accurate totals/translated counts.
-
-    A string is considered translated when it has a non-empty English value
-    **or** its source text is blank (nothing to translate).
+    A string counts as translated when it has a non-empty target value or its source text is blank.
 
     Args:
-        mod_id: Workshop identifier of the mod (e.g. "12345").
-        mod_path: Filesystem path to the mod's workshop directory.
+        mod_id: Mod's Workshop id.
+        mod_path: Mod's workshop directory.
     """
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
     target_lang = load_target_language_override(mod_id) or "English"
     _merge_gdata_originals(mod_id, strings, target_lang=target_lang)
 
-    # Apply saved translations.
     translations = load_translations(mod_id)
     for key, translated_text in translations.items():
         if key in strings:
             strings[key].translations[target_lang] = translated_text
 
-    # When the Harmony injection mod is installed, DLL strings become
-    # translatable — clear their untranslatable_reason so the progress
-    # tracker includes them in total_keys.
+    # With the Harmony mod installed, DLL strings become translatable, so clear the reason to count them in total_keys.
     has_harmony_mod = chrono_ark_adapter().get_translation_overrides_dir() is not None
     if has_harmony_mod:
         for key, loc_str in strings.items():
             if key.startswith("DLL/") and loc_str.untranslatable_reason:
                 loc_str.untranslatable_reason = ""
 
-    # Update the progress snapshot.
     tracker = ProgressTracker()
     tracker.update(mod_id, strings, chrono_ark_adapter().source_languages, target_lang=target_lang)
 
-    # Compute translated keys the same way get_mod_detail does.
+    # Must match how get_mod_detail computes translated keys.
     lang_override = load_source_language_override(mod_id)
     translated_keys = []
     for key, loc_str in strings.items():
@@ -471,10 +404,10 @@ def _format_env_value(value: str) -> str:
     """Quote a .env value only when python-dotenv would otherwise misread it.
 
     Args:
-        value: The raw setting value.
+        value: Raw setting value.
 
     Returns:
-        The value as it should appear after `KEY=`.
+        Value as written after `KEY=`.
     """
     # Plain values stay unquoted because vite.config.ts reads SWMT_API_PORT with a bare regex.
     if value == value.strip() and not any(c in value for c in "#$\n\r") and not value.startswith(("'", '"')):
@@ -484,22 +417,15 @@ def _format_env_value(value: str) -> str:
 
 
 def _update_env_file(updates: dict[str, str]) -> None:
-    """Write updated SWMT_* values to the .env file and os.environ.
-
-    Reads the existing .env line-by-line, replacing matching keys in place
-    to preserve comments and ordering. Keys not already present are appended
-    at the end. Also updates `os.environ` so the running process sees the
-    new values immediately.
+    """Write SWMT_* values to the .env file and `os.environ`, replacing keys in place to keep comments and ordering.
 
     Args:
-        updates: Mapping of env-var names (e.g. `SWMT_BATCH_SIZE`) to their
-            new string values.
+        updates: Env-var name (e.g. `SWMT_BATCH_SIZE`) to new value.
     """
     lines: list[str] = []
     if _ENV_PATH.exists():
         lines = _ENV_PATH.read_text(encoding="utf-8").splitlines(keepends=True)
 
-    # Replace existing keys in place; track which ones we found.
     found_keys: set[str] = set()
     new_lines: list[str] = []
     for line in lines:
@@ -512,28 +438,25 @@ def _update_env_file(updates: dict[str, str]) -> None:
                 continue
         new_lines.append(line if line.endswith("\n") else line + "\n")
 
-    # Append any keys that weren't already in the file.
     for key, value in updates.items():
         if key not in found_keys:
             new_lines.append(f"{key}={_format_env_value(value)}\n")
 
     write_text_atomic(_ENV_PATH, "".join(new_lines))
 
-    # Mirror into os.environ so config reads are consistent within the
-    # current process without needing a restart.
+    # Avoids needing a restart for config reads.
     for key, value in updates.items():
         os.environ[key] = value
 
 
 def _mask_key(key: str) -> str:
-    """Return a masked version of an API key for safe display.
+    """Mask an API key for display.
 
     Args:
-        key: The raw API key string.
+        key: Raw API key.
 
     Returns:
-        A string like `"••••ab12"` showing only the last 4 characters,
-        or an empty string if the key is not set.
+        Last 4 characters behind a bullet prefix, or an empty string if unset.
     """
     if not key or not key.strip():
         return ""

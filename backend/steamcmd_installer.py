@@ -1,9 +1,6 @@
-"""Downloader + extractor for Valve's official SteamCMD package.
+"""Downloads and extracts Valve's SteamCMD zip (~5MB bootstrap) for the Publish to Workshop feature.
 
-Pulls https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip (~5MB) and unpacks it into a
-target directory so the Publish to Workshop feature has a usable `steamcmd.exe` without the user
-having to install it manually. The zip ships a tiny bootstrap; SteamCMD self-updates the rest of
-its files (~250MB) on first launch.
+SteamCMD self-updates the rest of its files (~250MB) on first launch.
 """
 
 from __future__ import annotations
@@ -20,18 +17,13 @@ STEAMCMD_DOWNLOAD_URL = "https://steamcdn-a.akamaihd.net/client/installer/steamc
 async def install_steamcmd(target_dir: Path) -> Path:
     """Download `steamcmd.zip` from Valve's CDN and extract it into `target_dir`.
 
-    The target directory is created if missing. Existing files are overwritten by the extraction so
-    re-running the install is safe and idempotent.
+    Creates the directory if missing and overwrites existing files, so re-running is safe.
 
     Args:
-        target_dir: Directory to install SteamCMD into (e.g. `backend/storage/steamcmd`).
+        target_dir: Install directory (e.g. `backend/storage/steamcmd`).
 
     Returns:
-        Absolute `Path` to the resolved `steamcmd.exe` inside `target_dir`.
-
-    Raises:
-        RuntimeError: When the HTTP download returns non-200, the response is not a valid zip, or
-            the extracted archive does not contain `steamcmd.exe`.
+        Path to `steamcmd.exe`.
     """
     target_dir.mkdir(parents=True, exist_ok=True)
 

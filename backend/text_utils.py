@@ -5,11 +5,10 @@ def has_cjk(s: str) -> bool:
     """Check if a string contains CJK, Hangul, or Kana characters.
 
     Args:
-        s: The string to check.
+        s: String to check.
 
     Returns:
-        True if the string contains any CJK Unified Ideographs, CJK
-        Extension A, Hangul Syllables, Hiragana, or Katakana characters.
+        True if it has any CJK Unified Ideographs, Extension A, Hangul, Hiragana, or Katakana.
     """
     for ch in s:
         cp = ord(ch)

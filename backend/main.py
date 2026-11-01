@@ -1,8 +1,5 @@
 """
-Steam Workshop Modding Dashboard - CLI entry point.
-
-Provides subcommands for extracting, translating, and managing
-localization strings for Chrono Ark Steam Workshop mods.
+Steam Workshop Modding Dashboard - CLI entry point for extracting, translating, and managing mod localization strings.
 
 Usage:
     python main.py extract --base-game
@@ -52,7 +49,7 @@ def get_provider(provider_name: str) -> TranslationProvider:
         provider_name: One of `"claude"`, `"openai"`, `"deepl"`, `"ollama"`, `"llamacpp"`, `"manual"`.
 
     Returns:
-        The initialized TranslationProvider.
+        Initialized provider.
     """
     if provider_name == "claude":
         return ClaudeProvider(model=config.CLAUDE_MODEL)
@@ -74,12 +71,11 @@ def save_extracted_strings(strings: dict, output_path: Path) -> None:
     Save extracted strings to a JSON file.
 
     Args:
-        strings: Dictionary of LocString objects.
-        output_path: Path to save the JSON file.
+        strings: Key -> `LocString`.
+        output_path: JSON file to write.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Convert LocString objects to serializable dicts.
     data = {}
     for key, loc_str in strings.items():
         data[key] = {
@@ -98,14 +94,11 @@ def save_extracted_strings(strings: dict, output_path: Path) -> None:
 
 
 def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
-    """Handle the `extract` subcommand.
-
-    Extracts localization strings from the base game, a single mod, or all
-    workshop mods depending on the CLI flags provided.
+    """Handle the `extract` subcommand for the base game, one mod, or all workshop mods.
 
     Args:
-        args: Parsed CLI arguments containing extraction options.
-        adapter: Active game adapter for string extraction.
+        args: Parsed CLI arguments.
+        adapter: Active game adapter.
     """
     if args.base_game:
         print("Extracting base game strings...")
@@ -115,9 +108,8 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
     elif args.mod:
         mod_path = Path(args.mod)
-        # If the argument is just an ID (not a full path), resolve via scanning.
+        # A bare ID rather than a path is resolved by scanning.
         if not mod_path.exists():
-            # Try to find the mod by scanning.
             mods = adapter.scan_mods()
             matching = [m for m in mods if m.mod_id == args.mod]
             if not matching:
@@ -130,7 +122,6 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
         output_path = config.STORAGE_PATH / "mods" / args.mod / "source.json"
         save_extracted_strings(strings, output_path)
 
-        # Update progress tracker.
         tracker = ProgressTracker()
         diff = tracker.update(args.mod, strings, adapter.source_languages)
         print(f"  New keys: {len(diff.new_keys)}")
@@ -142,7 +133,6 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
         print("Scanning all mods...")
         mods = adapter.scan_mods()
 
-        # Print summary.
         print(f"\n{'ID':<15} {'Name':<30} {'CSV':<5} {'DLL':<5} {'Entries':<8}")
         print("-" * 68)
         for mod in mods:
@@ -152,7 +142,6 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
             name = mod.name[:28] if len(mod.name) > 28 else mod.name
             print(f"{mod.mod_id:<15} {name:<30} {csv_flag:<5} {dll_flag:<5} {entries:<8}")
 
-        # Extract strings from each mod with localization files.
         tracker = ProgressTracker()
         for mod_info in mods:
             if mod_info.has_loc_files:
@@ -170,24 +159,17 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
 
 def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
-    """Handle the `translate` subcommand.
-
-    Translates untranslated strings for a given mod using the specified
-    translation provider. Leverages translation memory for caching and
-    supports dry-run mode for cost estimation.
+    """Handle the `translate` subcommand, using translation memory and supporting a dry-run cost estimate.
 
     Args:
-        args: Parsed CLI arguments containing the mod ID, provider name,
-            and dry-run flag.
-        adapter: Active game adapter for string extraction and language
-            detection.
+        args: Parsed CLI arguments (mod ID, provider, dry-run).
+        adapter: Active game adapter.
     """
     mod_id = args.mod
     if not mod_id:
         print("Specify --mod <id>")
         sys.exit(1)
 
-    # Find the mod path.
     mods = adapter.scan_mods()
     matching = [m for m in mods if m.mod_id == mod_id]
     if not matching:
@@ -203,11 +185,9 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
         print("All strings already have English translations!")
         return
 
-    # Load translation memory and glossary.
     tm = TranslationMemory()
     base_glossary = load_glossary()
     mod_glossary = load_mod_glossary(mod_id)
-    # Check translation memory for cached translations.
     needs_translation = []
     cached_translations = {}
 
@@ -230,7 +210,6 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
         _apply_translations(mod_id, cached_translations, tm)
         return
 
-    # Get provider.
     provider_name = args.provider or config.TRANSLATION_PROVIDER
     try:
         provider = get_provider(provider_name)
@@ -238,11 +217,10 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
         print(e)
         sys.exit(1)
 
-    # Get game context for LLM providers.
     game_context = adapter.get_translation_context()
     format_rules = adapter.get_format_preservation_rules()
 
-    # Prepare entries for translation (group by source language).
+    # Batches are per source language.
     entries_by_lang: dict[str, list[tuple[str, str]]] = {}
     for key, source_text, source_lang in needs_translation:
         if source_lang is None:
@@ -251,7 +229,6 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
             entries_by_lang[source_lang] = []
         entries_by_lang[source_lang].append((key, source_text))
 
-    # Dry run mode — just show cost estimate.
     if args.dry_run:
         print(f"\n  Provider: {provider.name}")
         for lang, entries in entries_by_lang.items():
@@ -269,7 +246,6 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
                 print(f"    {k}: {v}")
         return
 
-    # Translate in batches.
     print(f"\n  Using provider: {provider.name}")
     all_translations = dict(cached_translations)
     all_suggestions = []
@@ -308,15 +284,12 @@ def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
             batch_num += 1
 
-    # Save translation memory.
     tm.save()
     tm_stats = tm.get_stats()
     print(f"\n  Translation memory: {tm_stats['total_entries']} entries " f"({tm_stats['hit_rate_percent']}% hit rate this session)")
 
-    # Apply translations.
     _apply_translations(mod_id, all_translations, tm)
 
-    # Store any glossary term suggestions.
     if all_suggestions:
         add_suggestions(mod_id, all_suggestions)
         print(f"  {len(all_suggestions)} glossary term suggestions pending review")
@@ -328,23 +301,20 @@ def _apply_translations(
     tm: TranslationMemory,
 ) -> None:
     """
-    Apply translations to the mod's string data and save.
+    Save translations for the mod and mark them translated.
 
     Args:
-        mod_id: The mod's Workshop ID.
-        translations: Key→English translation mappings.
-        tm: TranslationMemory instance.
+        mod_id: Mod's Workshop id.
+        translations: Key -> English text.
+        tm: Translation memory to save.
     """
-    # Save translations to the mod's storage.
     save_translations_bulk(mod_id, translations)
 
-    # Update progress tracker.
     tracker = ProgressTracker()
     tracker.mark_translated(mod_id, list(translations.keys()))
 
     print(f"\n  Applied {len(translations)} translations")
 
-    # Save translation memory.
     tm.save()
 
 
@@ -352,16 +322,11 @@ def _apply_translations(
 
 
 def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
-    """Handle the `status` subcommand.
-
-    Displays translation progress for a specific mod or a summary table
-    of all extracted mods.
+    """Handle the `status` subcommand, showing one mod's progress or a summary of all extracted mods.
 
     Args:
-        args: Parsed CLI arguments. If `args.mod` is set, shows detailed
-            status for that mod; otherwise shows a summary of all mods.
-        adapter: Active game adapter (unused directly, but kept for
-            consistent subcommand signature).
+        args: Parsed CLI arguments, where `args.mod` selects a single mod.
+        adapter: Unused, kept for a consistent subcommand signature.
     """
     tracker = ProgressTracker()
 
@@ -374,7 +339,6 @@ def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
         print(f"  Progress: {status['percentage']}%")
         print(f"  Last updated: {status['last_updated']}")
     else:
-        # Show status for all mods.
         mods_dir = config.STORAGE_PATH / "mods"
         if not mods_dir.exists():
             print("No mods extracted yet. Run 'extract --all-mods' first.")
@@ -394,17 +358,11 @@ def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
 
 def cmd_glossary(args: argparse.Namespace, adapter: GameAdapter) -> None:
-    """Handle the `glossary` subcommand.
-
-    Manages the terminology glossary used for translation consistency.
-    Supports displaying the current glossary, auto-building it from base
-    game strings, or manually adding individual entries.
+    """Handle the `glossary` subcommand to show, build from base game strings, or add an entry.
 
     Args:
-        args: Parsed CLI arguments containing one of `--show`, `--build`,
-            or `--add <source> <english>`.
-        adapter: Active game adapter used for base game extraction when
-            building the glossary.
+        args: Parsed CLI arguments with one of `--show`, `--build`, or `--add`.
+        adapter: Active game adapter, used to extract base game strings when building.
     """
     if args.show:
         glossary = load_glossary()
@@ -441,21 +399,17 @@ def cmd_glossary(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
 
 def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
-    """Handle the `export` subcommand.
-
-    Exports translated strings back into CSV files that can be placed into
-    the mod's directory for use in-game.
+    """Handle the `export` subcommand, writing translated strings back to CSV files.
 
     Args:
-        args: Parsed CLI arguments containing the target mod ID.
-        adapter: Active game adapter for string extraction and CSV export.
+        args: Parsed CLI arguments with the mod ID.
+        adapter: Active game adapter.
     """
     mod_id = args.mod
     if not mod_id:
         print("Specify --mod <id>")
         sys.exit(1)
 
-    # Find the mod path.
     mods = adapter.scan_mods()
     matching = [m for m in mods if m.mod_id == mod_id]
     if not matching:
@@ -465,22 +419,18 @@ def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
 
     strings, _ = adapter.extract_strings(mod_path)
 
-    # Load saved translations.
     translations = load_translations(mod_id)
     if not translations:
         print(f"No translations found for mod {mod_id}. Run 'translate --mod {mod_id}' first.")
         sys.exit(1)
 
-    # Apply translations to the English column.
     for key, english in translations.items():
         if key in strings:
             strings[key].translations["English"] = english
 
-    # Export each CSV file.
     export_dir = config.STORAGE_PATH / "mods" / mod_id / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
 
-    # Group strings by source file.
     by_source: dict[str, list] = {}
     for key, loc_str in strings.items():
         source = loc_str.source_file or adapter.csv_for_key(loc_str.key)
@@ -513,31 +463,26 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Extract subcommand.
     extract_parser = subparsers.add_parser("extract", help="Extract localization strings")
     extract_group = extract_parser.add_mutually_exclusive_group(required=True)
     extract_group.add_argument("--base-game", action="store_true", help="Extract base game strings")
     extract_group.add_argument("--mod", type=str, help="Extract from a specific mod (Workshop ID)")
     extract_group.add_argument("--all-mods", action="store_true", help="Extract from all workshop mods")
 
-    # Translate subcommand.
     translate_parser = subparsers.add_parser("translate", help="Translate mod strings")
     translate_parser.add_argument("--mod", type=str, required=True, help="Mod Workshop ID")
     translate_parser.add_argument("--provider", type=str, choices=["claude", "openai", "deepl"], help="Translation provider (default: from config)")
     translate_parser.add_argument("--dry-run", action="store_true", help="Show cost estimate only")
 
-    # Status subcommand.
     status_parser = subparsers.add_parser("status", help="Show translation progress")
     status_parser.add_argument("--mod", type=str, help="Show status for a specific mod")
 
-    # Glossary subcommand.
     glossary_parser = subparsers.add_parser("glossary", help="Manage terminology glossary")
     glossary_group = glossary_parser.add_mutually_exclusive_group(required=True)
     glossary_group.add_argument("--show", action="store_true", help="Display current glossary")
     glossary_group.add_argument("--build", action="store_true", help="Auto-build from base game")
     glossary_group.add_argument("--add", nargs=2, metavar=("SOURCE", "ENGLISH"), help="Add a glossary entry")
 
-    # Export subcommand.
     export_parser = subparsers.add_parser("export", help="Export translated CSV files")
     export_parser.add_argument("--mod", type=str, required=True, help="Mod Workshop ID")
 
@@ -547,10 +492,8 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    # Initialize the game adapter.
     adapter = get_adapter(args.game)
 
-    # Dispatch to subcommand handler.
     commands = {
         "extract": cmd_extract,
         "translate": cmd_translate,

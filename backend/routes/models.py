@@ -5,26 +5,14 @@ from pydantic import BaseModel
 
 
 class GlossaryTerm(BaseModel):
-    """A global glossary term mapping a source-language word to its English translation.
-
-    Attributes:
-        source: The original term in the source language.
-        english: The English translation of the term.
-    """
+    """A global glossary term."""
 
     source: str
     english: str
 
 
 class ModGlossaryTerm(BaseModel):
-    """A mod-specific glossary term with per-language source mappings.
-
-    Attributes:
-        english: The English translation of the term.
-        source_mappings: Mapping of source language codes to the original term
-            in each language (e.g. `{"Korean": "마법"}`).
-        category: The category for this term (e.g. `"custom"`, `"skill"`).
-    """
+    """A mod-specific glossary term with per-language source mappings."""
 
     english: str
     source_mappings: dict[str, str] = {}
@@ -32,14 +20,12 @@ class ModGlossaryTerm(BaseModel):
 
 
 class SuggestionAction(BaseModel):
-    """Payload for accepting or dismissing glossary term suggestions.
+    """Payload for accepting or dismissing glossary suggestions.
 
     Attributes:
-        terms: List of specific English term strings to act on.
-        all: If `True`, the action applies to every pending suggestion
-            regardless of `terms`.
-        renames: Accept only. Maps a suggestion's English to the edited English to save
-            instead, which is also renamed in translations whose source contains the term.
+        terms: English terms to act on.
+        all: Act on every pending suggestion regardless of `terms`.
+        renames: Accept only. Maps a suggestion's English to the edited English, also renamed in translations whose source contains the term.
     """
 
     terms: list[str] = []
@@ -51,15 +37,8 @@ class TranslationRequest(BaseModel):
     """Request body for translation, estimation, and preview endpoints.
 
     Attributes:
-        mod_id: The unique workshop identifier of the mod to translate.
-        provider: Optional override for the translation provider name.
-            Defaults to the value in `config.TRANSLATION_PROVIDER` when
-            `None`.
-        retranslate: When True, re-translate already-translated rows too.
-        scope: Which rows to include. `"all"` (default) is every untranslated
-            row; `"names"` restricts the WH3 preview to name strings only
-            (unit/skill/building/location/...), for the Translate-Names-first pass.
-            `"changed"` restricts the WH3 preview to changed rows for Update Changed.
+        provider: Overrides `config.TRANSLATION_PROVIDER` when set.
+        scope: `"all"` (default), `"names"` (WH3 name strings only), or `"changed"` (WH3 Update Changed rows only).
     """
 
     mod_id: str
@@ -72,12 +51,8 @@ class BatchTranslationRequest(BaseModel):
     """Request body for translating a single batch of strings.
 
     Attributes:
-        mod_id: The unique workshop identifier of the mod to translate.
-        provider: Optional override for the translation provider name.
-        keys: Explicit localization keys to translate in this batch.
-        source_lang: The source language for all keys in this batch.
-        is_first_batch: When True, creates a backup before translating.
-        mode: `"translate"` (default) or `"update"`. Update revises the previous translations of changed rows (WH3).
+        is_first_batch: Creates a backup before translating.
+        mode: `"translate"` (default) or `"update"` (WH3 revision of changed rows).
     """
 
     mod_id: str
@@ -89,13 +64,10 @@ class BatchTranslationRequest(BaseModel):
 
 
 class TranslationUpdate(BaseModel):
-    """Payload for manually updating a single translated string.
+    """Payload for manually updating one translated string.
 
     Attributes:
-        key: The localization key identifying the string (e.g.
-            `"LangDataDB::Skill_FireBall::Desc"`).
-        english: The new English translation text. An empty string clears
-            the existing translation.
+        english: New text. An empty string clears the translation.
     """
 
     key: str
@@ -103,14 +75,7 @@ class TranslationUpdate(BaseModel):
 
 
 class CharacterContext(BaseModel):
-    """Optional character lore context used to improve translation quality.
-
-    Attributes:
-        source_game: The name of the game the character originates from.
-        character_name: The character's display name.
-        background: Free-text description of the character's lore, personality,
-            or speech style that should inform translations.
-    """
+    """Optional character lore context used to improve translation quality."""
 
     source_game: str = ""
     character_name: str = ""
@@ -121,8 +86,7 @@ class SourceLanguageOverride(BaseModel):
     """Payload for setting a per-mod source language override.
 
     Attributes:
-        source_language: Language name to use (e.g. `"Korean"`), or None
-            to revert to auto-detection.
+        source_language: Language name, or None to revert to auto-detection.
     """
 
     source_language: Optional[str] = None
@@ -132,8 +96,7 @@ class TargetLanguageOverride(BaseModel):
     """Payload for setting a per-mod target language override.
 
     Attributes:
-        target_language: Language name to translate into (e.g. `"Chinese"`),
-            or None to revert to default (English).
+        target_language: Language name, or None to revert to English.
     """
 
     target_language: Optional[str] = None
@@ -143,8 +106,7 @@ class HistorySnapshotRequest(BaseModel):
     """Payload for creating a manual history snapshot.
 
     Attributes:
-        label: User-provided description for the snapshot. Falls back to a
-            default label when blank.
+        label: Snapshot description, defaulted when blank.
     """
 
     label: str = ""
@@ -154,32 +116,13 @@ class SettingsResponse(BaseModel):
     """Current application settings returned by GET /api/settings.
 
     Attributes:
-        provider: Active translation provider ID (claude, openai, deepl, ollama, manual).
-        batch_size: Number of strings sent per API request.
-        anthropic_api_key_set: Masked Anthropic key (e.g. `"••••ab12"`)
-            or empty string if not configured.
-        openai_api_key_set: Masked OpenAI key or empty string.
-        deepl_api_key_set: Masked DeepL key or empty string.
-        claude_model: Selected Claude model identifier.
-        openai_model: Selected OpenAI model identifier.
-        ollama_base_url: Ollama server base URL.
-        ollama_model: Selected Ollama model name.
-        ollama_vram_tier: Selected VRAM tier (e.g. `"8gb"`).
-        ollama_status: Ollama status — `"running"`, `"stopped"`, or `"not_installed"`.
-        llamacpp_base_url: llama-server base URL.
-        llamacpp_model: Display-only model name for llama-server.
-        llamacpp_binary_path: Path to the llama-server binary.
-        llamacpp_model_path: Path to the GGUF model file.
-        llamacpp_gpu_layers: Number of layers to offload to GPU (-1 = all).
-        llamacpp_ctx_size: Context window size for llama-server.
+        anthropic_api_key_set: Masked key (e.g. `"****ab12"`) or empty string if unset. Same for the OpenAI and DeepL keys.
+        ollama_status: `"running"`, `"stopped"`, or `"not_installed"`.
+        llamacpp_gpu_layers: Layers to offload to GPU (-1 = all).
         ollama_managed: Whether this app spawned the running Ollama process.
         llamacpp_managed: Whether this app spawned the running llama-server process.
-        ignored_mods: List of workshop mod IDs hidden from the dashboard.
-        tw3_helper_path: Path to the TW3 helper_scripts directory.
-        tw3_rpfm_cli_path: Path to rpfm_cli.exe (blank = use default inside helper_scripts).
-        tw3_steam_library_drive: Drive letter for the Steam library (e.g. `"F:"`).
-        steamcmd_path: Path to `steamcmd.exe` used by the Publish to Workshop feature.
-        steam_username: Steam account username for `steamcmd +login` (no password stored).
+        tw3_rpfm_cli_path: Blank means the default inside helper_scripts.
+        steam_username: For `steamcmd +login`. No password is stored.
     """
 
     provider: str
@@ -215,32 +158,7 @@ class SettingsResponse(BaseModel):
 class SettingsUpdate(BaseModel):
     """Payload for POST /api/settings.
 
-    All fields are optional — only include fields that should change.
-    Omitted (`None`) fields are left at their current values.
-
-    Attributes:
-        provider: New translation provider ID.
-        batch_size: New batch size (must be >= 1).
-        anthropic_api_key: New Anthropic API key value.
-        openai_api_key: New OpenAI API key value.
-        deepl_api_key: New DeepL API key value.
-        claude_model: New Claude model identifier.
-        openai_model: New OpenAI model identifier.
-        ollama_base_url: New Ollama base URL.
-        ollama_model: New Ollama model name.
-        ollama_vram_tier: New VRAM tier selection.
-        llamacpp_base_url: New llama-server base URL.
-        llamacpp_model: New llama-server display model name.
-        llamacpp_binary_path: New llama-server binary path.
-        llamacpp_model_path: New GGUF model file path.
-        llamacpp_gpu_layers: New GPU layer count (-1 = all).
-        llamacpp_ctx_size: New context window size.
-        ignored_mods: New list of workshop mod IDs to hide from the dashboard.
-        tw3_helper_path: New path to the TW3 helper_scripts directory.
-        tw3_rpfm_cli_path: New path to rpfm_cli.exe.
-        tw3_steam_library_drive: New Steam library drive letter.
-        steamcmd_path: New path to `steamcmd.exe`.
-        steam_username: New Steam account username.
+    Every field is optional and `None` fields are left unchanged.
     """
 
     provider: Optional[str] = None
@@ -270,23 +188,14 @@ class SettingsUpdate(BaseModel):
 
 
 class GlossaryReplacePreview(BaseModel):
-    """Request body for previewing glossary term replacements.
-
-    Attributes:
-        old_english: The current English term to find in translations.
-        new_english: The replacement English term.
-    """
+    """Request body for previewing glossary term replacements."""
 
     old_english: str
     new_english: str
 
 
 class OllamaPullRequest(BaseModel):
-    """Request body for POST /api/ollama/pull.
-
-    Attributes:
-        model: The Ollama model name to pull (e.g. `"qwen2.5:7b"`).
-    """
+    """Request body for POST /api/ollama/pull."""
 
     model: str
 
@@ -302,12 +211,7 @@ class LlamaCppInstallRequest(BaseModel):
 
 
 class GGUFDownloadRequest(BaseModel):
-    """Request body for POST /api/llamacpp/download.
-
-    Attributes:
-        url: URL to download the GGUF model from.
-        filename: Target filename for the downloaded model.
-    """
+    """Request body for POST /api/llamacpp/download."""
 
     url: str
     filename: str

@@ -27,23 +27,17 @@ _LLAMACPP_BACKENDS = {
 
 
 def _llamacpp_binary() -> Path | None:
-    """Locate the llama-server binary.
-
-    Checks, in order: the configured path from settings, the managed
-    install location (`storage/bin/`), and the system PATH.
+    """Locate the llama-server binary via the configured path, then `storage/bin/`, then PATH.
 
     Returns:
-        Path to the llama-server executable, or None if not found.
+        Executable path, or None if not found.
     """
-    # Check configured path first
     configured = Path(config.LLAMACPP_BINARY_PATH)
     if configured.is_file():
         return configured
-    # Check managed install location
     managed = config.STORAGE_PATH / "bin" / "llama-server.exe"
     if managed.is_file():
         return managed
-    # Check PATH
     found = shutil.which("llama-server")
     if found:
         return Path(found)
@@ -51,16 +45,7 @@ def _llamacpp_binary() -> Path | None:
 
 
 async def _ensure_llamacpp_running() -> None:
-    """Start llama-server if it isn't already running.
-
-    Called automatically before translation so the user doesn't need to
-    manually start the server.  If the server is already healthy this is a
-    no-op.
-
-    Raises:
-        HTTPException: If the server cannot be started or fails health checks.
-    """
-    # Already running (externally or managed) — nothing to do.
+    """Start llama-server if it isn't already healthy, so translation doesn't need a manual start."""
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{config.LLAMACPP_BASE_URL}/health", timeout=2.0)
@@ -121,8 +106,7 @@ async def get_llamacpp_status():
     """Check whether llama-server is reachable and installed.
 
     Returns:
-        A dict with `status`, `installed`, `binary_path`, `base_url`,
-        and `managed` fields.
+        `status`, `installed`, `binary_path`, `base_url`, and `managed`.
     """
     installed = _llamacpp_binary() is not None
     running = False
@@ -147,13 +131,10 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
     """Download and extract llama-server from the latest GitHub release with SSE progress.
 
     Args:
-        req: The install request specifying the GPU backend to download.
+        req: GPU backend to download.
 
     Returns:
-        A `StreamingResponse` emitting SSE progress events.
-
-    Raises:
-        HTTPException: 400 if the backend is not recognized.
+        SSE progress stream.
     """
     if req.backend not in _LLAMACPP_BACKENDS:
         raise HTTPException(400, f"Invalid backend: {req.backend}. Choose from: {', '.join(_LLAMACPP_BACKENDS)}")
@@ -169,7 +150,6 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
             yield f'data: {json.dumps({"status": "fetching_release"})}\n\n'
 
             async with httpx.AsyncClient(follow_redirects=True, timeout=httpx.Timeout(30.0, read=None), headers={"User-Agent": "curl/8.0"}) as client:
-                # Find latest release
                 r = await client.get("https://api.github.com/repos/ggerganov/llama.cpp/releases/latest")
                 if r.status_code != 200:
                     yield f'data: {json.dumps({"status": "error", "message": f"GitHub API error: HTTP {r.status_code}"})}\n\n'
@@ -178,13 +158,12 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                 tag = release["tag_name"]
                 assets = release.get("assets", [])
 
-                # Find the right zip (exclude cudart zips which are a separate download)
+                # Exclude cudart zips, which are a separate download.
                 zip_asset = next((a for a in assets if backend_info["zip_pattern"] in a["name"] and a["name"].endswith(".zip") and not a["name"].startswith("cudart")), None)
                 if not zip_asset:
                     yield f'data: {json.dumps({"status": "error", "message": f"No {backend_info['label']} build found in release {tag}"})}\n\n'
                     return
 
-                # Download main zip
                 zip_url = zip_asset["browser_download_url"]
                 zip_total = zip_asset["size"]
                 yield f'data: {json.dumps({"status": "downloading", "file": zip_asset["name"], "completed": 0, "total": zip_total})}\n\n'
@@ -197,7 +176,6 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                             yield f'data: {json.dumps({"status": "downloading", "file": zip_asset["name"], "completed": len(zip_data), "total": zip_total})}\n\n'
                 yield f'data: {json.dumps({"status": "downloading", "file": zip_asset["name"], "completed": len(zip_data), "total": zip_total})}\n\n'
 
-                # Download CUDA runtime if needed
                 cudart_data = None
                 if backend_info["cudart_pattern"]:
                     cudart_asset = next((a for a in assets if backend_info["cudart_pattern"] in a["name"] and a["name"].endswith(".zip")), None)
@@ -213,7 +191,6 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                                     yield f'data: {json.dumps({"status": "downloading", "file": cudart_asset["name"], "completed": len(cudart_data), "total": cudart_total})}\n\n'
                         yield f'data: {json.dumps({"status": "downloading", "file": cudart_asset["name"], "completed": len(cudart_data), "total": cudart_total})}\n\n'
 
-            # Extract
             yield f'data: {json.dumps({"status": "extracting"})}\n\n'
             bin_dir.mkdir(parents=True, exist_ok=True)
 
@@ -233,7 +210,6 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                             if not target.exists():
                                 target.write_bytes(zf.read(member))
 
-            # Update config to point to the installed binary
             binary_path = str(bin_dir / "llama-server.exe")
             config.LLAMACPP_BINARY_PATH = binary_path
             _update_env_file({"SWMT_LLAMACPP_BINARY_PATH": binary_path})
@@ -253,12 +229,7 @@ async def start_llamacpp():
     """Start llama-server as a managed background process.
 
     Returns:
-        A dict with `success` and `managed` fields.
-
-    Raises:
-        HTTPException: 400 if the model path is missing or llama-server is
-            not installed.
-        HTTPException: 500 if the server fails to start or become healthy.
+        `success` and `managed`.
     """
     await _ensure_llamacpp_running()
     return {"success": True, "managed": is_managed("llamacpp")}
@@ -269,11 +240,7 @@ async def stop_llamacpp():
     """Stop a managed llama-server process.
 
     Returns:
-        A dict with `success` and `message` fields.
-
-    Raises:
-        HTTPException: 400 if llama-server was not started by this app.
-        HTTPException: 500 if the process fails to stop.
+        `success` and `message`.
     """
     if not is_managed("llamacpp"):
         raise HTTPException(400, "llama-server was not started by this app. Stop it manually.")
@@ -288,7 +255,7 @@ async def list_llamacpp_models():
     """List GGUF model files in the local models directory.
 
     Returns:
-        A dict with a `models` list and `models_dir` path string.
+        `models` list and `models_dir`.
     """
     models_dir = config.LLAMACPP_MODELS_DIR
     if not models_dir.exists():
@@ -304,10 +271,10 @@ async def download_gguf_model(req: GGUFDownloadRequest):
     """Download a GGUF model file from a URL with streaming progress via SSE.
 
     Args:
-        req: The download request containing the URL and target filename.
+        req: URL and target filename.
 
     Returns:
-        A `StreamingResponse` emitting SSE progress events.
+        SSE progress stream.
     """
     models_dir = config.LLAMACPP_MODELS_DIR
     models_dir.mkdir(parents=True, exist_ok=True)
@@ -372,10 +339,10 @@ async def cancel_gguf_download(req: GGUFDownloadRequest):
     """Cancel an in-progress GGUF download.
 
     Args:
-        req: The download request identifying the file to cancel.
+        req: Identifies the file to cancel.
 
     Returns:
-        A dict with `success` and optionally a `message` field.
+        `success`, plus `message` on failure.
     """
     event = _gguf_download_cancels.get(req.filename)
     if event:
@@ -389,20 +356,16 @@ async def delete_llamacpp_model(filename: str):
     """Delete a downloaded GGUF model file.
 
     Args:
-        filename: Name of the GGUF file to delete.
+        filename: GGUF file to delete.
 
     Returns:
-        A dict with `success` and `message` fields.
-
-    Raises:
-        HTTPException: 404 if the model file does not exist.
-        HTTPException: 400 if the filename is invalid.
+        `success` and `message`.
     """
     models_dir = config.LLAMACPP_MODELS_DIR
     target = models_dir / filename
     if not target.exists():
         raise HTTPException(404, f"Model not found: {filename}")
-    # Safety: ensure we're only deleting from the models directory
+    # Blocks path traversal out of the models directory.
     if not target.resolve().parent == models_dir.resolve():
         raise HTTPException(400, "Invalid filename.")
     target.unlink()

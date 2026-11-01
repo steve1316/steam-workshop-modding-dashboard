@@ -1,11 +1,7 @@
 """
-Central configuration for the Steam Workshop Modding Dashboard.
+Central configuration, overridable via SWMT_-prefixed environment variables (legacy prefix from the old Mod Translator name).
 
-All settings can be overridden via environment variables prefixed with SWMT_
-(legacy prefix from the old Steam Workshop Mod Translator name).
-
-Game-specific settings (paths, CSV schema, DLL skip lists, etc.) live in
-the corresponding game adapter under games/<game_id>/adapter.py.
+Game-specific settings live in the game adapter under games/<game_id>/adapter.py.
 """
 
 import os
@@ -18,12 +14,11 @@ load_dotenv(Path(__file__).parent / ".env", interpolate=False)
 
 # ── Server ────────────────────────────────────────────────────────────────────
 
-# Port for the FastAPI backend (also consumed by the Vite frontend via define).
+# Also consumed by the Vite frontend via define.
 API_PORT = int(os.environ.get("SWMT_API_PORT", "8008"))
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-# Local storage directory for extracted data, translations, and glossary.
 STORAGE_PATH = Path(os.environ.get("SWMT_STORAGE_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "storage")))
 
 # ── API Keys ───────────────────────────────────────────────────────────────────
@@ -63,28 +58,25 @@ LLAMACPP_MODELS_DIR = Path(
 
 # ── Translation Settings ──────────────────────────────────────────────────────
 
-# Default translation provider (claude, openai, deepl, ollama, manual).
+# One of claude, openai, deepl, ollama, llamacpp, manual.
 TRANSLATION_PROVIDER = os.environ.get("SWMT_TRANSLATION_PROVIDER", "claude")
 
-# Number of strings to send per LLM API batch request.
-# Claude Sonnet 4 supports 64K output tokens.
+# Strings per LLM API batch request.
 BATCH_SIZE = int(os.environ.get("SWMT_BATCH_SIZE", "100"))
 
 # Most source characters per batch, so batches of long strings get fewer keys and the reply fits the output token cap.
 BATCH_MAX_CHARS = int(os.environ.get("SWMT_BATCH_MAX_CHARS", "6000"))
 
-# Glossary categories to include in the translation prompt.
-# Only these categories from the base glossary are sent to the LLM.
+# Only these base glossary categories are sent to the LLM.
 GLOSSARY_CATEGORIES = os.environ.get("SWMT_GLOSSARY_CATEGORIES", "characters,mechanics").split(",")
 
 # ── Mod Filtering ─────────────────────────────────────────────────────────────
 
-# Comma-separated list of workshop mod IDs to hide from the dashboard.
+# Comma-separated workshop mod IDs to hide.
 IGNORED_MODS: list[str] = [m.strip() for m in os.environ.get("SWMT_IGNORED_MODS", "").split(",") if m.strip()]
 
 # ── Game Selection ─────────────────────────────────────────────────────────────
 
-# Active game adapter ID. See games/ directory for available adapters.
 ACTIVE_GAME = os.environ.get("SWMT_ACTIVE_GAME", "chrono_ark")
 
 TW3_HELPER_PATH = os.environ.get("SWMT_TW3_HELPER_PATH", "")

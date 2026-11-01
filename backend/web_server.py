@@ -1,10 +1,4 @@
-"""
-FastAPI backend for the Steam Workshop Modding Dashboard.
-
-Provides REST APIs for mod discovery, string extraction, translation status,
-glossary management, and triggering translation jobs. Routes are organized
-into domain-specific modules under `backend.routes`.
-"""
+"""FastAPI backend for the Steam Workshop Modding Dashboard, with routes organized under `backend.routes`."""
 
 import uvicorn
 from contextlib import asynccontextmanager
@@ -22,10 +16,7 @@ from backend.scripts.migrate_storage_v2_to_v3 import run_migration as run_migrat
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """App lifespan hooks. Runs storage migration on startup.
-
-    Idempotent: the migration marker file makes subsequent migration runs a no-op.
-    """
+    """Run storage migrations on startup, which are no-ops once the marker file exists."""
     run_migration()
     run_migration_v2_to_v3()
     yield
@@ -42,13 +33,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register game-agnostic routers (kept flat under /api/...).
+# Game-agnostic routers stay flat under /api/.
 app.include_router(ollama.router)
 app.include_router(llamacpp.router)
 app.include_router(settings.router)
 app.include_router(steamcmd.router)
 
-# Mount each registered adapter's router under /api/games/<id>/...
+# Adapter routers mount under /api/games/<id>/.
 for _game_id in list_games():
     _adapter_instance = get_adapter(_game_id)
     app.include_router(_adapter_instance.router)

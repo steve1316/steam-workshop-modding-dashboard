@@ -22,9 +22,7 @@ async def _check_ollama_status() -> str:
     """Check if Ollama is installed and running.
 
     Returns:
-        `"running"` if the Ollama API responds, `"stopped"` if the binary
-        exists on PATH but the API is unreachable, or `"not_installed"`
-        if neither is detected.
+        `"running"` if the API responds, `"stopped"` if the binary is on PATH but the API is unreachable, else `"not_installed"`.
     """
     try:
         async with httpx.AsyncClient() as client:
@@ -45,7 +43,7 @@ async def get_ollama_status():
     """Check Ollama installation status and list available models.
 
     Returns:
-        A dict with `status`, `models` list, `base_url`, and `managed` flag.
+        `status`, `models`, `base_url`, and `managed`.
     """
     status = await _check_ollama_status()
     models: list[dict] = []
@@ -66,11 +64,7 @@ async def get_ollama_models():
     """List models currently downloaded in Ollama.
 
     Returns:
-        A dict with a `models` list.
-
-    Raises:
-        HTTPException: 502 if Ollama returns a non-200 status.
-        HTTPException: 503 if Ollama is not reachable.
+        `models` list.
     """
     try:
         async with httpx.AsyncClient() as client:
@@ -88,10 +82,10 @@ async def pull_ollama_model(req: OllamaPullRequest):
     """Pull (download) an Ollama model with streaming progress via SSE.
 
     Args:
-        req: The pull request containing the model name.
+        req: Model name to pull.
 
     Returns:
-        A `StreamingResponse` emitting SSE progress events.
+        SSE progress stream.
     """
 
     async def event_stream():
@@ -114,10 +108,7 @@ async def install_ollama():
     """Download and launch the official Ollama Windows installer.
 
     Returns:
-        A dict with `success` and `message` fields.
-
-    Raises:
-        HTTPException: 500 if the download or launch fails.
+        `success` and `message`.
     """
     if await _check_ollama_status() == "running":
         return {"success": True, "message": "Ollama is already installed and running."}
@@ -141,11 +132,7 @@ async def start_ollama():
     """Start `ollama serve` as a managed background process.
 
     Returns:
-        A dict with `success`, `message`, and `managed` fields.
-
-    Raises:
-        HTTPException: 400 if Ollama is not installed.
-        HTTPException: 500 if the process fails to start.
+        `success`, `message`, and `managed`.
     """
     status = await _check_ollama_status()
     if status == "running":
@@ -171,11 +158,7 @@ async def stop_ollama():
     """Stop a managed Ollama process.
 
     Returns:
-        A dict with `success` and `message` fields.
-
-    Raises:
-        HTTPException: 400 if Ollama was not started by this app.
-        HTTPException: 500 if the process fails to stop.
+        `success` and `message`.
     """
     if not is_managed("ollama"):
         raise HTTPException(400, "Ollama was not started by this app. Stop it manually.")
