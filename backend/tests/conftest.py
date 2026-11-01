@@ -3,10 +3,10 @@ import os
 import pytest
 
 from backend import config
+from backend.core import env_file
 from backend.core.paths import game_storage_path
 from backend.games.chrono_ark import GAME_ID as CHRONO_ARK
 from backend.models import LocString
-from backend.routes import helpers
 
 
 @pytest.fixture(autouse=True)
@@ -23,7 +23,7 @@ def isolated_storage(tmp_path, monkeypatch):
     storage = tmp_path / "storage"
     monkeypatch.setattr(config, "STORAGE_PATH", storage)
     monkeypatch.setattr(config, "LLAMACPP_MODELS_DIR", storage / "models")
-    monkeypatch.setattr(helpers, "_ENV_PATH", tmp_path / ".env")
+    monkeypatch.setattr(env_file, "ENV_PATH", tmp_path / ".env")
     # The .env writer also sets os.environ, which would leak into later tests.
     saved_env = dict(os.environ)
     yield storage

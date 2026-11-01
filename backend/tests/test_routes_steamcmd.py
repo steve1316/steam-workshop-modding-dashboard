@@ -25,7 +25,7 @@ def test_install_returns_path_on_success(monkeypatch, tmp_path):
         return fake_exe
 
     monkeypatch.setattr(steamcmd_routes, "install_steamcmd", fake_install)
-    monkeypatch.setattr(steamcmd_routes, "_update_env_file", lambda updates: None)
+    monkeypatch.setattr(steamcmd_routes, "update_env_file", lambda updates: None)
 
     res = TestClient(app).post("/api/steamcmd/install")
     assert res.status_code == 200
@@ -41,7 +41,7 @@ def test_install_returns_500_when_installer_raises(monkeypatch, tmp_path):
         raise RuntimeError("download failed: HTTP 503")
 
     monkeypatch.setattr(steamcmd_routes, "install_steamcmd", fake_install)
-    monkeypatch.setattr(steamcmd_routes, "_update_env_file", lambda updates: None)
+    monkeypatch.setattr(steamcmd_routes, "update_env_file", lambda updates: None)
 
     res = TestClient(app).post("/api/steamcmd/install")
     assert res.status_code == 500

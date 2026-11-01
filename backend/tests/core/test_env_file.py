@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from dotenv import dotenv_values
 
-from backend.routes import helpers
+from backend.core import env_file
 
 TRICKY_VALUES = [
     "8008",
@@ -32,7 +32,7 @@ def env_path(tmp_path: Path, monkeypatch):
         The temp .env path.
     """
     path = tmp_path / ".env"
-    monkeypatch.setattr(helpers, "_ENV_PATH", path)
+    monkeypatch.setattr(env_file, "ENV_PATH", path)
     monkeypatch.setenv("SWMT_TEST_VALUE", "")
     monkeypatch.setenv("SWMT_API_PORT", "")
     return path
@@ -40,17 +40,17 @@ def env_path(tmp_path: Path, monkeypatch):
 
 @pytest.mark.parametrize("value", TRICKY_VALUES)
 def test_values_round_trip_through_dotenv(env_path: Path, value: str):
-    helpers._update_env_file({"SWMT_TEST_VALUE": value})
+    env_file.update_env_file({"SWMT_TEST_VALUE": value})
     assert dotenv_values(env_path, interpolate=False) == {"SWMT_TEST_VALUE": value}
 
 
 def test_existing_lines_and_comments_are_kept(env_path: Path):
     env_path.write_text("# Ports\nSWMT_API_PORT=8008\nSWMT_TEST_VALUE=old\n", encoding="utf-8")
-    helpers._update_env_file({"SWMT_TEST_VALUE": "new value"})
+    env_file.update_env_file({"SWMT_TEST_VALUE": "new value"})
     assert env_path.read_text(encoding="utf-8").splitlines()[:2] == ["# Ports", "SWMT_API_PORT=8008"]
     assert dotenv_values(env_path, interpolate=False) == {"SWMT_API_PORT": "8008", "SWMT_TEST_VALUE": "new value"}
 
 
 def test_plain_values_stay_unquoted_for_the_vite_port_reader(env_path: Path):
-    helpers._update_env_file({"SWMT_API_PORT": "8010"})
+    env_file.update_env_file({"SWMT_API_PORT": "8010"})
     assert env_path.read_text(encoding="utf-8").strip() == "SWMT_API_PORT=8010"

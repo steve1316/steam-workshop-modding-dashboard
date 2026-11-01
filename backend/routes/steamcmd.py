@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from backend import config
-from backend.routes.helpers import _update_env_file
+from backend.core.env_file import update_env_file
 from backend.steamcmd_installer import install_steamcmd
 
 router = APIRouter(prefix="/api/steamcmd")
@@ -29,5 +29,5 @@ async def post_steamcmd_install():
 
     path_str = str(steamcmd_exe)
     config.STEAMCMD_PATH = path_str
-    _update_env_file({"SWMT_STEAMCMD_PATH": path_str})
+    update_env_file({"SWMT_STEAMCMD_PATH": path_str})
     return {"path": path_str}

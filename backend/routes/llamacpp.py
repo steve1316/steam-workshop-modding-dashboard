@@ -11,8 +11,9 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from backend import config
+from backend.core.env_file import update_env_file
 from backend.process_manager import is_managed, start_process, stop_process
-from backend.routes.helpers import _gguf_download_cancels, _update_env_file
+from backend.routes.helpers import _gguf_download_cancels
 from backend.routes.models import GGUFDownloadRequest, LlamaCppInstallRequest
 
 router = APIRouter(prefix="/api/llamacpp")
@@ -212,7 +213,7 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
 
             binary_path = str(bin_dir / "llama-server.exe")
             config.LLAMACPP_BINARY_PATH = binary_path
-            _update_env_file({"SWMT_LLAMACPP_BINARY_PATH": binary_path})
+            update_env_file({"SWMT_LLAMACPP_BINARY_PATH": binary_path})
 
             print(f"[llamacpp] Installed {tag} ({backend_info['label']}) to {bin_dir}")
             yield f"data: {json.dumps({'status': 'done', 'tag': tag, 'binary_path': binary_path})}\n\n"

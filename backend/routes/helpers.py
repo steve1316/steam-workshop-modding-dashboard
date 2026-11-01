@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import os
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,7 +16,7 @@ if TYPE_CHECKING:
 from fastapi import HTTPException
 
 from backend import config
-from backend.core.json_store import write_json, write_text_atomic
+from backend.core.json_store import write_json
 from backend.core.paths import GameStorage
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
@@ -77,9 +76,6 @@ _active_translations: dict[str, threading.Event] = {}
 
 _gguf_download_cancels: dict[str, asyncio.Event] = {}
 """Active GGUF download cancel events, keyed by filename."""
-
-_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
-"""Path to the backend `.env` configuration file."""
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -400,55 +396,6 @@ def _recalculate_mod_progress(mod_id: str, mod_path: Path) -> None:
             translated_keys.append(key)
 
     tracker.set_translated(mod_id, translated_keys)
-
-
-def _format_env_value(value: str) -> str:
-    """Quote a .env value only when python-dotenv would otherwise misread it.
-
-    Args:
-        value: Raw setting value.
-
-    Returns:
-        Value as written after `KEY=`.
-    """
-    # Plain values stay unquoted because vite.config.ts reads SWMT_API_PORT with a bare regex.
-    if value == value.strip() and not any(c in value for c in "#$\n\r") and not value.startswith(("'", '"')):
-        return value
-    # Single quotes turn off ${VAR} expansion, and dotenv only unescapes \\ and \' inside them.
-    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
-
-
-def _update_env_file(updates: dict[str, str]) -> None:
-    """Write SWMT_* values to the .env file and `os.environ`, replacing keys in place to keep comments and ordering.
-
-    Args:
-        updates: Env-var name (e.g. `SWMT_BATCH_SIZE`) to new value.
-    """
-    lines: list[str] = []
-    if _ENV_PATH.exists():
-        lines = _ENV_PATH.read_text(encoding="utf-8").splitlines(keepends=True)
-
-    found_keys: set[str] = set()
-    new_lines: list[str] = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#"):
-            key = stripped.split("=", 1)[0]
-            if key in updates:
-                new_lines.append(f"{key}={_format_env_value(updates[key])}\n")
-                found_keys.add(key)
-                continue
-        new_lines.append(line if line.endswith("\n") else line + "\n")
-
-    for key, value in updates.items():
-        if key not in found_keys:
-            new_lines.append(f"{key}={_format_env_value(value)}\n")
-
-    write_text_atomic(_ENV_PATH, "".join(new_lines))
-
-    # Avoids needing a restart for config reads.
-    for key, value in updates.items():
-        os.environ[key] = value
 
 
 def _mask_key(key: str) -> str:
