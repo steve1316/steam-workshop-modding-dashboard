@@ -318,7 +318,7 @@ class TranslationProvider(ABC):
             target_lang: Target language name, e.g. `"English"`.
 
         Yields:
-            Dicts with a `"type"` of `"started"`, `"progress"`, `"complete"`, `"cancelled"` or `"error"`. See `OllamaProvider` for the schema.
+            Dicts with a `"type"` of `"started"`, `"progress"`, `"complete"`, `"cancelled"` or `"error"`. See `LocalLLMProvider` for the schema.
         """
         translations, suggestions = self.translate_batch(
             entries,
