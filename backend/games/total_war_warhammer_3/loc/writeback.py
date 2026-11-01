@@ -119,6 +119,21 @@ def remove_keys_from_loc_tsv(mod: WH3TranslationMod, keys_by_file: dict[str, set
     return result
 
 
+def user_loc_tsv_files(mod: WH3TranslationMod) -> list[Path]:
+    """List the user's `.loc.tsv` files under `mod.local_source_dir/text/**`.
+
+    Args:
+        mod: Translation mod whose source dir to search.
+
+    Returns:
+        File paths, empty when the text dir does not exist.
+    """
+    text_dir = mod.local_source_dir / "text"
+    if not text_dir.exists():
+        return []
+    return list(text_dir.rglob("*.loc.tsv"))
+
+
 def _find_existing_user_file(mod: WH3TranslationMod, normalized_filename: str) -> Path | None:
     """Find the user's `.loc.tsv` file matching a normalized parent filename under `mod.local_source_dir/text/**`.
 
@@ -129,10 +144,7 @@ def _find_existing_user_file(mod: WH3TranslationMod, normalized_filename: str) -
     Returns:
         Matching path, or `None`.
     """
-    text_dir = mod.local_source_dir / "text"
-    if not text_dir.exists():
-        return None
-    for candidate in text_dir.rglob("*.loc.tsv"):
+    for candidate in user_loc_tsv_files(mod):
         if normalize_loc_filename(candidate.name) == normalized_filename:
             return candidate
     return None

@@ -1,4 +1,4 @@
-"""Tests for the Chrono Ark history manager, focused on the auto/manual kind field."""
+"""Tests for the shared per-mod history backups."""
 
 import json
 from datetime import UTC, datetime
@@ -10,6 +10,8 @@ from backend.core.paths import mods_path
 from backend.data import history_manager
 from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 from backend.games.chrono_ark import GAME_ID
+
+WH3 = "total_war_warhammer_3"
 
 
 def _seed(mod_id: str) -> Path:
@@ -96,3 +98,41 @@ def test_suffixed_backup_id_points_at_its_folder(monkeypatch):
     assert second is not None
     assert (mods_path(GAME_ID) / "abc" / "history" / second / "meta.json").exists()
     assert delete_backup("abc", second, game_id=GAME_ID) is True
+
+
+def test_wh3_backups_capture_and_restore_files_outside_the_mod_dir(tmp_path: Path):
+    mod_dir = mods_path(WH3) / "abc"
+    mod_dir.mkdir(parents=True)
+    (mod_dir / "parent_snapshot.json").write_text(json.dumps({"units.loc.tsv": {}}), encoding="utf-8")
+    loc = tmp_path / "source" / "text" / "units.loc.tsv"
+    loc.parent.mkdir(parents=True)
+    loc.write_text("old", encoding="utf-8")
+
+    backup_id = create_backup("abc", "Before sync", game_id=WH3, extra_files=[loc])
+    assert backup_id is not None
+    loc.write_text("new", encoding="utf-8")
+    (mod_dir / "parent_snapshot.json").write_text("{}", encoding="utf-8")
+
+    assert restore_backup("abc", backup_id, game_id=WH3, extra_files=[loc]) is True
+    assert loc.read_text(encoding="utf-8") == "old"
+    assert json.loads((mod_dir / "parent_snapshot.json").read_text(encoding="utf-8")) == {"units.loc.tsv": {}}
+    assert list_backups("abc", game_id=WH3)[0]["reason"] == f"Before restore to {backup_id}"
+
+
+def test_restore_resets_chrono_ark_sync_state():
+    mod_dir = _seed("abc")
+    backup_id = create_backup("abc", "First", game_id=GAME_ID)
+    assert backup_id is not None
+    (mod_dir / "synced_keys.json").write_text("[]", encoding="utf-8")
+
+    restore_backup("abc", backup_id, game_id=GAME_ID)
+    assert not (mod_dir / "synced_keys.json").exists()
+
+
+def test_backups_are_pruned_to_the_newest_twenty():
+    _seed("abc")
+    hist = mods_path(GAME_ID) / "abc" / "history"
+    for i in range(25):
+        (hist / f"2026010{i // 10}_00000{i % 10}").mkdir(parents=True)
+    create_backup("abc", "Latest", game_id=GAME_ID)
+    assert len([e for e in hist.iterdir() if e.is_dir()]) == history_manager.MAX_BACKUPS

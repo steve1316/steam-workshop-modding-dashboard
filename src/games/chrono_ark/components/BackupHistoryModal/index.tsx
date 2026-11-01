@@ -1,25 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
-import type { ReactNode } from "react"
 import { gameApi } from "../../../../api/games"
+import type { HistoryEntry } from "../../../../shared_types"
 import SharedHistoryModal from "../../../../translation/HistoryModal"
-
-/** One backup history entry for a mod. */
-export interface HistoryEntry {
-    id: string
-    /** Why the backup was created (e.g. "Before translation run"). */
-    reason: string
-    /** "auto" for backups taken before destructive ops, "manual" for user saves. */
-    kind?: "auto" | "manual"
-    /** ISO timestamp. */
-    created_at: string
-    files: string[]
-    /** Translated string count at backup time, when recorded. */
-    translated_count?: number
-    /** Total translatable string count at backup time, when recorded. */
-    total_count?: number
-    /** Glossary term count at backup time, when recorded. */
-    glossary_count?: number
-}
+import { toHistoryModalEntry } from "../../../../translation/historyEntry"
 
 /** Props for BackupHistoryModal. */
 interface BackupHistoryModalProps {
@@ -31,32 +14,6 @@ interface BackupHistoryModalProps {
     onDelete: (entry: HistoryEntry) => void
     /** Bump to re-fetch the list (e.g. after a confirmed delete). */
     refreshKey?: number
-}
-
-/**
- * Build the counts subtitle (translated/total strings and glossary terms).
- * @param entry - Backup entry.
- * @returns The subtitle, or `undefined` when no counts were recorded.
- */
-function renderCounts(entry: HistoryEntry): ReactNode {
-    const hasCounts = (entry.total_count ?? 0) > 0
-    const hasGlossary = (entry.glossary_count ?? 0) > 0
-    if (!hasCounts && !hasGlossary) return undefined
-    return (
-        <>
-            {hasCounts && (
-                <span>
-                    {entry.translated_count} / {entry.total_count} strings translated
-                </span>
-            )}
-            {hasCounts && hasGlossary && <span> &middot; </span>}
-            {hasGlossary && (
-                <span>
-                    {entry.glossary_count} glossary term{entry.glossary_count !== 1 ? "s" : ""}
-                </span>
-            )}
-        </>
-    )
 }
 
 /**
@@ -96,7 +53,7 @@ export default function BackupHistoryModal({ modId, onClose, onRestore, onDelete
 
     return (
         <SharedHistoryModal
-            entries={historyEntries.map((e) => ({ id: e.id, title: e.reason, kind: e.kind ?? "auto", createdAt: e.created_at, subtitle: renderCounts(e) }))}
+            entries={historyEntries.map(toHistoryModalEntry)}
             onSave={onSave}
             onRestore={(entry) => {
                 const orig = byId.get(entry.id)

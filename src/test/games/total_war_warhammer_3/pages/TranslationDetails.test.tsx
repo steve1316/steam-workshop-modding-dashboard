@@ -707,7 +707,7 @@ describe("TranslationDetails (Plan 3 layout)", () => {
         spy.mockImplementation(async (input, init) => {
             const url = String(input)
             if (url.endsWith("/glossary")) return mockJson(glossary)
-            if (url.endsWith("/snapshots")) return mockJson([{ ulid: "01J", created_at: "2026-09-27T01:00:00Z", label: "Before deleting all glossary terms", kind: "auto" }])
+            if (url.endsWith("/snapshots")) return mockJson([{ id: "01J", created_at: "2026-09-27T01:00:00Z", reason: "Before deleting all glossary terms", kind: "auto", files: [] }])
             if (url.endsWith("/snapshots/01J/restore")) {
                 glossary = { Phoenix: { source: "x", category: "factions" }, Sky: { source: "y", category: "lore" } }
                 return mockJson({ status: "ok" })

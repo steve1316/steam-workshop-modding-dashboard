@@ -15,9 +15,8 @@ from backend.data import api_response_log, suggestion_manager
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _tr
-from backend.games.total_war_warhammer_3.routes.translation import _extract_all_parent_strings, _require_mod
+from backend.games.total_war_warhammer_3.routes.translation import _backup, _extract_all_parent_strings, _require_mod
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
-from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.providers.claude_provider import ClaudeProvider
 from backend.routes.models import SuggestionAction
@@ -44,7 +43,7 @@ def accept_suggestions(mod_id: str, action: SuggestionAction) -> dict:
     accepted = accepted_suggestions(suggestion_manager.load_suggestions(mod_id, game_id=GAME_ID), action)
     if not accepted:
         return {"status": "success", "accepted": 0, "replaced": 0}
-    snapshot_store.create_snapshot(mod_id, label="pre-accept glossary suggestions", kind="auto", local_source_dir=mod.local_source_dir)
+    _backup(mod, "pre-accept glossary suggestions")
 
     replaced = 0
     for a in accepted:

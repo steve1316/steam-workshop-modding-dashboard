@@ -2,11 +2,11 @@ import { useState } from "react"
 import type { ReactNode } from "react"
 import Modal from "../ui/Modal"
 
-/** One normalized history/snapshot entry rendered by the shared modal. Each game maps its own backup/snapshot shape onto this. */
+/** One history entry as the shared modal renders it. */
 export interface HistoryModalEntry {
     /** React key, also passed back to the restore and delete handlers. */
     id: string
-    /** Primary line: the backup reason (Chrono Ark) or the snapshot label (WH3). */
+    /** Primary line: the backup reason. */
     title: string
     /** "auto" for snapshots taken before destructive ops, "manual" for user saves. Sets the pill color. */
     kind: "auto" | "manual"

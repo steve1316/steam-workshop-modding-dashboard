@@ -16,6 +16,7 @@ from backend.routes.helpers import chrono_ark_adapter
 from backend.scripts.migrate_storage_v1_to_v2 import run_migration
 from backend.scripts.migrate_storage_v2_to_v3 import run_migration as run_migration_v2_to_v3
 from backend.scripts.migrate_storage_v3_to_v4 import run_migration as run_migration_v3_to_v4
+from backend.scripts.migrate_storage_v4_to_v5 import run_migration as run_migration_v4_to_v5
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ async def lifespan(_app: FastAPI):
     run_migration()
     run_migration_v2_to_v3()
     run_migration_v3_to_v4()
+    run_migration_v4_to_v5()
     yield
 
 

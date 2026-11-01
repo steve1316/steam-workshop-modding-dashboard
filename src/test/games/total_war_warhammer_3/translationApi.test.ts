@@ -120,17 +120,17 @@ describe("plan3 routes", () => {
         expect(spy).toHaveBeenCalledWith(expect.stringContaining("/translation/mods/123/clear-translations"), expect.objectContaining({ method: "POST" }))
     })
 
-    it("listSnapshots returns SnapshotMeta list", async () => {
-        mockFetchOk([{ ulid: "01H", created_at: "2026-05-25T00:00:00Z", label: "x", kind: "auto" }])
+    it("listSnapshots returns the history entries", async () => {
+        mockFetchOk([{ id: "01H", created_at: "2026-05-25T00:00:00Z", reason: "x", kind: "auto", files: [] }])
         const result = await listSnapshots("123")
         expect(result.length).toBe(1)
         expect(result[0].kind).toBe("auto")
     })
 
-    it("createSnapshot POSTs label and returns new meta", async () => {
-        const spy = mockFetchOk({ ulid: "01J", label: "my save", kind: "manual" })
+    it("createSnapshot POSTs label and returns the new id", async () => {
+        const spy = mockFetchOk({ status: "saved", id: "01J" })
         const result = await createSnapshot("123", "my save")
-        expect(result.ulid).toBe("01J")
+        expect(result.id).toBe("01J")
         const [, init] = spy.mock.calls[0]
         expect(JSON.parse((init as RequestInit).body as string)).toEqual({ label: "my save" })
     })
@@ -141,7 +141,7 @@ describe("plan3 routes", () => {
         expect(spy).toHaveBeenCalledWith(expect.stringContaining("/translation/mods/123/snapshots/01H/restore"), expect.objectContaining({ method: "POST" }))
     })
 
-    it("deleteSnapshot DELETEs by ulid", async () => {
+    it("deleteSnapshot DELETEs by id", async () => {
         const spy = mockFetchOk({ status: "ok" })
         await deleteSnapshot("123", "01H")
         expect(spy).toHaveBeenCalledWith(expect.stringContaining("/translation/mods/123/snapshots/01H"), expect.objectContaining({ method: "DELETE" }))

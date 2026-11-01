@@ -194,16 +194,22 @@ export interface WH3GlossaryEntry {
     category: string
 }
 
-/** Metadata for one entry in `GET /translation/mods/{id}/snapshots`. */
-export interface WH3SnapshotMeta {
-    /** Sortable by time. */
-    ulid: string
+/** One backup in a mod's history, the same shape for every game. */
+export interface HistoryEntry {
+    id: string
+    /** Why the backup was created (e.g. "Before translation run"). */
+    reason: string
+    /** "auto" for backups taken before destructive ops, "manual" for user saves. */
+    kind?: "auto" | "manual"
     /** ISO timestamp. */
     created_at: string
-    /** e.g. `"pre-clear-translations"`. */
-    label: string
-    /** `"auto"` is taken by the backend before a destructive op. */
-    kind: "auto" | "manual"
+    files: string[]
+    /** Translated string count at backup time, when recorded. */
+    translated_count?: number
+    /** Total translatable string count at backup time, when recorded. */
+    total_count?: number
+    /** Glossary term count at backup time, when recorded. */
+    glossary_count?: number
 }
 
 /** One entry in a mod's `api-responses` log, the same shape for every game. */

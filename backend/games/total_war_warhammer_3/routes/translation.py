@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from backend.core.os_open import open_path
 from backend.core.settings import settings
-from backend.data import api_response_log, character_context, mod_settings, translation_store
+from backend.data import api_response_log, character_context, history_manager, mod_settings, translation_store
 from backend.data.mod_settings import (
     load_source_language_override,
     load_target_language_override,
@@ -35,10 +35,9 @@ from backend.games.total_war_warhammer_3.loc.packer import (
     RpfmNotConfiguredError,
     build_translation_pack,
 )
-from backend.games.total_war_warhammer_3.loc.writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
+from backend.games.total_war_warhammer_3.loc.writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv, user_loc_tsv_files
 from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, resolve_rpfm_cli_path, rpfm_cli_candidate, tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
-from backend.games.total_war_warhammer_3.stores import snapshots as snapshot_store
 from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
 from backend.games.total_war_warhammer_3.translation.drift import (
     DriftRow,
@@ -127,6 +126,20 @@ def _require_mod(mod_id: str) -> WH3TranslationMod:
     if mod is None:
         raise HTTPException(404, f"WH3 translation mod {mod_id} not registered")
     return mod
+
+
+def _backup(mod: WH3TranslationMod, label: str, *, kind: str = "auto") -> str | None:
+    """Back up a mod's state, including its local `.loc.tsv` files.
+
+    Args:
+        mod: Translation mod to back up.
+        label: Reason shown in History.
+        kind: "auto" before destructive ops, "manual" for user saves.
+
+    Returns:
+        The backup id, or None if there was nothing to back up.
+    """
+    return history_manager.create_backup(mod.workshop_id, label, game_id=GAME_ID, kind=kind, extra_files=user_loc_tsv_files(mod))
 
 
 def _serialize_drift_row(row: DriftRow) -> dict:
@@ -593,7 +606,7 @@ def clear_translations(mod_id: str) -> dict:
         `{"cleared": N}`, the number of keys overridden with an empty string.
     """
     mod = _require_mod(mod_id)
-    snapshot_store.create_snapshot(mod_id, label="pre-clear-translations", kind="auto", local_source_dir=mod.local_source_dir)
+    _backup(mod, "pre-clear-translations")
 
     raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     translation = _extract_translation_strings(mod)
@@ -636,7 +649,7 @@ def sync_changes(mod_id: str) -> dict:
         `{"per_file": {absolute_path: count}, "removed_orphans": N, "pack_built": bool, "pack_error": str | None}` for the writeback, orphan pruning and pack rebuild.
     """
     mod = _require_mod(mod_id)
-    snapshot_store.create_snapshot(mod_id, label="pre-sync", kind="auto", local_source_dir=mod.local_source_dir)
+    _backup(mod, "pre-sync")
 
     # Prune orphans (translated keys whose parent source is gone) from the .loc.tsv files and translations.json.
     # The pre-sync snapshot keeps them recoverable.
@@ -719,10 +732,10 @@ def get_snapshots(mod_id: str) -> list[dict]:
         mod_id: Workshop id of the WH3 mod.
 
     Returns:
-        `{ulid, created_at, label, kind}` entries, empty when none exist.
+        Backup dicts with id, reason, kind, created_at and counts, empty when none exist.
     """
     _require_mod(mod_id)
-    return snapshot_store.list_snapshots(mod_id)
+    return history_manager.list_backups(mod_id, game_id=GAME_ID)
 
 
 @router.post("/mods/{mod_id}/snapshots")
@@ -734,11 +747,13 @@ def post_snapshot(mod_id: str, req: SnapshotCreateRequest) -> dict:
         req: Body with the snapshot label.
 
     Returns:
-        `{"ulid": str, "label": str, "kind": "manual"}`.
+        `{"status": "saved", "id": backup_id}`, or `{"status": "empty"}` when there was nothing to back up.
     """
     mod = _require_mod(mod_id)
-    sid = snapshot_store.create_snapshot(mod_id, label=req.label, kind="manual", local_source_dir=mod.local_source_dir)
-    return {"ulid": sid, "label": req.label, "kind": "manual"}
+    backup_id = _backup(mod, req.label, kind="manual")
+    if backup_id is None:
+        return {"status": "empty"}
+    return {"status": "saved", "id": backup_id}
 
 
 @router.post("/mods/{mod_id}/snapshots/{sid}/restore")
@@ -747,16 +762,14 @@ def post_restore_snapshot(mod_id: str, sid: str) -> dict:
 
     Args:
         mod_id: Workshop id of the WH3 mod.
-        sid: ULID of the snapshot to restore.
+        sid: Id of the snapshot to restore.
 
     Returns:
         `{"status": "ok"}`.
     """
     mod = _require_mod(mod_id)
-    try:
-        snapshot_store.restore_snapshot(mod_id, sid, local_source_dir=mod.local_source_dir)
-    except FileNotFoundError:
-        raise HTTPException(404, f"snapshot {sid} not found") from None
+    if not history_manager.restore_backup(mod_id, sid, game_id=GAME_ID, extra_files=user_loc_tsv_files(mod)):
+        raise HTTPException(404, f"snapshot {sid} not found")
     return {"status": "ok"}
 
 
@@ -766,13 +779,13 @@ def delete_snapshot_route(mod_id: str, sid: str) -> dict:
 
     Args:
         mod_id: Workshop id of the WH3 mod.
-        sid: ULID of the snapshot to delete.
+        sid: Id of the snapshot to delete.
 
     Returns:
         `{"status": "ok"}`.
     """
     _require_mod(mod_id)
-    snapshot_store.delete_snapshot(mod_id, sid)
+    history_manager.delete_backup(mod_id, sid, game_id=GAME_ID)
     return {"status": "ok"}
 
 
@@ -871,7 +884,7 @@ def put_glossary_term(mod_id: str, english: str, entry: GlossaryEntry) -> dict:
     old_source = (glossary_store.load_glossary(mod_id).get(english) or {}).get("source", "")
     renaming = bool(old_source) and entry.english != english
     if renaming:
-        snapshot_store.create_snapshot(mod_id, label=f"Before renaming glossary term {english}", kind="auto", local_source_dir=mod.local_source_dir)
+        _backup(mod, f"Before renaming glossary term {english}")
     glossary_store.update_term(mod_id, english, entry.model_dump())
     replaced = _rename_in_translations(mod, mod_id, old_source, english, entry.english) if renaming else 0
     return {"status": "ok", "replaced": replaced}
@@ -889,7 +902,7 @@ def delete_all_glossary_terms(mod_id: str) -> dict:
     """
     mod = _require_mod(mod_id)
     if glossary_store.load_glossary(mod_id):
-        snapshot_store.create_snapshot(mod_id, label="Before deleting all glossary terms", kind="auto", local_source_dir=mod.local_source_dir)
+        _backup(mod, "Before deleting all glossary terms")
     deleted = glossary_store.delete_all_terms(mod_id)
     return {"status": "success", "deleted": deleted}
 
@@ -922,7 +935,7 @@ def post_glossary_apply_all(mod_id: str, req: GlossaryApplyAllRequest) -> dict:
         `{"replaced": N}`, where N counts changed translations.
     """
     mod = _require_mod(mod_id)
-    snapshot_store.create_snapshot(mod_id, label=f"pre-apply-all rename {req.old_english}", kind="auto", local_source_dir=mod.local_source_dir)
+    _backup(mod, f"pre-apply-all rename {req.old_english}")
     return {"replaced": _rename_in_translations(mod, mod_id, None, req.old_english, req.new_english)}
 
 

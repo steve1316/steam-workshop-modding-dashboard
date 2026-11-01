@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 from backend.data.api_response_log import append
+from backend.data.history_manager import list_backups
+from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
-from backend.games.total_war_warhammer_3.stores.snapshots import list_snapshots
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -48,6 +49,10 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
+def list_snapshots(mod_id: str) -> list[dict]:
+    return list_backups(mod_id, game_id=GAME_ID)
+
+
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Group A: POST /clear-translations
@@ -72,7 +77,7 @@ def test_clear_translations_wipes_text_and_auto_snapshots(client: TestClient, mo
     assert raw["k1"]["text"] == ""
     snaps = list_snapshots(mod_id)
     assert len(snaps) == 1
-    assert "clear" in snaps[0]["label"].lower()
+    assert "clear" in snaps[0]["reason"].lower()
 
 
 def test_clear_translations_blanks_english_in_strings_view(client: TestClient, tmp_path: Path):
@@ -175,7 +180,7 @@ def test_sync_writes_loc_tsv_and_returns_per_file_counts(client: TestClient, mon
     body = resp.json()
     assert "per_file" in body
     snaps = list_snapshots(mod_id)
-    assert any("pre-sync" in s["label"].lower() for s in snaps)
+    assert any("pre-sync" in s["reason"].lower() for s in snaps)
 
 
 def test_strings_hides_orphan_rows(client: TestClient, monkeypatch):
@@ -245,6 +250,9 @@ def test_sync_prunes_orphans_from_disk_and_overlay(client: TestClient, monkeypat
 
 def test_snapshot_routes_round_trip(client: TestClient, tmp_path: Path):
     mod_id = "3315737452"
+    mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / mod_id
+    mod_dir.mkdir(parents=True)
+    (mod_dir / "translations.json").write_text(json.dumps({"k1": {"text": "Hello"}}), encoding="utf-8")
     resp = client.get(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/snapshots")
     assert resp.status_code == 200
     assert resp.json() == []
@@ -254,12 +262,12 @@ def test_snapshot_routes_round_trip(client: TestClient, tmp_path: Path):
         json={"label": "test snap"},
     )
     assert resp.status_code == 200
-    sid = resp.json()["ulid"]
+    sid = resp.json()["id"]
 
     resp = client.get(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/snapshots")
     assert resp.status_code == 200
     snaps = resp.json()
-    assert len(snaps) == 1 and snaps[0]["ulid"] == sid
+    assert len(snaps) == 1 and snaps[0]["id"] == sid
 
     resp = client.post(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/snapshots/{sid}/restore")
     assert resp.status_code == 200
@@ -317,8 +325,8 @@ def test_glossary_delete_all_empties_it_after_a_restorable_snapshot(client: Test
     assert client.get(f"{base}/glossary").json() == {}
 
     snaps = list_snapshots(mod_id)
-    assert snaps[0]["label"] == "Before deleting all glossary terms"
-    assert client.post(f"{base}/snapshots/{snaps[0]['ulid']}/restore").status_code == 200
+    assert snaps[0]["reason"] == "Before deleting all glossary terms"
+    assert client.post(f"{base}/snapshots/{snaps[0]['id']}/restore").status_code == 200
     assert set(client.get(f"{base}/glossary").json()) == {"Phoenix", "Suitang"}
 
 
@@ -379,7 +387,7 @@ def test_glossary_edit_renames_english_in_translations_with_that_source(client: 
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok", "replaced": 3}
     assert _saved_text(path) == {"city": "Nangau City", "hub": "Nangau", "packed": "Nangau Pass", "other": "Nangao is only mentioned here"}
-    assert list_snapshots("3315737452")[0]["label"] == "Before renaming glossary term Nangao"
+    assert list_snapshots("3315737452")[0]["reason"] == "Before renaming glossary term Nangao"
 
 
 def test_glossary_edit_finds_rows_by_the_old_source_when_both_change(client: TestClient, monkeypatch, tmp_path: Path):

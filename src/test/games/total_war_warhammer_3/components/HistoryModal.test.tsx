@@ -2,11 +2,11 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import HistoryModal from "../../../../games/total_war_warhammer_3/components/HistoryModal"
-import type { WH3SnapshotMeta } from "../../../../shared_types"
+import type { HistoryEntry } from "../../../../shared_types"
 
-const SNAPS: WH3SnapshotMeta[] = [
-    { ulid: "01J", created_at: "2026-05-25T01:00:00Z", label: "pre-clear-translations", kind: "auto" },
-    { ulid: "01H", created_at: "2026-05-25T00:00:00Z", label: "manual save", kind: "manual" },
+const SNAPS: HistoryEntry[] = [
+    { id: "01J", created_at: "2026-05-25T01:00:00Z", reason: "pre-clear-translations", kind: "auto", files: [] },
+    { id: "01H", created_at: "2026-05-25T00:00:00Z", reason: "manual save", kind: "manual", files: [] },
 ]
 
 function mockJson(body: unknown, status = 200) {
@@ -39,8 +39,8 @@ describe("HistoryModal", () => {
     it("saves a manual snapshot when Save is clicked", async () => {
         const fetchSpy = vi.spyOn(globalThis, "fetch")
         fetchSpy.mockResolvedValueOnce(mockJson(SNAPS)) // initial GET
-        fetchSpy.mockResolvedValueOnce(mockJson({ ulid: "01K", label: "my save", kind: "manual" })) // POST
-        fetchSpy.mockResolvedValueOnce(mockJson([{ ulid: "01K", created_at: "2026-05-25T02:00:00Z", label: "my save", kind: "manual" }, ...SNAPS])) // refresh GET
+        fetchSpy.mockResolvedValueOnce(mockJson({ status: "saved", id: "01K" })) // POST
+        fetchSpy.mockResolvedValueOnce(mockJson([{ id: "01K", created_at: "2026-05-25T02:00:00Z", reason: "my save", kind: "manual", files: [] }, ...SNAPS])) // refresh GET
 
         render(<HistoryModal workshopId="123" onClose={vi.fn()} defaultRestoreMode={false} onRestored={vi.fn()} />)
         await waitFor(() => screen.getByText(/pre-clear-translations/))

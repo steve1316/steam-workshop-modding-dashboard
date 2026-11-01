@@ -2,12 +2,12 @@ import type {
     Glossary,
     TermSuggestion,
     ApiLogEntry,
+    HistoryEntry,
     WH3DriftRow,
     WH3DriftStatus,
     WH3GlossaryEntry,
     WH3ModContext,
     WH3RescanSummary,
-    WH3SnapshotMeta,
     WH3SyncResult,
     WH3TranslationModSummary,
 } from "../../shared_types"
@@ -182,7 +182,7 @@ export async function clearTranslations(workshopId: string): Promise<{ cleared: 
  * @param workshopId Translation mod Workshop id.
  * @returns Snapshots, newest first.
  */
-export async function listSnapshots(workshopId: string): Promise<WH3SnapshotMeta[]> {
+export async function listSnapshots(workshopId: string): Promise<HistoryEntry[]> {
     const res = await api.get(`/translation/mods/${encodeURIComponent(workshopId)}/snapshots`)
     if (!res.ok) throw await registryError(res)
     return res.json()
@@ -193,9 +193,9 @@ export async function listSnapshots(workshopId: string): Promise<WH3SnapshotMeta
  *
  * @param workshopId Translation mod Workshop id.
  * @param label Snapshot label.
- * @returns The new snapshot.
+ * @returns `"saved"` with the new id, or `"empty"` when there was nothing to back up.
  */
-export async function createSnapshot(workshopId: string, label: string): Promise<WH3SnapshotMeta> {
+export async function createSnapshot(workshopId: string, label: string): Promise<{ status: "saved" | "empty"; id?: string }> {
     const res = await api.post(`/translation/mods/${encodeURIComponent(workshopId)}/snapshots`, { label })
     if (!res.ok) throw await registryError(res)
     return res.json()
@@ -205,10 +205,10 @@ export async function createSnapshot(workshopId: string, label: string): Promise
  * Restore a mod from a snapshot. The backend takes a pre-restore snapshot first.
  *
  * @param workshopId Translation mod Workshop id.
- * @param ulid Snapshot id.
+ * @param id Snapshot id.
  */
-export async function restoreSnapshot(workshopId: string, ulid: string): Promise<void> {
-    const res = await api.post(`/translation/mods/${encodeURIComponent(workshopId)}/snapshots/${encodeURIComponent(ulid)}/restore`)
+export async function restoreSnapshot(workshopId: string, id: string): Promise<void> {
+    const res = await api.post(`/translation/mods/${encodeURIComponent(workshopId)}/snapshots/${encodeURIComponent(id)}/restore`)
     if (!res.ok) throw await registryError(res)
 }
 
@@ -216,10 +216,10 @@ export async function restoreSnapshot(workshopId: string, ulid: string): Promise
  * Delete one snapshot from a mod's history.
  *
  * @param workshopId Translation mod Workshop id.
- * @param ulid Snapshot id.
+ * @param id Snapshot id.
  */
-export async function deleteSnapshot(workshopId: string, ulid: string): Promise<void> {
-    const res = await api.delete(`/translation/mods/${encodeURIComponent(workshopId)}/snapshots/${encodeURIComponent(ulid)}`)
+export async function deleteSnapshot(workshopId: string, id: string): Promise<void> {
+    const res = await api.delete(`/translation/mods/${encodeURIComponent(workshopId)}/snapshots/${encodeURIComponent(id)}`)
     if (!res.ok) throw await registryError(res)
 }
 

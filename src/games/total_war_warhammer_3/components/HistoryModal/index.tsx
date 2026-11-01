@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react"
 
-import type { WH3SnapshotMeta } from "../../../../shared_types"
+import type { HistoryEntry } from "../../../../shared_types"
 import SharedHistoryModal from "../../../../translation/HistoryModal"
+import { toHistoryModalEntry } from "../../../../translation/historyEntry"
 import { createSnapshot, deleteSnapshot, listSnapshots, restoreSnapshot } from "../../translationApi"
 import { useConfirm } from "../../../../ui/useConfirm"
 
@@ -24,7 +25,7 @@ interface HistoryModalProps {
  * @returns The modal.
  */
 const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaultRestoreMode, onRestored }) => {
-    const [snaps, setSnaps] = useState<WH3SnapshotMeta[]>([])
+    const [snaps, setSnaps] = useState<HistoryEntry[]>([])
     const [error, setError] = useState<string | null>(null)
     const { confirm, confirmDialog } = useConfirm()
 
@@ -87,7 +88,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaul
         <>
             <SharedHistoryModal
                 title={defaultRestoreMode ? "Reset to snapshot" : "History"}
-                entries={snaps.map((s) => ({ id: s.ulid, title: s.label, kind: s.kind, createdAt: s.created_at }))}
+                entries={snaps.map(toHistoryModalEntry)}
                 onSave={onSave}
                 onRestore={onRestore}
                 onDelete={onDelete}
