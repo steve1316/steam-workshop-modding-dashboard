@@ -7,8 +7,10 @@ the real `steamcmd.exe`.
 
 from __future__ import annotations
 
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -123,6 +125,11 @@ class _FakeProc:
         return self.returncode
 
 
+def _fake_proc(lines: list[str], returncode: int) -> subprocess.Popen:
+    """Build a `_FakeProc` typed as the `Popen` the reader thread expects."""
+    return cast(subprocess.Popen, _FakeProc(lines, returncode))
+
+
 def _handle() -> wp.PublishHandle:
     """Build a fresh publish handle for reader-thread tests."""
     return wp.PublishHandle(publish_id="p", workshop_id="1", started_at=datetime.now(UTC))
@@ -132,7 +139,7 @@ def test_reader_thread_runs_on_exit_before_the_exit_code_is_published(tmp_path):
     handle = _handle()
     seen: list = []
 
-    wp._reader_thread(_FakeProc(["uploading\n"], 0), handle, tmp_path / "x.vdf", lambda code: seen.append((code, handle.exit_code)))
+    wp._reader_thread(_fake_proc(["uploading\n"], 0), handle, tmp_path / "x.vdf", lambda code: seen.append((code, handle.exit_code)))
 
     assert seen == [(0, None)]
     assert handle.exit_code == 0
@@ -141,7 +148,7 @@ def test_reader_thread_runs_on_exit_before_the_exit_code_is_published(tmp_path):
 def test_reader_thread_passes_failed_exit_codes_to_on_exit(tmp_path):
     seen: list = []
 
-    wp._reader_thread(_FakeProc([], 7), _handle(), tmp_path / "x.vdf", seen.append)
+    wp._reader_thread(_fake_proc([], 7), _handle(), tmp_path / "x.vdf", seen.append)
 
     assert seen == [7]
 
@@ -153,7 +160,7 @@ def test_reader_thread_logs_a_failed_recording_as_a_line(tmp_path):
     def on_exit(code):
         raise RuntimeError("disk full")
 
-    wp._reader_thread(_FakeProc(["uploading\n"], 0), handle, tmp_path / "x.vdf", on_exit)
+    wp._reader_thread(_fake_proc(["uploading\n"], 0), handle, tmp_path / "x.vdf", on_exit)
 
     assert [entry.line for entry in wp._log] == ["uploading", "Published, but recording the upload failed: disk full"]
     assert handle.exit_code == 0
@@ -162,7 +169,7 @@ def test_reader_thread_logs_a_failed_recording_as_a_line(tmp_path):
 def test_reader_thread_without_on_exit_still_finishes(tmp_path):
     handle = _handle()
 
-    wp._reader_thread(_FakeProc([], 0), handle, tmp_path / "x.vdf", None)
+    wp._reader_thread(_fake_proc([], 0), handle, tmp_path / "x.vdf", None)
 
     assert handle.exit_code == 0
 
@@ -171,7 +178,7 @@ def test_reader_thread_appends_the_on_exit_returned_line(tmp_path):
     wp._log.clear()
     handle = _handle()
 
-    wp._reader_thread(_FakeProc(["uploading\n"], 0), handle, tmp_path / "x.vdf", lambda code: "Recorded this upload for the next changenote.")
+    wp._reader_thread(_fake_proc(["uploading\n"], 0), handle, tmp_path / "x.vdf", lambda code: "Recorded this upload for the next changenote.")
 
     assert [entry.line for entry in wp._log] == ["uploading", "Recorded this upload for the next changenote."]
     assert handle.exit_code == 0
@@ -181,7 +188,7 @@ def test_reader_thread_does_not_append_a_line_when_on_exit_returns_none(tmp_path
     wp._log.clear()
     handle = _handle()
 
-    wp._reader_thread(_FakeProc(["uploading\n"], 1), handle, tmp_path / "x.vdf", lambda code: None)
+    wp._reader_thread(_fake_proc(["uploading\n"], 1), handle, tmp_path / "x.vdf", lambda code: None)
 
     assert [entry.line for entry in wp._log] == ["uploading"]
     assert handle.exit_code == 1
@@ -236,8 +243,8 @@ def test_reader_thread_records_the_publish_time_only_on_success(tmp_path):
     from backend.games.total_war_warhammer_3 import published_times
 
     handle = _handle()
-    wp._reader_thread(_FakeProc([], 1), handle, tmp_path / "x.vdf", None)
+    wp._reader_thread(_fake_proc([], 1), handle, tmp_path / "x.vdf", None)
     assert published_times.get(handle.workshop_id) is None
 
-    wp._reader_thread(_FakeProc([], 0), handle, tmp_path / "x.vdf", None)
+    wp._reader_thread(_fake_proc([], 0), handle, tmp_path / "x.vdf", None)
     assert published_times.get(handle.workshop_id) is not None

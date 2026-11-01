@@ -11,17 +11,16 @@ from backend.data.glossary_manager import (
 )
 
 
-def _find_by_english(terms: dict, english: str) -> dict | None:
-    """Find a glossary entry by its English text field."""
-    for info in terms.values():
-        if info.get("english") == english:
-            return info
-    return None
+def _find_by_english(terms: dict, english: str) -> dict:
+    """Find a glossary entry by its English text field, failing the test when it is missing."""
+    entry = next((info for info in terms.values() if info.get("english") == english), None)
+    assert entry is not None, f"no glossary entry for {english!r}"
+    return entry
 
 
 def _has_english(terms: dict, english: str) -> bool:
     """Check if a glossary entry with the given English text exists."""
-    return _find_by_english(terms, english) is not None
+    return any(info.get("english") == english for info in terms.values())
 
 
 def test_build_glossary_extracts_name_keys(sample_base_strings, glossary_categories):

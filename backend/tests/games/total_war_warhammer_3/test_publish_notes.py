@@ -96,6 +96,7 @@ def test_make_recorder_translation_saves_baseline_only_on_exit_0(monkeypatch):
     monkeypatch.setattr(pn.tcn, "save_baseline", lambda wid, strings, note: saved.append((wid, strings, note)))
 
     on_exit = pn.make_recorder(TRANSLATION_ID, "the note")
+    assert on_exit is not None
     # The shipped set is captured when the upload starts, not when SteamCMD exits.
     monkeypatch.setattr(pn, "current_shipped_strings", lambda wid: {"changed": {}})
 
@@ -114,6 +115,7 @@ def test_make_recorder_compat_records_only_on_exit_0(monkeypatch):
 
     on_exit = pn.make_recorder("20", "the note")
 
+    assert on_exit is not None
     assert on_exit(2) is None
     assert recorded == []
     assert on_exit(0) == "Recorded this upload for the next changenote."

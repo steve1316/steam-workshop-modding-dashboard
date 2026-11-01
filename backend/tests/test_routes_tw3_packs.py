@@ -34,6 +34,7 @@ def test_workshop_content_dir_builds_path_from_drive(monkeypatch):
     """
     monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "F:")
     resolved = tw3_workshop_content_dir("1234567890")
+    assert resolved is not None
     assert resolved == Path("F:\\") / "SteamLibrary" / "steamapps" / "workshop" / "content" / "1142710" / "1234567890"
     assert resolved.is_absolute()
 

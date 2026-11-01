@@ -10,13 +10,13 @@ import pytest
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
-from backend.games.total_war_warhammer_3.translation_drift import DriftRow, hash_text
+from backend.games.total_war_warhammer_3.translation_drift import DriftRow, DriftStatus, hash_text
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
 
 MOD_ID = "3315737452"
 
 
-def _row(key: str, text: str | None, status: str = "translated", filename: str = "units.loc.tsv") -> DriftRow:
+def _row(key: str, text: str | None, status: DriftStatus = "translated", filename: str = "units.loc.tsv") -> DriftRow:
     """Build a drift row with the fields the shipped set reads."""
     return DriftRow(source_filename=filename, key=key, parent_text="src", translation_text=text, status=status, provider=None)
 
@@ -80,6 +80,7 @@ def test_baseline_round_trips_and_lives_outside_snapshots(storage: Path):
     tcn.save_baseline(MOD_ID, strings, "[u]Translation update[/u]")
 
     loaded = tcn.load_baseline(MOD_ID)
+    assert loaded is not None
     assert loaded["strings"] == strings
     assert loaded["changenote"] == "[u]Translation update[/u]"
     assert loaded["published_at"]

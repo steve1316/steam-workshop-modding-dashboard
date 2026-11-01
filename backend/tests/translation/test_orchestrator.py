@@ -22,7 +22,7 @@ class _FakeProvider:
     """Minimal provider stub that records its call and returns a fixed result."""
 
     def __init__(self):
-        self.called_with = None
+        self.called_with: dict = {}
 
     def translate_batch(self, entries, source_lang, glossary_prompt, *, game_context, format_rules, style_examples, character_context, target_lang):
         self.called_with = {"entries": entries, "source_lang": source_lang, "glossary_prompt": glossary_prompt, "target_lang": target_lang}

@@ -39,6 +39,7 @@ def test_create_backup_records_manual_kind(tmp_path: Path):
 def test_list_backups_backfills_missing_kind_as_auto(tmp_path: Path):
     _seed(tmp_path, "abc")
     backup_id = create_backup("abc", "Old backup", storage_path=tmp_path)
+    assert backup_id is not None
     # Simulate a legacy backup whose meta.json predates the kind field.
     meta_path = tmp_path / "mods" / "abc" / "history" / backup_id / "meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -90,5 +91,6 @@ def test_suffixed_backup_id_points_at_its_folder(tmp_path: Path, monkeypatch):
     _seed(tmp_path, "abc")
     create_backup("abc", "First", storage_path=tmp_path)
     second = create_backup("abc", "Second", storage_path=tmp_path)
+    assert second is not None
     assert (tmp_path / "mods" / "abc" / "history" / second / "meta.json").exists()
     assert delete_backup("abc", second, storage_path=tmp_path) is True

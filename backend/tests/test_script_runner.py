@@ -58,7 +58,7 @@ def test_registry_launches_scripts_from_the_reorganized_layout():
     }
 
 
-def _settings(helper=FIXTURES, rpfm=None, drive="F:"):
+def _settings(helper: Path | None = FIXTURES, rpfm=None, drive="F:"):
     return {
         "helper_scripts_path": str(helper) if helper else "",
         "rpfm_cli_path": str(rpfm) if rpfm else "",
@@ -248,10 +248,12 @@ def test_start_run_seeds_queued_steps_only_for_the_pipeline():
     handle = start_run(sr.PIPELINE_SCRIPT_ID, _settings(), registry=registry)
     assert set(handle.steps) == set(sr.PIPELINE_UNIT_SCRIPTS.values())
     assert all(status is sr.StepStatus.QUEUED for status in handle.steps.values())
+    assert sr._proc is not None
     sr._proc.wait(timeout=5)
 
     other = start_run("_test_echo", _settings(), registry=registry)
     assert other.steps == {}
+    assert sr._proc is not None
     sr._proc.wait(timeout=5)
 
 
