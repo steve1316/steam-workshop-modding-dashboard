@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend import config
-from backend.routes.helpers import _adapter
+from backend.routes.helpers import chrono_ark_adapter
 from backend.routes import ollama, llamacpp, settings, steamcmd
 from backend.games.registry import list_games, get_adapter
 from backend.scripts.migrate_storage_v1_to_v2 import run_migration
@@ -53,13 +53,21 @@ for _game_id in list_games():
     _adapter_instance = get_adapter(_game_id)
     app.include_router(_adapter_instance.router)
 
-# Mount the workshop directory as static files so preview images are served
-# directly without going through a Python endpoint for each request.
-# This must be after all route definitions since mounts take priority over
-# routes defined after them.
-_workshop_path = getattr(_adapter, "_WORKSHOP_PATH", None)
-if _workshop_path and Path(_workshop_path).exists():
-    app.mount("/api/workshop", StaticFiles(directory=str(_workshop_path)), name="workshop")
+
+def _mount_workshop(target: FastAPI) -> None:
+    """Serve Chrono Ark's workshop folder at /api/workshop for mod preview images.
+
+    Args:
+        target: The app to mount on.
+    """
+    # Only Chrono Ark links /workshop/ thumbnails, so this must not follow whichever game was active at startup.
+    workshop_path = chrono_ark_adapter()._WORKSHOP_PATH
+    if Path(workshop_path).exists():
+        target.mount("/api/workshop", StaticFiles(directory=str(workshop_path)), name="workshop")
+
+
+# Mounted last because a mount shadows any route registered after it.
+_mount_workshop(app)
 
 if __name__ == "__main__":
     uvicorn.run(
