@@ -1,10 +1,12 @@
 """Tests for the Chrono Ark history manager, focused on the auto/manual kind field."""
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
+from backend.data import history_manager
 from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 
 
@@ -52,3 +54,41 @@ def test_delete_and_restore_ignore_ids_that_leave_the_history_dir(tmp_path: Path
     assert delete_backup("abc", backup_id, storage_path=tmp_path) is False
     assert restore_backup("abc", backup_id, storage_path=tmp_path) is False
     assert (mod_dir / "translations.json").exists()
+
+
+def test_backups_in_the_same_second_get_their_own_ids(tmp_path: Path, monkeypatch):
+    fixed = datetime(2026, 11, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed
+
+    monkeypatch.setattr(history_manager, "datetime", _FrozenDatetime)
+    _seed(tmp_path, "abc")
+    first = create_backup("abc", "First", storage_path=tmp_path)
+    second = create_backup("abc", "Second", storage_path=tmp_path)
+
+    assert first != second
+    assert [b["reason"] for b in list_backups("abc", storage_path=tmp_path)] == ["Second", "First"]
+
+
+def test_listing_an_unknown_mod_creates_nothing(tmp_path: Path):
+    assert list_backups("nope", storage_path=tmp_path) == []
+    assert not (tmp_path / "mods" / "nope").exists()
+
+
+def test_suffixed_backup_id_points_at_its_folder(tmp_path: Path, monkeypatch):
+    fixed = datetime(2026, 11, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed
+
+    monkeypatch.setattr(history_manager, "datetime", _FrozenDatetime)
+    _seed(tmp_path, "abc")
+    create_backup("abc", "First", storage_path=tmp_path)
+    second = create_backup("abc", "Second", storage_path=tmp_path)
+    assert (tmp_path / "mods" / "abc" / "history" / second / "meta.json").exists()
+    assert delete_backup("abc", second, storage_path=tmp_path) is True

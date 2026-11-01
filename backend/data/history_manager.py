@@ -17,7 +17,7 @@ from backend.core.json_store import write_json
 
 
 def _history_dir(mod_id: str, storage_path: Optional[Path] = None) -> Path:
-    """Return the history directory for a mod, creating it if needed.
+    """Return the history directory for a mod, which may not exist yet.
 
     Args:
         mod_id: The mod's Workshop ID.
@@ -27,9 +27,7 @@ def _history_dir(mod_id: str, storage_path: Optional[Path] = None) -> Path:
         Path to the mod's `history/` directory.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
-    path = mods_dir / mod_id / "history"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    return mods_dir / mod_id / "history"
 
 
 def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None, kind: str = "auto") -> Optional[str]:
@@ -43,7 +41,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
         kind: "auto" for backups taken automatically before destructive ops, "manual" for user-requested save snapshots.
 
     Returns:
-        The backup ID (timestamp string), or None if there was nothing to back up.
+        The backup ID (its folder name), or None if there was nothing to back up.
     """
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     mod_dir = mods_dir / mod_id
@@ -64,8 +62,15 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
         return None
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    backup_dir = _history_dir(mod_id, storage_path) / timestamp
-    backup_dir.mkdir(parents=True, exist_ok=True)
+    hist_dir = _history_dir(mod_id, storage_path)
+    hist_dir.mkdir(parents=True, exist_ok=True)
+    # A second backup within the same second, e.g. "Before restore", must not overwrite the first. The suffix still sorts newest first.
+    backup_dir = hist_dir / timestamp
+    suffix = 2
+    while backup_dir.exists():
+        backup_dir = hist_dir / f"{timestamp}_{suffix}"
+        suffix += 1
+    backup_dir.mkdir()
 
     # Copy files that exist.
     backed_up = False
@@ -111,7 +116,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
     # Prune old backups (keep last 20)
     _prune_backups(mod_id, max_backups=20, storage_path=storage_path)
 
-    return timestamp
+    return backup_dir.name
 
 
 def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]:
@@ -125,6 +130,8 @@ def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]
         List of backup metadata dicts with id, reason, created_at, and files.
     """
     hist_dir = _history_dir(mod_id, storage_path)
+    if not hist_dir.is_dir():
+        return []
     backups = []
     for entry in sorted(hist_dir.iterdir(), reverse=True):
         if entry.is_dir():
