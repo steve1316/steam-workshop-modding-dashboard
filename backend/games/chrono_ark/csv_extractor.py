@@ -412,12 +412,14 @@ def detect_source_language(
 def get_untranslated_strings(
     strings: dict[str, LocString],
     source_languages: list[str],
+    target_lang: str = "English",
 ) -> dict[str, LocString]:
-    """Keep entries with an empty English column but some source-language text.
+    """Keep entries with an empty `target_lang` column but some source-language text.
 
     Args:
         strings: All localization strings.
         source_languages: Languages in priority order.
+        target_lang: Language column that counts as translated.
 
     Returns:
         Strings needing translation.
@@ -426,7 +428,7 @@ def get_untranslated_strings(
     for key, loc_str in strings.items():
         if loc_str.untranslatable_reason and not key.startswith("DLL/"):
             continue
-        english = loc_str.translations.get("English", "").strip()
-        if not english and detect_source_language(loc_str, source_languages) is not None:
+        translated = loc_str.translations.get(target_lang, "").strip()
+        if not translated and detect_source_language(loc_str, source_languages) is not None:
             untranslated[key] = loc_str
     return untranslated

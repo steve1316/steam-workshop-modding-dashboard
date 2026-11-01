@@ -5,7 +5,9 @@ from backend.games.chrono_ark.csv_extractor import (
     classify_csv_file,
     extract_mod_strings,
     find_all_csv_files,
+    get_untranslated_strings,
 )
+from backend.models import LocString
 
 CSV_HEADER = "Key,Type,Desc,Korean,English,Japanese,Chinese,Chinese-TW [zh-tw]\n"
 
@@ -178,3 +180,13 @@ def test_extract_mod_strings_handles_unquoted_commas(tmp_path):
     assert "치명타" in entry.translations["Korean"]
     assert "ロジック" in entry.translations["Japanese"]
     assert "逻辑工作室" in entry.translations["Chinese"]
+
+
+def test_get_untranslated_strings_checks_the_target_language_column():
+    strings = {
+        "a": LocString(key="a", type="Text", desc="", translations={"Korean": "가", "English": "A"}),
+        "b": LocString(key="b", type="Text", desc="", translations={"Korean": "나", "Japanese": "ナ"}),
+    }
+
+    assert set(get_untranslated_strings(strings, ["Korean"])) == {"b"}
+    assert set(get_untranslated_strings(strings, ["Korean"], target_lang="Japanese")) == {"a"}

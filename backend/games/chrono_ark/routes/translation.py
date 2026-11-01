@@ -154,18 +154,19 @@ async def preview_translation(req: TranslationRequest):
     mod_path = _find_mod_path(req.mod_id)
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    _merge_gdata_originals(req.mod_id, strings)
+    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
+    _merge_gdata_originals(req.mod_id, strings, target_lang=target_lang)
 
     # Apply saved translations so user edits (including clears) are respected.
     saved = load_translations(req.mod_id, game_id=GAME_ID)
     for key, english in saved.items():
         if key in strings:
-            strings[key].translations["English"] = english
+            strings[key].translations[target_lang] = english
 
     if req.retranslate:
         target = {key: loc_str for key, loc_str in strings.items() if not loc_str.untranslatable_reason or key.startswith("DLL/") if chrono_ark_adapter().detect_source_language(loc_str) is not None}
     else:
-        target = chrono_ark_adapter().get_untranslated(strings)
+        target = chrono_ark_adapter().get_untranslated(strings, target_lang)
 
     if not target:
         return {"total_strings": 0, "message": "All strings already translated" if not req.retranslate else "No translatable strings found", "previews": {}}
@@ -181,7 +182,6 @@ async def preview_translation(req: TranslationRequest):
     format_rules = chrono_ark_adapter().get_format_preservation_rules()
 
     lang_override = load_source_language_override(req.mod_id, game_id=GAME_ID)
-    target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
     by_lang: dict[str, list] = {}
     for key, loc_str in target.items():
         lang = resolve_source_language(loc_str, lang_override)
@@ -305,8 +305,8 @@ async def translate_batch(req: BatchTranslationRequest):
     mod_path = _find_mod_path(req.mod_id)
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    _merge_gdata_originals(req.mod_id, strings)
     target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
+    _merge_gdata_originals(req.mod_id, strings, target_lang=target_lang)
 
     # Saved translations win so user edits (including clears) are respected.
     saved = load_translations(req.mod_id, game_id=GAME_ID)
@@ -429,8 +429,8 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
     mod_path = _find_mod_path(req.mod_id)
 
     strings, _ = chrono_ark_adapter().extract_strings(mod_path)
-    _merge_gdata_originals(req.mod_id, strings)
     target_lang = load_target_language_override(req.mod_id, game_id=GAME_ID) or "English"
+    _merge_gdata_originals(req.mod_id, strings, target_lang=target_lang)
 
     saved = load_translations(req.mod_id, game_id=GAME_ID)
     for key, english in saved.items():

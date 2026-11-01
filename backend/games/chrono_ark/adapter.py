@@ -445,16 +445,17 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         """
         return csv_extractor.detect_source_language(loc_string, self._SOURCE_LANGUAGES)
 
-    def get_untranslated(self, strings: dict[str, LocString]) -> dict[str, LocString]:
-        """Keep entries with an empty English column but some source-language text.
+    def get_untranslated(self, strings: dict[str, LocString], target_lang: str = "English") -> dict[str, LocString]:
+        """Keep entries with an empty `target_lang` column but some source-language text.
 
         Args:
             strings: All localization strings.
+            target_lang: Language column that counts as translated.
 
         Returns:
             Only the strings needing translation.
         """
-        return csv_extractor.get_untranslated_strings(strings, self._SOURCE_LANGUAGES)
+        return csv_extractor.get_untranslated_strings(strings, self._SOURCE_LANGUAGES, target_lang)
 
     def get_glossary_categories(self) -> dict[str, str | list[str]]:
         """Return glossary category to key-prefix mappings.

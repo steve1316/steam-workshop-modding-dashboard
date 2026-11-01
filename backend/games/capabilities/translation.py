@@ -82,8 +82,8 @@ class TranslationCapability(ABC):
         """Auto-detect the source language of `loc_string`."""
 
     @abstractmethod
-    def get_untranslated(self, strings: dict[str, LocString]) -> dict[str, LocString]:
-        """Filter `strings` down to entries lacking a target-language translation."""
+    def get_untranslated(self, strings: dict[str, LocString], target_lang: str = "English") -> dict[str, LocString]:
+        """Filter `strings` down to entries lacking a `target_lang` translation."""
 
     @abstractmethod
     def get_glossary_categories(self) -> dict[str, str | list[str]]:

@@ -174,8 +174,8 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
     def detect_source_language(self, loc_string: LocString) -> str | None:
         return "Chinese"
 
-    def get_untranslated(self, strings: dict[str, LocString]) -> dict[str, LocString]:
-        return {sid: s for sid, s in strings.items() if not s.translations.get("English", "").strip()}
+    def get_untranslated(self, strings: dict[str, LocString], target_lang: str = "English") -> dict[str, LocString]:
+        return {sid: s for sid, s in strings.items() if not s.translations.get(target_lang, "").strip()}
 
     def export_strings(self, output_path: Path, entries: list[LocString]) -> None:
         """Not implemented: export is handled by the pack rebuild + publish workflow."""
