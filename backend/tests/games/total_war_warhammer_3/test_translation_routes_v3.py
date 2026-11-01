@@ -426,6 +426,18 @@ def test_glossary_apply_all_renames_existing_translations(client: TestClient, tm
     assert "Cathayan Phoenix awakens" in raw["k1"]["text"]
 
 
+def test_glossary_apply_all_renames_pack_only_translations_literally(client: TestClient, tmp_path: Path):
+    """A translation that only lives in the pack is renamed too, and backslashes in the new English are not read as regex groups."""
+    mod_id = "3315737452"
+    resp = client.post(
+        f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/glossary/apply-all",
+        json={"old_english": "Existing", "new_english": "C:\1 New"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["replaced"] == 1
+    assert _saved_text(tmp_path / "games" / "total_war_warhammer_3" / "mods" / mod_id / "translations.json") == {"k1": "C:\1 New"}
+
+
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Group F: GET /api-responses

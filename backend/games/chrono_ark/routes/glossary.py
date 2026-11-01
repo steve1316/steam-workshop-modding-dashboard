@@ -9,7 +9,6 @@ from backend.data.glossary_manager import (
     load_glossary,
     load_mod_glossary,
     merge_glossaries,
-    replace_whole_term,
     save_glossary,
     save_mod_glossary,
     suggest_glossary_edits,
@@ -30,6 +29,7 @@ from backend.routes.models import (
     ModGlossaryTerm,
     SuggestionAction,
 )
+from backend.translation.rename import rename_term
 
 router = APIRouter()
 
@@ -274,13 +274,8 @@ def _rename_in_translations(mod_id: str, source: str, old_english: str, new_engl
     if not source or old_english == new_english:
         return 0
     saved = load_translations(mod_id, game_id=GAME_ID)
-    changes: dict[str, str] = {}
-    for key, (source_text, csv_english) in _source_and_csv_english(mod_id).items():
-        if source not in source_text:
-            continue
-        new_text, count = replace_whole_term(saved.get(key, csv_english), old_english, new_english)
-        if count:
-            changes[key] = new_text
+    rows = ((key, source_text, saved.get(key, csv_english)) for key, (source_text, csv_english) in _source_and_csv_english(mod_id).items())
+    changes = rename_term(rows, old_english, new_english, source)
     if changes:
         save_translations_bulk(mod_id, changes, game_id=GAME_ID)
     return len(changes)

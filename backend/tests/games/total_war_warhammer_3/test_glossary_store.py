@@ -5,7 +5,6 @@ from pathlib import Path
 
 from backend.games.total_war_warhammer_3.stores.glossary import (
     add_term,
-    apply_term_rename,
     delete_term,
     load_glossary,
     update_term,
@@ -41,40 +40,12 @@ def test_delete_term_removes_entry(monkeypatch, tmp_path: Path):
     assert load_glossary("abc") == {}
 
 
-def test_apply_term_rename_replaces_with_word_boundary(monkeypatch, tmp_path: Path):
-    _patch_root(monkeypatch, tmp_path)
-    # Seed translations with two rows.
-    mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / "abc"
-    mod_dir.mkdir(parents=True, exist_ok=True)
-    (mod_dir / "translations.json").write_text(
-        json.dumps(
-            {
-                "k1": {"text": "the Cathay Phoenix guards", "provider": "manual"},
-                "k2": {"text": "Cathay Phoenix-Lord", "provider": "manual"},
-                "k3": {"text": "Cathayan Phoenix", "provider": "manual"},  # already renamed
-                "k4": {"text": "MetaCathay Phoenix", "provider": "manual"},  # adjacent letters - should NOT replace
-            }
-        ),
-        encoding="utf-8",
-    )
-    count = apply_term_rename("abc", "Cathay Phoenix", "Cathayan Phoenix")
-    raw = json.loads((mod_dir / "translations.json").read_text(encoding="utf-8"))
-    assert "Cathayan Phoenix guards" in raw["k1"]["text"]
-    assert "Cathayan Phoenix-Lord" in raw["k2"]["text"]
-    assert raw["k3"]["text"] == "Cathayan Phoenix"  # idempotent on already-renamed
-    # MetaCathay Phoenix: "Cathay Phoenix" appears here but not at a word boundary on the left.
-    assert raw["k4"]["text"] == "MetaCathay Phoenix"
-    # Counted replacements (k1, k2 = 2; k3 already matched the new word so 0; k4 = 0).
-    assert count == 2
-
-
 def test_load_glossary_returns_empty_when_missing(monkeypatch, tmp_path: Path):
     _patch_root(monkeypatch, tmp_path)
     assert load_glossary("missing-mod") == {}
 
 
 def test_load_base_glossary_reads_storage(tmp_path, monkeypatch):
-    import json
 
     from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 

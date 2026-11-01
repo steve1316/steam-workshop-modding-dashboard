@@ -17,7 +17,6 @@ from pydantic import BaseModel
 from backend.core.os_open import open_path
 from backend.core.settings import settings
 from backend.data import character_context, mod_settings, translation_store
-from backend.data.glossary_manager import replace_whole_term
 from backend.data.mod_settings import (
     load_source_language_override,
     load_target_language_override,
@@ -54,6 +53,7 @@ from backend.games.total_war_warhammer_3.translation.mods import (
 )
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
 from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
+from backend.translation.rename import rename_term
 
 logger = logging.getLogger(__name__)
 
@@ -824,7 +824,7 @@ def post_glossary_term(mod_id: str, entry: GlossaryEntry) -> dict:
     return {"status": "ok"}
 
 
-def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new_english: str) -> int:
+def _rename_in_translations(mod, mod_id: str, source: str | None, old_english: str, new_english: str) -> int:
     """Rename `old_english` to `new_english` in every translation whose source text contains `source`.
 
     Rows come from the translation pack with translations.json overlaid, so pack-only translations are renamed too. Changed rows are saved to
@@ -833,35 +833,32 @@ def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new
     Args:
         mod: Resolved `WH3TranslationMod`.
         mod_id: Workshop id of the WH3 mod.
-        source: Term's source text, and nothing is renamed when empty.
+        source: Term's source text, where empty renames nothing and `None` renames every translation.
         old_english: English to replace, matched as a whole term.
         new_english: Replacement English.
 
     Returns:
         Number of translations changed.
     """
-    if not source or old_english == new_english:
+    if source == "" or old_english == new_english:
         return 0
     parent = _extract_all_parent_strings(mod)
     drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=load_parent_snapshot(mod_id))
     raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
 
+    rows = list(_overlay_translations(drift, raw))
+    changes = rename_term(((row.key, row.parent_text or "", row.translation_text or "") for row in rows), old_english, new_english, source)
     now = datetime.now(UTC).isoformat()
-    changed = 0
-    for row in _overlay_translations(drift, raw):
-        if not row.translation_text or source not in (row.parent_text or ""):
-            continue
-        new_text, count = replace_whole_term(row.translation_text, old_english, new_english)
-        if count == 0:
+    for row in rows:
+        if row.key not in changes:
             continue
         existing = raw.get(row.key)
         if not isinstance(existing, dict):
             existing = {}
-        raw[row.key] = {"text": new_text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": existing.get("provider") or row.provider or "manual"}
-        changed += 1
-    if changed:
+        raw[row.key] = {"text": changes[row.key], "created_at": existing.get("created_at") or now, "updated_at": now, "provider": existing.get("provider") or row.provider or "manual"}
+    if changes:
         translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
-    return changed
+    return len(changes)
 
 
 @router.put("/mods/{mod_id}/glossary/{english}")
@@ -923,19 +920,18 @@ def delete_glossary_term(mod_id: str, english: str) -> dict:
 
 @router.post("/mods/{mod_id}/glossary/apply-all")
 def post_glossary_apply_all(mod_id: str, req: GlossaryApplyAllRequest) -> dict:
-    """Word-boundary find-and-replace `old_english` -> `new_english` across all translations.
+    """Rename `old_english` to `new_english` as a whole term in every translation, after a restorable snapshot.
 
     Args:
         mod_id: Workshop id of the WH3 mod.
         req: Body with `old_english` and `new_english`.
 
     Returns:
-        `{"replaced": N}`, the total substitutions.
+        `{"replaced": N}`, where N counts changed translations.
     """
     mod = _require_mod(mod_id)
     snapshot_store.create_snapshot(mod_id, label=f"pre-apply-all rename {req.old_english}", kind="auto", local_source_dir=mod.local_source_dir)
-    count = glossary_store.apply_term_rename(mod_id, req.old_english, req.new_english)
-    return {"replaced": count}
+    return {"replaced": _rename_in_translations(mod, mod_id, None, req.old_english, req.new_english)}
 
 
 @router.get("/mods/{mod_id}/api-responses")

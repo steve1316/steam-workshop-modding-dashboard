@@ -114,7 +114,7 @@ const ModGlossaryModal: React.FC<ModGlossaryModalProps> = ({ workshopId, onClose
         if (!applyAllOld.trim() || !applyAllNew.trim()) return
         try {
             const result = await glossaryApplyAll(workshopId, applyAllOld, applyAllNew)
-            setApplyResult(`Replaced ${result.replaced} occurrences`)
+            setApplyResult(`Renamed in ${result.replaced} translation${result.replaced === 1 ? "" : "s"}`)
             if (result.replaced > 0) onTranslationsChanged?.()
             setApplyAllOld("")
             setApplyAllNew("")

@@ -296,12 +296,12 @@ export async function deleteAllGlossaryTerms(workshopId: string): Promise<{ stat
 }
 
 /**
- * Word-boundary replace `oldEnglish` with `newEnglish` across the mod's translations.
+ * Rename `oldEnglish` to `newEnglish` as a whole term in every translation of the mod.
  *
  * @param workshopId Translation mod Workshop id.
  * @param oldEnglish Term to replace.
  * @param newEnglish Replacement term.
- * @returns Replacement count.
+ * @returns Count of changed translations.
  */
 export async function glossaryApplyAll(workshopId: string, oldEnglish: string, newEnglish: string): Promise<{ replaced: number }> {
     const res = await api.post(`/translation/mods/${encodeURIComponent(workshopId)}/glossary/apply-all`, { old_english: oldEnglish, new_english: newEnglish })

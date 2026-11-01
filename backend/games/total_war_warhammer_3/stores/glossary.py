@@ -1,16 +1,13 @@
 """Per-mod glossary CRUD wrappers for the WH3 translation flow.
 
 Stores `<root>/mods/{id}/glossary.json` as a flat dict keyed by English term. The shared `backend.data.glossary_manager` handles disk IO
-with a `{"terms": {...}}` wrapper, which this module pins to the WH3 game id and flattens. It also holds the apply-rename helper.
+with a `{"terms": {...}}` wrapper, which this module pins to the WH3 game id and flattens.
 """
 
 from __future__ import annotations
 
-import json
-import re
 from pathlib import Path
 
-from backend.core.json_store import write_json
 from backend.core.paths import game_storage_path, glossary_path
 from backend.data import glossary_manager as gm
 from backend.games.total_war_warhammer_3 import GAME_ID
@@ -94,38 +91,6 @@ def delete_all_terms(mod_id: str) -> int:
     count = len(load_glossary(mod_id))
     _save(mod_id, {})
     return count
-
-
-def apply_term_rename(mod_id: str, old_english: str, new_english: str) -> int:
-    """Word-boundary find-and-replace `old_english` -> `new_english` across all translations.
-
-    Args:
-        mod_id: Workshop id of the WH3 mod.
-        old_english: Previous English term.
-        new_english: Replacement term.
-
-    Returns:
-        Total replacements made.
-    """
-    path = _root() / "mods" / mod_id / "translations.json"
-    if not path.exists():
-        return 0
-    with path.open("r", encoding="utf-8") as f:
-        raw = json.load(f)
-
-    pattern = re.compile(r"\b" + re.escape(old_english) + r"\b")
-    total = 0
-    for entry in raw.values():
-        if not isinstance(entry, dict):
-            continue
-        text = entry.get("text") or ""
-        new_text, count = pattern.subn(new_english, text)
-        if count > 0 and new_text != text:
-            entry["text"] = new_text
-            total += count
-
-    write_json(path, raw)
-    return total
 
 
 def load_base_glossary() -> dict:

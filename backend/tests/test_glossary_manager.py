@@ -250,13 +250,3 @@ def test_get_combined_glossary_prompt_respects_allowed_categories():
 
     assert "Armour" in prompt
     assert "Black Pit" not in prompt
-
-
-def test_replace_whole_term_only_replaces_whole_words():
-    """The old term is replaced where it stands alone, not inside a longer word, and bracketed titles match as a unit."""
-    from backend.data.glossary_manager import replace_whole_term
-
-    assert replace_whole_term("Nangao and Nangaoese, Nangao.", "Nangao", "Nangau") == ("Nangau and Nangaoese, Nangau.", 2)
-    assert replace_whole_term("the [Lord of Wind] Lidao rides", "[Lord of Wind] Lidao", "[Wind Lord] Lidao") == ("the [Wind Lord] Lidao rides", 1)
-    assert replace_whole_term("No match here", "Nangao", "Nangau") == ("No match here", 0)
-    assert replace_whole_term("Nangao", "Nangao", "C:\\1 Nangau") == ("C:\\1 Nangau", 1)

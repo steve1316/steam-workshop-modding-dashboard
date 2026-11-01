@@ -150,7 +150,7 @@ describe("ModGlossaryModal", () => {
         await act(async () => {
             fireEvent.click(screen.getByRole("button", { name: /^Apply$/ }))
         })
-        await waitFor(() => screen.getByText(/Replaced 5/))
+        await waitFor(() => screen.getByText(/Renamed in 5 translations/))
     })
 
     it("deletes every term after confirming, and shows the empty glossary", async () => {
