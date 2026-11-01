@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from backend.games.total_war_warhammer_3 import loc_tsv_packer
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.loc_tsv_packer import (
     AmbiguousPackError,
     PackNotFoundError,
@@ -188,11 +188,11 @@ def test_build_translation_pack_raises_when_rpfm_missing(tmp_path: Path):
 def test_resolve_rpfm_cli_path_prefers_config(monkeypatch, tmp_path: Path):
     rpfm = tmp_path / "rpfm_cli.exe"
     rpfm.write_bytes(b"x")
-    monkeypatch.setattr(loc_tsv_packer.config, "TW3_RPFM_CLI_PATH", str(rpfm))
+    monkeypatch.setattr(settings.tw3, "rpfm_cli_path", str(rpfm))
     assert resolve_rpfm_cli_path() == rpfm
 
 
 def test_resolve_rpfm_cli_path_returns_none_when_unset(monkeypatch):
-    monkeypatch.setattr(loc_tsv_packer.config, "TW3_RPFM_CLI_PATH", "")
-    monkeypatch.setattr(loc_tsv_packer.config, "TW3_HELPER_PATH", "")
+    monkeypatch.setattr(settings.tw3, "rpfm_cli_path", "")
+    monkeypatch.setattr(settings.tw3, "helper_path", "")
     assert resolve_rpfm_cli_path() is None

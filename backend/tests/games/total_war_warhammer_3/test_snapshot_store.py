@@ -14,7 +14,7 @@ from backend.games.total_war_warhammer_3.snapshot_store import (
 def _seed_translations(monkeypatch, tmp_path: Path, mod_id: str, data: dict) -> None:
     import json
 
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / mod_id
     mod_dir.mkdir(parents=True, exist_ok=True)
     (mod_dir / "translations.json").write_text(json.dumps(data), encoding="utf-8")

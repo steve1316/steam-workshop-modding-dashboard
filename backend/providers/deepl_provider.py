@@ -1,6 +1,6 @@
 """DeepL provider. DeepL takes no custom prompts, so glossary enforcement relies on DeepL's own glossary feature."""
 
-from backend import config
+from backend.core.settings import settings
 from backend.providers.base import TranslationProvider
 
 _DEEPL_LANG_CODES = {
@@ -28,7 +28,7 @@ class DeepLProvider(TranslationProvider):
         Args:
             api_key: DeepL API key, defaulting to the config value.
         """
-        self._api_key = api_key or config.DEEPL_API_KEY
+        self._api_key = api_key or settings.deepl_api_key
 
     @property
     def name(self) -> str:

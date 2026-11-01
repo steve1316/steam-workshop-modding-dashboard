@@ -12,7 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from backend import config
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.routes._paths import helper_scripts_path
 
 # `preview` hashes each pack and can be slow. Publish All sends every pack in one call, so the timeout scales with the id count.
@@ -36,7 +36,7 @@ def _run_cli(args: list[str], timeout: int) -> str:
         Captured stdout.
     """
     helper = helper_scripts_path()
-    if not config.TW3_HELPER_PATH or not helper.is_dir():
+    if not settings.tw3.helper_path or not helper.is_dir():
         raise ChangeNoteError("helper_scripts path is not configured")
     creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
     try:
@@ -48,7 +48,7 @@ def _run_cli(args: list[str], timeout: int) -> str:
             encoding="utf-8",
             errors="replace",
             timeout=timeout,
-            env={**os.environ, "STEAM_LIBRARY_DRIVE": config.TW3_STEAM_LIBRARY_DRIVE or ""},
+            env={**os.environ, "STEAM_LIBRARY_DRIVE": settings.tw3.steam_library_drive or ""},
             creationflags=creationflags,
         )
     except subprocess.TimeoutExpired:

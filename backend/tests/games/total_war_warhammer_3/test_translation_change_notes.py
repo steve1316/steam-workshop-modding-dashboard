@@ -24,7 +24,7 @@ def _row(key: str, text: str | None, status: DriftStatus = "translated", filenam
 @pytest.fixture
 def storage(monkeypatch, tmp_path: Path) -> Path:
     """Isolate game storage under tmp_path and return the mod's storage folder."""
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     return tmp_path / "games" / "total_war_warhammer_3" / "mods" / MOD_ID
 
 

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from backend import config
+from backend.core.settings import settings
 from backend.scripts.migrate_storage_v2_to_v3 import run_migration
 
 
@@ -12,7 +12,7 @@ def _write(path: Path, text: str) -> None:
 
 
 def test_moves_legacy_sidecars_into_per_game_namespace(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr(settings, "storage_path", tmp_path, raising=True)
     # Legacy sidecar written by the old buggy routes (freshest).
     _write(tmp_path / "mods" / "123" / "synced_keys.json", '["k1"]')
     _write(tmp_path / "mods" / "123" / "original_csvs" / "Lang.csv", "Key,English\n")
@@ -30,7 +30,7 @@ def test_moves_legacy_sidecars_into_per_game_namespace(monkeypatch, tmp_path: Pa
 
 
 def test_legacy_sidecar_overwrites_stale_per_game_copy(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr(settings, "storage_path", tmp_path, raising=True)
     _write(tmp_path / "mods" / "123" / "synced_keys.json", "FRESH")
     _write(tmp_path / "games" / "chrono_ark" / "mods" / "123" / "synced_keys.json", "STALE")
 
@@ -40,7 +40,7 @@ def test_legacy_sidecar_overwrites_stale_per_game_copy(monkeypatch, tmp_path: Pa
 
 
 def test_is_idempotent_via_marker(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr(settings, "storage_path", tmp_path, raising=True)
     _write(tmp_path / "mods" / "123" / "synced_keys.json", "x")
     assert run_migration() is True
     # Second run is a no-op (marker present).
@@ -48,7 +48,7 @@ def test_is_idempotent_via_marker(monkeypatch, tmp_path: Path):
 
 
 def test_no_legacy_dir_is_a_noop(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr(settings, "storage_path", tmp_path, raising=True)
     # No legacy STORAGE_PATH/mods at all.
     assert run_migration() is True
     assert (tmp_path / "_migrations" / "v2_to_v3_complete.marker").exists()

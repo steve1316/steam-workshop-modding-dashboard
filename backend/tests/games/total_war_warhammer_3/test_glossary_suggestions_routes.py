@@ -27,7 +27,7 @@ SUGGESTIONS = [
 @pytest.fixture
 def client(monkeypatch, tmp_path: Path) -> TestClient:
     """TestClient for the no-prefix glossary-suggestions router with all I/O isolated to tmp_path."""
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     fake_source = tmp_path / "translation_mod_source"
     (fake_source / "text").mkdir(parents=True, exist_ok=True)
     fake_mod = WH3TranslationMod(workshop_id=MOD_ID, display_name="Test Mod", parent_workshop_ids=("p",), local_source_dir=fake_source)

@@ -6,8 +6,8 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
-from backend import config
 from backend.core.paths import glossary_path
+from backend.core.settings import settings
 from backend.data import glossary_manager as gm
 from backend.games.base import GameAdapter, ModInfo
 from backend.games.capabilities.translation import TranslationCapability
@@ -329,7 +329,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             workshop_path=workshop_path,
             metadata_filename=self._METADATA_FILENAME,
             skip_dlls=self._SKIP_DLLS,
-            ignored_ids=set(config.IGNORED_MODS),
+            ignored_ids=set(settings.ignored_mods),
         )
 
     def extract_strings(self, mod_path: Path) -> tuple[dict[str, LocString], list[str]]:
@@ -447,7 +447,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return self._GLOSSARY_CATEGORIES
 
     def get_base_glossary_prompt(self, source_lang: str, target_lang: str = "English") -> str:
-        """Build the base-game glossary section, filtered to `config.GLOSSARY_CATEGORIES`.
+        """Build the base-game glossary section, filtered to `settings.glossary_categories`.
 
         Args:
             source_lang: Source language to include (e.g. `"Chinese"`).
@@ -456,7 +456,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         Returns:
             Glossary section, or `""` when no terms match.
         """
-        return gm.get_glossary_prompt(gm.load_glossary(glossary_path(GAME_ID)), allowed_categories=config.GLOSSARY_CATEGORIES, source_lang=source_lang, target_lang=target_lang)
+        return gm.get_glossary_prompt(gm.load_glossary(glossary_path(GAME_ID)), allowed_categories=settings.glossary_categories, source_lang=source_lang, target_lang=target_lang)
 
     def export_strings(self, output_path: Path, entries: list[LocString]) -> None:
         """Write entries to a Chrono Ark CSV (Key, Type, Desc, then language columns).

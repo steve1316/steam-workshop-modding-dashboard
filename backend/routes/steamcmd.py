@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from backend import config
 from backend.core.env_file import update_env_file
+from backend.core.settings import settings
 from backend.steamcmd_installer import install_steamcmd
 
 router = APIRouter(prefix="/api/steamcmd")
@@ -21,13 +21,13 @@ async def post_steamcmd_install():
     Returns:
         `{"path": str}` to the installed `steamcmd.exe`.
     """
-    target_dir = config.STORAGE_PATH / "steamcmd"
+    target_dir = settings.storage_path / "steamcmd"
     try:
         steamcmd_exe = await install_steamcmd(target_dir)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"SteamCMD install failed: {exc}") from exc
 
     path_str = str(steamcmd_exe)
-    config.STEAMCMD_PATH = path_str
+    settings.steamcmd_path = path_str
     update_env_file({"SWMT_STEAMCMD_PATH": path_str})
     return {"path": path_str}

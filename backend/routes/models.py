@@ -36,7 +36,7 @@ class TranslationRequest(BaseModel):
     """Request body for translation, estimation, and preview endpoints.
 
     Attributes:
-        provider: Overrides `config.TRANSLATION_PROVIDER` when set.
+        provider: Overrides `settings.translation_provider` when set.
         scope: `"all"` (default), `"names"` (WH3 name strings only), or `"changed"` (WH3 Update Changed rows only).
     """
 

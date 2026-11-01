@@ -5,9 +5,9 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from backend import config
 from backend.core.json_store import write_json
 from backend.core.paths import mods_path
+from backend.core.settings import settings
 from backend.models import LocString
 
 _NAME_KEY_SUFFIXES = ("_Name", "_name", "_PassiveName", "_SkinName")
@@ -440,7 +440,7 @@ def get_glossary_prompt(
 
     Args:
         glossary: Glossary dict.
-        allowed_categories: Categories to include, defaulting to `config.GLOSSARY_CATEGORIES`. An empty list disables filtering.
+        allowed_categories: Categories to include, defaulting to `settings.glossary_categories`. An empty list disables filtering.
         source_lang: Only include mappings for this language, which shrinks the prompt.
         exclude_terms: English terms to skip.
         target_lang: Target language name.
@@ -452,7 +452,7 @@ def get_glossary_prompt(
         return ""
 
     if allowed_categories is None:
-        allowed_categories = config.GLOSSARY_CATEGORIES
+        allowed_categories = settings.glossary_categories
 
     reverse = target_lang != "English"
 
@@ -524,7 +524,7 @@ def get_combined_glossary_prompt(
         mod: Mod glossary.
         source_lang: Only include mappings for this language.
         target_lang: Target language name.
-        allowed_categories: Base categories to include, defaulting to `config.GLOSSARY_CATEGORIES`.
+        allowed_categories: Base categories to include, defaulting to `settings.glossary_categories`.
 
     Returns:
         Combined prompt section.
@@ -533,7 +533,7 @@ def get_combined_glossary_prompt(
 
     base_prompt = get_glossary_prompt(
         base,
-        allowed_categories=allowed_categories if allowed_categories is not None else config.GLOSSARY_CATEGORIES,
+        allowed_categories=allowed_categories if allowed_categories is not None else settings.glossary_categories,
         source_lang=source_lang,
         exclude_terms=mod_term_keys,
         target_lang=target_lang,

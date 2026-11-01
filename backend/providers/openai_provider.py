@@ -2,7 +2,7 @@
 
 import time
 
-from backend import config
+from backend.core.settings import settings
 from backend.providers.base import TranslationProvider
 
 OPENAI_MODELS: dict[str, dict] = {
@@ -24,11 +24,11 @@ class OpenAIProvider(TranslationProvider):
         """Initialize the OpenAI translation provider.
 
         Args:
-            api_key: OpenAI API key, defaulting to `config.OPENAI_API_KEY`.
-            model: Model id, defaulting to `config.OPENAI_MODEL`.
+            api_key: OpenAI API key, defaulting to `settings.openai_api_key`.
+            model: Model id, defaulting to `settings.openai_model`.
         """
-        self._api_key = api_key or config.OPENAI_API_KEY
-        self._model = model or config.OPENAI_MODEL
+        self._api_key = api_key or settings.openai_api_key
+        self._model = model or settings.openai_model
 
     @property
     def name(self) -> str:

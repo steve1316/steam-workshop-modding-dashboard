@@ -8,7 +8,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from backend import config
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
 
 
@@ -78,11 +78,11 @@ def resolve_rpfm_cli_path() -> Path | None:
     Returns:
         Path when it resolves to a file, else None.
     """
-    rpfm_str = config.TW3_RPFM_CLI_PATH or ""
+    rpfm_str = settings.tw3.rpfm_cli_path or ""
     if rpfm_str:
         rpfm: Path | None = Path(rpfm_str)
     else:
-        helper_str = config.TW3_HELPER_PATH or ""
+        helper_str = settings.tw3.helper_path or ""
         rpfm = Path(helper_str) / "rpfm_cli.exe" if helper_str else None
     if rpfm is None or not rpfm.is_file():
         return None

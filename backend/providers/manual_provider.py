@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from backend import config
 from backend.core.json_store import write_json
+from backend.core.settings import settings
 from backend.providers.base import TranslationProvider
 
 
@@ -15,9 +15,9 @@ class ManualProvider(TranslationProvider):
         """Initialize the manual provider.
 
         Args:
-            output_dir: Directory for the edit file, defaulting to `config.STORAGE_PATH`.
+            output_dir: Directory for the edit file, defaulting to `settings.storage_path`.
         """
-        self._output_dir = output_dir or config.STORAGE_PATH
+        self._output_dir = output_dir or settings.storage_path
 
     @property
     def name(self) -> str:

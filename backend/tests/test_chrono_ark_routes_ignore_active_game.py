@@ -7,7 +7,7 @@ dashboard listed WH3 mods and every CA details page returned 404, which crashed 
 import pytest
 from fastapi.testclient import TestClient
 
-from backend import config
+from backend.core.settings import settings
 from backend.games.base import ModInfo
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.routes import helpers
@@ -24,7 +24,7 @@ def wh3_active(monkeypatch):
     """
     from backend.games.registry import get_adapter
 
-    monkeypatch.setattr(config, "ACTIVE_GAME", "total_war_warhammer_3")
+    monkeypatch.setattr(settings, "active_game", "total_war_warhammer_3")
     # The cached adapter has already rotated to WH3, as it does on a live server after a game switch.
     monkeypatch.setattr(helpers, "_adapter", get_adapter("total_war_warhammer_3"))
     monkeypatch.setattr(ChronoArkAdapter, "scan_mods", lambda self, search_path=None: [FAKE_CA_MOD])

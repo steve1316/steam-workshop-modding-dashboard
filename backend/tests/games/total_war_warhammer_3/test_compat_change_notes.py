@@ -6,14 +6,14 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from backend import config
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
 
 
 @pytest.fixture
 def helper_dir(monkeypatch, tmp_path: Path) -> Path:
     """Point the helper_scripts setting at an existing temp folder."""
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", str(tmp_path))
+    monkeypatch.setattr(settings.tw3, "helper_path", str(tmp_path))
     return tmp_path
 
 
@@ -70,7 +70,7 @@ def test_preview_timeout_grows_with_the_number_of_ids(helper_dir, monkeypatch):
 
 
 def test_preview_raises_when_helper_path_unset(monkeypatch):
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", "")
+    monkeypatch.setattr(settings.tw3, "helper_path", "")
 
     with pytest.raises(ccn.ChangeNoteError, match="not configured"):
         ccn.preview(["1"])

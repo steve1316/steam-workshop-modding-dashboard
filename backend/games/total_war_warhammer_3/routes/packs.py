@@ -9,8 +9,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from backend import config
 from backend.core.os_open import open_path
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3 import publish_notes, published_times
 from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
@@ -171,8 +171,8 @@ def post_pack_publish(workshop_id: str, body: PublishBody):
             workshop_id,
             folder,
             body.changenote,
-            steamcmd_path=config.STEAMCMD_PATH,
-            steam_username=config.STEAM_USERNAME,
+            steamcmd_path=settings.steamcmd_path,
+            steam_username=settings.steam_username,
             on_exit=on_exit,
         )
     except wp.PublisherPreflightError as exc:
@@ -279,8 +279,8 @@ async def post_publish_all(body: PublishAllBody):
     try:
         handle = wbp.start_batch(
             eligible,
-            steamcmd_path=config.STEAMCMD_PATH,
-            steam_username=config.STEAM_USERNAME,
+            steamcmd_path=settings.steamcmd_path,
+            steam_username=settings.steam_username,
         )
     except wbp.BatchInProgressError:
         raise HTTPException(status_code=409, detail="a batch or single-mod publish is already in progress") from None

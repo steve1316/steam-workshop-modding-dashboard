@@ -1,6 +1,6 @@
 """Build a translation provider from its id."""
 
-from backend import config
+from backend.core.settings import settings
 from backend.providers.base import TranslationProvider
 from backend.providers.claude_provider import ClaudeProvider
 from backend.providers.deepl_provider import DeepLProvider
@@ -20,9 +20,9 @@ def get_provider(provider_name: str) -> TranslationProvider:
         Initialized provider.
     """
     if provider_name == "claude":
-        return ClaudeProvider(model=config.CLAUDE_MODEL)
+        return ClaudeProvider(model=settings.claude_model)
     elif provider_name == "openai":
-        return OpenAIProvider(model=config.OPENAI_MODEL)
+        return OpenAIProvider(model=settings.openai_model)
     elif provider_name == "deepl":
         return DeepLProvider()
     elif provider_name == "ollama":

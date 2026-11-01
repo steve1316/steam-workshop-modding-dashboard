@@ -22,7 +22,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     points at the user's hand-edited mod folder on the host machine - we MUST not touch that. Override `get_translation_mod` to return a synthetic mod
     whose `local_source_dir` lives under tmp_path.
     """
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
 
     fake_source = tmp_path / "translation_mod_source"
     (fake_source / "text").mkdir(parents=True, exist_ok=True)

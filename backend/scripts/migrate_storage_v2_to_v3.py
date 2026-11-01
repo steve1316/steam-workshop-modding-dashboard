@@ -9,7 +9,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from backend import config
+from backend.core.settings import settings
 
 LOG = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ _MARKER_RELATIVE = Path("_migrations") / "v2_to_v3_complete.marker"
 
 def _root() -> Path:
     """Return the configured storage root."""
-    return Path(config.STORAGE_PATH)
+    return Path(settings.storage_path)
 
 
 def _marker_path() -> Path:

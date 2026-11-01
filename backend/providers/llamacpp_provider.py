@@ -7,7 +7,7 @@ from threading import Event
 
 import requests
 
-from backend import config
+from backend.core.settings import settings
 from backend.providers.base import TranslationProvider
 
 
@@ -21,8 +21,8 @@ class LlamaCppProvider(TranslationProvider):
             base_url: Server base URL, defaulting to the config value.
             model: Display-only model name, defaulting to the config value.
         """
-        self._base_url = base_url or config.LLAMACPP_BASE_URL
-        self._model = model or config.LLAMACPP_MODEL
+        self._base_url = base_url or settings.llamacpp_base_url
+        self._model = model or settings.llamacpp_model
 
     def _stop_server(self) -> None:
         """Stop the managed llama-server process to free GPU memory."""

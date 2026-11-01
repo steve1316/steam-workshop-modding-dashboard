@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend import config
+from backend.core.settings import settings
 
 
 def safe_child(base: Path, name: str) -> Path:
@@ -37,7 +37,7 @@ def game_storage_path(game_id: str) -> Path:
     """
     if not game_id:
         raise ValueError("game_id must not be empty")
-    return Path(config.STORAGE_PATH) / "games" / game_id
+    return Path(settings.storage_path) / "games" / game_id
 
 
 def mods_path(game_id: str) -> Path:

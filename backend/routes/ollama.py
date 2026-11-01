@@ -11,7 +11,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from backend import config
+from backend.core.settings import settings
 from backend.process_manager import is_managed, start_process, stop_process
 from backend.routes.models import OllamaPullRequest
 
@@ -26,7 +26,7 @@ async def _check_ollama_status() -> str:
     """
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{config.OLLAMA_BASE_URL}/api/tags", timeout=1.0)
+            resp = await client.get(f"{settings.ollama_base_url}/api/tags", timeout=1.0)
         if resp.status_code == 200:
             return "running"
         return "stopped"
@@ -50,13 +50,13 @@ async def get_ollama_status():
     if status == "running":
         try:
             async with httpx.AsyncClient() as client:
-                resp = await client.get(f"{config.OLLAMA_BASE_URL}/api/tags", timeout=3.0)
+                resp = await client.get(f"{settings.ollama_base_url}/api/tags", timeout=3.0)
             if resp.status_code == 200:
                 data = resp.json()
                 models = [{"name": m["name"], "size": m.get("size", 0), "modified_at": m.get("modified_at", "")} for m in data.get("models", [])]
         except Exception:
             pass
-    return {"status": status, "models": models, "base_url": config.OLLAMA_BASE_URL, "managed": is_managed("ollama")}
+    return {"status": status, "models": models, "base_url": settings.ollama_base_url, "managed": is_managed("ollama")}
 
 
 @router.get("/models")
@@ -68,7 +68,7 @@ async def get_ollama_models():
     """
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{config.OLLAMA_BASE_URL}/api/tags", timeout=3.0)
+            resp = await client.get(f"{settings.ollama_base_url}/api/tags", timeout=3.0)
         if resp.status_code == 200:
             data = resp.json()
             return {"models": data.get("models", [])}
@@ -92,7 +92,7 @@ async def pull_ollama_model(req: OllamaPullRequest):
         async with httpx.AsyncClient(timeout=None) as client:
             async with client.stream(
                 "POST",
-                f"{config.OLLAMA_BASE_URL}/api/pull",
+                f"{settings.ollama_base_url}/api/pull",
                 json={"name": req.model, "stream": True},
             ) as response:
                 async for line in response.aiter_lines():
@@ -140,7 +140,7 @@ async def start_ollama():
     if status == "not_installed":
         raise HTTPException(400, "Ollama is not installed. Install it first.")
 
-    log_dir = config.STORAGE_PATH / "logs"
+    log_dir = settings.storage_path / "logs"
     success, message = await asyncio.to_thread(start_process, "ollama", ["ollama", "serve"], log_dir)
     if not success:
         raise HTTPException(500, message)

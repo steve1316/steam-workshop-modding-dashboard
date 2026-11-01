@@ -8,9 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend import config
+from backend.core.settings import settings
 from backend.games.registry import get_adapter, list_games
-from backend.routes import llamacpp, ollama, settings, steamcmd
+from backend.routes import llamacpp, ollama, steamcmd
+from backend.routes import settings as settings_routes
 from backend.routes.helpers import chrono_ark_adapter
 from backend.scripts.migrate_storage_v1_to_v2 import run_migration
 from backend.scripts.migrate_storage_v2_to_v3 import run_migration as run_migration_v2_to_v3
@@ -38,7 +39,7 @@ app.add_middleware(
 # Game-agnostic routers stay flat under /api/.
 app.include_router(ollama.router)
 app.include_router(llamacpp.router)
-app.include_router(settings.router)
+app.include_router(settings_routes.router)
 app.include_router(steamcmd.router)
 
 # Adapter routers mount under /api/games/<id>/.
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="127.0.0.1",
-        port=config.API_PORT,
+        port=settings.api_port,
         log_config={
             "version": 1,
             "disable_existing_loggers": False,

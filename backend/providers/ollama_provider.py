@@ -7,7 +7,7 @@ from threading import Event
 
 import requests
 
-from backend import config
+from backend.core.settings import settings
 from backend.providers.base import TranslationProvider
 
 
@@ -21,8 +21,8 @@ class OllamaProvider(TranslationProvider):
             base_url: Server base URL, defaulting to the config value.
             model: Model name, defaulting to the config value.
         """
-        self._base_url = base_url or config.OLLAMA_BASE_URL
-        self._model = model or config.OLLAMA_MODEL
+        self._base_url = base_url or settings.ollama_base_url
+        self._model = model or settings.ollama_model
 
     @property
     def name(self) -> str:

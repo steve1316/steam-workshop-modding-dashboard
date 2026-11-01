@@ -2,7 +2,7 @@
 
 import time
 
-from backend import config
+from backend.core.settings import settings
 from backend.providers.base import ITEMS_OUTPUT_FORMAT, TranslationProvider
 from backend.translation.orchestrator import chunk_entries
 
@@ -93,11 +93,11 @@ class ClaudeProvider(TranslationProvider):
         """Initialize the Claude translation provider.
 
         Args:
-            api_key: Anthropic API key, defaulting to `config.ANTHROPIC_API_KEY`.
-            model: Model id, defaulting to `config.CLAUDE_MODEL`.
+            api_key: Anthropic API key, defaulting to `settings.anthropic_api_key`.
+            model: Model id, defaulting to `settings.claude_model`.
         """
-        self._api_key = api_key or config.ANTHROPIC_API_KEY
-        self._model = model or config.CLAUDE_MODEL
+        self._api_key = api_key or settings.anthropic_api_key
+        self._model = model or settings.claude_model
 
     @property
     def name(self) -> str:
@@ -254,9 +254,9 @@ class ClaudeProvider(TranslationProvider):
         Returns:
             Dict with `"estimated_input_tokens"`, `"estimated_output_tokens"`, `"estimated_cost_usd"`, `"model"` and `"note"`.
         """
-        from backend import config as _cfg
+        from backend.core.settings import settings
 
-        batches = chunk_entries(entries, _cfg.BATCH_SIZE, _cfg.BATCH_MAX_CHARS)
+        batches = chunk_entries(entries, settings.batch_size, settings.batch_max_chars)
         num_batches = max(1, len(batches))
 
         total_input_tokens = 0

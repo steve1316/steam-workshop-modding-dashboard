@@ -23,7 +23,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
 
     Mirrors the fixture in `test_translation_routes_v3.py`. `k1` has an existing `.loc.tsv` translation; `k2` is untranslated.
     """
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
 
     fake_source = tmp_path / "translation_mod_source"
     (fake_source / "text").mkdir(parents=True, exist_ok=True)
@@ -142,7 +142,7 @@ def test_preview_splits_batches_by_source_character_budget(client: TestClient, m
         return {"units.loc.tsv": {k: LocRow(k, "长" * 60, True) for k in ("k2", "k3", "k4")}}
 
     monkeypatch.setattr(routes_module, "_extract_all_parent_strings", long_parent)
-    monkeypatch.setattr("backend.config.BATCH_MAX_CHARS", 100)
+    monkeypatch.setattr("backend.core.settings.settings.batch_max_chars", 100)
     body = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452"}).json()
     assert [b["keys"] for b in body["batch_plan"]] == [["k2"], ["k3"], ["k4"]]
     assert body["total_batches"] == 3

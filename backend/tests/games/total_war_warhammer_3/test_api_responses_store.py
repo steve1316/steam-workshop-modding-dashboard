@@ -24,7 +24,7 @@ def _entry(kind: str = "translate-batch", text: str = "raw") -> dict:
 
 
 def test_append_creates_file_with_first_entry(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     append("abc", _entry())
     entries = list_entries("abc")
     assert len(entries) == 1
@@ -32,7 +32,7 @@ def test_append_creates_file_with_first_entry(monkeypatch, tmp_path: Path):
 
 
 def test_list_returns_most_recent_first(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     for i in range(3):
         append("abc", _entry(text=f"entry-{i}"))
     entries = list_entries("abc")
@@ -41,7 +41,7 @@ def test_list_returns_most_recent_first(monkeypatch, tmp_path: Path):
 
 
 def test_append_caps_at_20(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     for i in range(25):
         append("abc", _entry(text=f"entry-{i}"))
     entries = list_entries("abc")
@@ -52,5 +52,5 @@ def test_append_caps_at_20(monkeypatch, tmp_path: Path):
 
 
 def test_list_empty_when_no_file(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     assert list_entries("nope") == []

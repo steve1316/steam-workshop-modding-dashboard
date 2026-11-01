@@ -13,7 +13,7 @@ from backend.games.total_war_warhammer_3.glossary_store import (
 
 
 def _patch_root(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
 
 
 def test_add_term_persists_entry(monkeypatch, tmp_path: Path):
@@ -78,7 +78,7 @@ def test_load_base_glossary_reads_storage(tmp_path, monkeypatch):
 
     from backend.games.total_war_warhammer_3 import glossary_store
 
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     gpath = tmp_path / "games" / "total_war_warhammer_3" / "glossary.json"
     gpath.parent.mkdir(parents=True)
     gpath.write_text(json.dumps({"terms": {"Armour": {"english": "Armour", "category": "stats", "key": "k", "source_mappings": {"Chinese": "护甲"}}}}), encoding="utf-8")
@@ -90,14 +90,14 @@ def test_load_base_glossary_reads_storage(tmp_path, monkeypatch):
 def test_load_base_glossary_empty_when_missing(tmp_path, monkeypatch):
     from backend.games.total_war_warhammer_3 import glossary_store
 
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     assert glossary_store.load_base_glossary() == {"terms": {}}
 
 
 def test_mod_glossary_as_terms_adapts_flat_format(tmp_path, monkeypatch):
     from backend.games.total_war_warhammer_3 import glossary_store
 
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     glossary_store.add_term("123", {"english": "Battleguard", "source": "近卫军", "category": "unit_types"})
 
     adapted = glossary_store.mod_glossary_as_terms("123", "Chinese")

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from backend.core.settings import settings
 from backend.data import mod_settings, suggestion_manager, translation_store
 from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
@@ -222,8 +223,8 @@ async def preview(req: TranslationRequest) -> dict:
         message = "No changed strings to update" if changed_only else ("All names already translated" if names_only else "All strings already translated")
         return {"total_strings": 0, "message": message, "previews": {}}
 
-    batch_size = _t.config.BATCH_SIZE
-    max_chars = _t.config.BATCH_MAX_CHARS
+    batch_size = settings.batch_size
+    max_chars = settings.batch_max_chars
     chunks: list[list[tuple[str, str]]] = []
     stages: list[dict] = []
     if names_only:

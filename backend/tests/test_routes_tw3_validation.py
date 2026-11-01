@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-import backend.config as config
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.helper_scripts_loader import (
     RegistryFileMissingError,
 )
@@ -36,7 +36,7 @@ def test_get_validation_returns_issues_from_fixture(monkeypatch):
     Args:
         monkeypatch: pytest monkeypatch fixture.
     """
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", str(FIXTURES))
+    monkeypatch.setattr(settings.tw3, "helper_path", str(FIXTURES))
     client = TestClient(app)
     res = client.get("/api/games/total_war_warhammer_3/validation")
     assert res.status_code == 200
@@ -51,7 +51,7 @@ def test_get_validation_returns_503_when_helper_path_unset(monkeypatch):
     Args:
         monkeypatch: pytest monkeypatch fixture.
     """
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", "")
+    monkeypatch.setattr(settings.tw3, "helper_path", "")
     client = TestClient(app)
     res = client.get("/api/games/total_war_warhammer_3/validation")
     assert res.status_code == 503
@@ -63,7 +63,7 @@ def test_get_validation_returns_503_when_supported_mods_missing(monkeypatch):
     Args:
         monkeypatch: pytest monkeypatch fixture.
     """
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", "/fake/path")
+    monkeypatch.setattr(settings.tw3, "helper_path", "/fake/path")
     client = TestClient(app)
     with patch(
         "backend.games.total_war_warhammer_3.routes.validation.load_supported_mods",
@@ -80,7 +80,7 @@ def test_get_validation_returns_503_when_effects_missing(monkeypatch):
     Args:
         monkeypatch: pytest monkeypatch fixture.
     """
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", "/fake/path")
+    monkeypatch.setattr(settings.tw3, "helper_path", "/fake/path")
     client = TestClient(app)
     with patch(
         "backend.games.total_war_warhammer_3.routes.validation.load_supported_effects",
@@ -105,7 +105,7 @@ def test_get_validation_returns_empty_when_no_issues(monkeypatch, tmp_path):
     (helper / "data").mkdir()
     (helper / "data" / "supported_mods.py").write_text(f'SUPPORTED_MODS = [{{"name": "OK Mod", "package_name": "ok_mod", "path": "{real_pack.as_posix()}", "modified_attributes": ["infantry"]}}]')
     (helper / "data" / "dynamic_rors_effects.py").write_text('SUPPORTED_EFFECTS = {"infantry": {}}')
-    monkeypatch.setattr(config, "TW3_HELPER_PATH", str(helper))
+    monkeypatch.setattr(settings.tw3, "helper_path", str(helper))
     client = TestClient(app)
     res = client.get("/api/games/total_war_warhammer_3/validation")
     assert res.status_code == 200

@@ -15,9 +15,9 @@ if TYPE_CHECKING:
 
 from fastapi import HTTPException
 
-from backend import config
 from backend.core.json_store import write_json
 from backend.core.paths import GameStorage
+from backend.core.settings import settings
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
@@ -31,15 +31,15 @@ from backend.translation.orchestrator import fill_duplicate_translations
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Module-level state
 
-_adapter: GameAdapter = get_adapter(config.ACTIVE_GAME)
+_adapter: GameAdapter = get_adapter(settings.active_game)
 """Cached active game adapter. Use `current_adapter()` to read."""
 
 
 def current_adapter() -> GameAdapter:
-    """Return the active game adapter, rotating lazily after `set_active_game` flips `config.ACTIVE_GAME`."""
+    """Return the active game adapter, rotating lazily after `set_active_game` flips `settings.active_game`."""
     global _adapter
-    if _adapter.game_id != config.ACTIVE_GAME:
-        _adapter = get_adapter(config.ACTIVE_GAME)
+    if _adapter.game_id != settings.active_game:
+        _adapter = get_adapter(settings.active_game)
     return _adapter
 
 
@@ -67,7 +67,7 @@ def set_active_game(game_id: str) -> None:
     """
     global _adapter
     new_adapter = get_adapter(game_id)
-    config.ACTIVE_GAME = game_id
+    settings.active_game = game_id
     _adapter = new_adapter
 
 

@@ -6,7 +6,7 @@ leaked into the WH3 system prompt. Each adapter must build its base-glossary sec
 from its own glossary file and its own prompt categories.
 """
 
-from backend import config
+from backend.core.settings import settings
 from backend.data import glossary_manager as gm
 from backend.games.chrono_ark import adapter as ca_adapter
 from backend.games.total_war_warhammer_3 import adapter as wh3_adapter
@@ -18,7 +18,7 @@ def _glossary(terms: dict) -> dict:
 
 
 def test_chrono_ark_base_glossary_prompt_uses_chrono_ark_categories(monkeypatch):
-    """Chrono Ark builds its prompt from the Chrono Ark glossary, filtered to config.GLOSSARY_CATEGORIES."""
+    """Chrono Ark builds its prompt from the Chrono Ark glossary, filtered to settings.glossary_categories."""
     fake = _glossary(
         {
             "Character/Azar_name": {"english": "Azar", "category": "characters", "source_mappings": {"Chinese": "阿扎尔"}},
@@ -26,7 +26,7 @@ def test_chrono_ark_base_glossary_prompt_uses_chrono_ark_categories(monkeypatch)
         }
     )
     monkeypatch.setattr(gm, "load_glossary", lambda *a, **k: fake)
-    monkeypatch.setattr(config, "GLOSSARY_CATEGORIES", ["characters", "mechanics"])
+    monkeypatch.setattr(settings, "glossary_categories", ["characters", "mechanics"])
 
     prompt = ca_adapter.ChronoArkAdapter().get_base_glossary_prompt("Chinese")
 

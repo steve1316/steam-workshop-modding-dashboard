@@ -6,7 +6,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from backend import config
+from backend.core.settings import settings
 
 LOG = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ _LEGACY_TO_NEW = [
 
 def _root() -> Path:
     """Return the configured storage root."""
-    return Path(config.STORAGE_PATH)
+    return Path(settings.storage_path)
 
 
 def _marker_path() -> Path:

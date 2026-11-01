@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from backend import config
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3 import publish_notes
 from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
@@ -33,7 +33,7 @@ def test_workshop_content_dir_builds_path_from_drive(monkeypatch):
     absolute path. Previously `Path("F:") / "SteamLibrary"` produced the drive-relative 'F:SteamLibrary', which made SteamCMD
     look for the workshop folder under its own CWD on the F: drive and fail with 'no content'.
     """
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "F:")
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", "F:")
     resolved = tw3_workshop_content_dir("1234567890")
     assert resolved is not None
     assert resolved == Path("F:\\") / "SteamLibrary" / "steamapps" / "workshop" / "content" / "1142710" / "1234567890"
@@ -42,13 +42,13 @@ def test_workshop_content_dir_builds_path_from_drive(monkeypatch):
 
 def test_workshop_content_dir_accepts_drive_with_trailing_separator(monkeypatch):
     """A drive value that already includes a trailing separator (e.g. 'F:\\') resolves to the same absolute path."""
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "F:\\")
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", "F:\\")
     assert tw3_workshop_content_dir("1234567890") == Path("F:\\") / "SteamLibrary" / "steamapps" / "workshop" / "content" / "1142710" / "1234567890"
 
 
 def test_workshop_content_dir_returns_none_when_drive_unset(monkeypatch):
     """An empty drive setting yields None so callers can return 404 cleanly."""
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "")
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", "")
     assert tw3_workshop_content_dir("1234567890") is None
 
 
@@ -70,7 +70,7 @@ def _set_drive(monkeypatch, tmp_path: Path) -> Path:
     Returns:
         The `1142710` parent directory so tests can drop per-workshop folders in.
     """
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", str(tmp_path))
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", str(tmp_path))
     parent = tmp_path / "SteamLibrary" / "steamapps" / "workshop" / "content" / "1142710"
     parent.mkdir(parents=True)
     return parent
@@ -120,7 +120,7 @@ def test_preview_returns_400_when_workshop_id_non_numeric():
 
 
 def test_preview_returns_404_when_drive_unset(monkeypatch):
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "")
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", "")
     res = TestClient(app).get("/api/games/total_war_warhammer_3/packs/999/preview")
     assert res.status_code == 404
 
@@ -179,7 +179,7 @@ def test_last_modified_returns_400_when_workshop_id_non_numeric():
 
 
 def test_last_modified_returns_404_when_drive_unset(monkeypatch):
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "")
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", "")
     res = TestClient(app).get("/api/games/total_war_warhammer_3/packs/999/last_modified")
     assert res.status_code == 404
 
@@ -215,7 +215,7 @@ def test_open_pack_folder_returns_400_when_workshop_id_non_numeric(monkeypatch):
 
 
 def test_open_pack_folder_returns_404_when_drive_unset(monkeypatch):
-    monkeypatch.setattr(config, "TW3_STEAM_LIBRARY_DRIVE", "")
+    monkeypatch.setattr(settings.tw3, "steam_library_drive", "")
     monkeypatch.setattr(packs_routes, "open_path", lambda path: None)
     res = TestClient(app).post("/api/games/total_war_warhammer_3/packs/999/open")
     assert res.status_code == 404

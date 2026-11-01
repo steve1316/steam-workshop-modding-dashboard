@@ -21,8 +21,8 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client(monkeypatch, tmp_path: Path) -> TestClient:
-    # `mods_path()` reads `config.STORAGE_PATH` at call time, so this reroutes every store call to a per-test tmp dir.
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    # `mods_path()` reads `settings.storage_path` at call time, so this reroutes every store call to a per-test tmp dir.
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
 
     # Stub the heavy I/O extractors with deterministic data.
     def fake_parent(mod) -> dict[str, dict[str, LocRow]]:

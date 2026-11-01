@@ -54,15 +54,15 @@ def test_tw3_stub_adapter_registered():
 
 
 def test_game_storage_path_resolves_to_per_game_namespace(tmp_path, monkeypatch):
-    from backend import config
     from backend.core.paths import game_storage_path
+    from backend.core.settings import settings
 
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path)
+    monkeypatch.setattr(settings, "storage_path", tmp_path)
     assert game_storage_path("chrono_ark") == tmp_path / "games" / "chrono_ark"
 
 
 def test_migration_moves_legacy_storage(tmp_path, monkeypatch):
-    from backend import config
+    from backend.core.settings import settings
     from backend.scripts.migrate_storage_v1_to_v2 import run_migration
 
     legacy_root = tmp_path
@@ -70,7 +70,7 @@ def test_migration_moves_legacy_storage(tmp_path, monkeypatch):
     (legacy_root / "mods" / "1234" / "translations.json").write_text("{}", encoding="utf-8")
     (legacy_root / "glossary.json").write_text("{}", encoding="utf-8")
 
-    monkeypatch.setattr(config, "STORAGE_PATH", legacy_root)
+    monkeypatch.setattr(settings, "storage_path", legacy_root)
 
     moved = run_migration()
     assert moved is True
@@ -83,10 +83,10 @@ def test_migration_moves_legacy_storage(tmp_path, monkeypatch):
 
 
 def test_migration_idempotent(tmp_path, monkeypatch):
-    from backend import config
+    from backend.core.settings import settings
     from backend.scripts.migrate_storage_v1_to_v2 import run_migration
 
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path)
+    monkeypatch.setattr(settings, "storage_path", tmp_path)
     (tmp_path / "_migrations").mkdir(parents=True)
     (tmp_path / "_migrations" / "v1_complete.marker").write_text("done", encoding="utf-8")
 

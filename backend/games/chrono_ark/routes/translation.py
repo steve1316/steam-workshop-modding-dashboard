@@ -7,9 +7,9 @@ import threading
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from backend import config
 from backend.core.json_store import write_json
 from backend.core.paths import GameStorage, glossary_path
+from backend.core.settings import settings
 from backend.data.character_context import load_character_context
 from backend.data.glossary_manager import (
     extract_name_key_suggestions,
@@ -78,7 +78,7 @@ async def estimate_translation(req: TranslationRequest):
     if not untranslated:
         return {"total": 0, "estimates": {}}
 
-    provider_name = req.provider or config.TRANSLATION_PROVIDER
+    provider_name = req.provider or settings.translation_provider
     provider = _web_provider(provider_name)
 
     lang_override = load_source_language_override(req.mod_id, game_id=GAME_ID)
@@ -128,7 +128,7 @@ async def estimate_all_translation_costs(request: Request):
         `StreamingResponse` of `text/event-stream` events.
     """
     mods = chrono_ark_adapter().scan_mods()
-    provider_name = config.TRANSLATION_PROVIDER
+    provider_name = settings.translation_provider
     provider = _web_provider(provider_name)
 
     async def event_stream():
@@ -226,7 +226,7 @@ async def preview_translation(req: TranslationRequest):
     if not target:
         return {"total_strings": 0, "message": "All strings already translated" if not req.retranslate else "No translatable strings found", "previews": {}}
 
-    provider_name = req.provider or config.TRANSLATION_PROVIDER
+    provider_name = req.provider or settings.translation_provider
     provider = _web_provider(provider_name)
 
     base_glossary = load_glossary(glossary_path(GAME_ID))
@@ -246,14 +246,14 @@ async def preview_translation(req: TranslationRequest):
                 by_lang[lang] = []
             by_lang[lang].append((key, loc_str.translations.get(lang, "")))
 
-    batch_size = config.BATCH_SIZE
+    batch_size = settings.batch_size
     previews = {}
     estimates = {}
     total_batches = 0
     for lang, entries in by_lang.items():
         glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang, target_lang=target_lang)
         style_examples = chrono_ark_adapter().get_style_examples(lang)
-        batches = chunk_entries(entries, batch_size, config.BATCH_MAX_CHARS)
+        batches = chunk_entries(entries, batch_size, settings.batch_max_chars)
         num_batches = len(batches)
         total_batches += num_batches
         user_messages: list[str] = []
@@ -291,7 +291,7 @@ async def preview_translation(req: TranslationRequest):
 
     batch_plan = []
     for lang, entries in by_lang.items():
-        for batch in chunk_entries(entries, batch_size, config.BATCH_MAX_CHARS):
+        for batch in chunk_entries(entries, batch_size, settings.batch_max_chars):
             batch_plan.append(
                 {
                     "source_lang": lang,
@@ -322,7 +322,7 @@ async def get_system_prompt(source_lang: str = "Korean", target_lang: str = "Eng
     Returns:
         `provider`, `source_lang`, and `system_prompt`.
     """
-    provider_name = config.TRANSLATION_PROVIDER
+    provider_name = settings.translation_provider
     provider = _web_provider(provider_name)
 
     glossary_prompt = chrono_ark_adapter().get_base_glossary_prompt(source_lang=source_lang, target_lang=target_lang)
@@ -369,7 +369,7 @@ async def translate_mod(req: TranslationRequest):
 
     untranslated = chrono_ark_adapter().get_untranslated(strings)
 
-    provider_name = req.provider or config.TRANSLATION_PROVIDER
+    provider_name = req.provider or settings.translation_provider
     provider = _web_provider(provider_name)
 
     if not untranslated:
@@ -400,13 +400,13 @@ async def translate_mod(req: TranslationRequest):
     if hasattr(provider, "last_raw_responses"):
         provider.last_raw_responses = []
 
-    batch_size = config.BATCH_SIZE
+    batch_size = settings.batch_size
     loop = asyncio.get_running_loop()
     try:
         for lang, entries in by_lang.items():
             glossary_prompt = get_combined_glossary_prompt(base_glossary, mod_glossary, source_lang=lang, target_lang=target_lang)
             style_examples = chrono_ark_adapter().get_style_examples(lang)
-            for batch in chunk_entries(entries, batch_size, config.BATCH_MAX_CHARS):
+            for batch in chunk_entries(entries, batch_size, settings.batch_max_chars):
                 translations, suggestions = await loop.run_in_executor(
                     None,
                     lambda batch=batch, lang=lang, glossary_prompt=glossary_prompt, style_examples=style_examples: provider.translate_batch(
@@ -512,7 +512,7 @@ async def translate_batch(req: BatchTranslationRequest):
     if not entries:
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
 
-    provider_name = req.provider or config.TRANSLATION_PROVIDER
+    provider_name = req.provider or settings.translation_provider
 
     if provider_name == "llamacpp":
         await _ensure_llamacpp_running()
@@ -662,7 +662,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
     if not entries:
         raise HTTPException(status_code=400, detail="No translatable text found for the provided keys")
 
-    provider_name = req.provider or config.TRANSLATION_PROVIDER
+    provider_name = req.provider or settings.translation_provider
 
     if provider_name == "llamacpp":
         await _ensure_llamacpp_running()

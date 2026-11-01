@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend import config
 from backend.core.paths import game_storage_path
+from backend.core.settings import settings
 from backend.games.total_war_warhammer_3 import GAME_ID
 
 
@@ -15,7 +15,7 @@ def helper_scripts_path() -> Path:
     Returns:
         Path that may not exist, since loaders validate it.
     """
-    return Path(config.TW3_HELPER_PATH or "")
+    return Path(settings.tw3.helper_path or "")
 
 
 TW3_APPID = "1142710"
@@ -53,7 +53,7 @@ def _tw3_workshop_dir() -> Path | None:
     Returns:
         `<steam_library_drive>\\SteamLibrary\\steamapps\\workshop`, or `None` when the Steam library drive setting is empty.
     """
-    drive = (config.TW3_STEAM_LIBRARY_DRIVE or "").strip()
+    drive = (settings.tw3.steam_library_drive or "").strip()
     if not drive:
         return None
     # A bare drive spec like "F:" is drive-relative on Windows. Promote it to "F:\" so the join is absolute.

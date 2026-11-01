@@ -10,8 +10,8 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from backend import config
 from backend.core.env_file import update_env_file
+from backend.core.settings import settings
 from backend.process_manager import is_managed, start_process, stop_process
 from backend.routes.helpers import _gguf_download_cancels
 from backend.routes.models import GGUFDownloadRequest, LlamaCppInstallRequest
@@ -33,10 +33,10 @@ def _llamacpp_binary() -> Path | None:
     Returns:
         Executable path, or None if not found.
     """
-    configured = Path(config.LLAMACPP_BINARY_PATH)
+    configured = Path(settings.llamacpp_binary_path)
     if configured.is_file():
         return configured
-    managed = config.STORAGE_PATH / "bin" / "llama-server.exe"
+    managed = settings.storage_path / "bin" / "llama-server.exe"
     if managed.is_file():
         return managed
     found = shutil.which("llama-server")
@@ -49,13 +49,13 @@ async def _ensure_llamacpp_running() -> None:
     """Start llama-server if it isn't already healthy, so translation doesn't need a manual start."""
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{config.LLAMACPP_BASE_URL}/health", timeout=2.0)
+            resp = await client.get(f"{settings.llamacpp_base_url}/health", timeout=2.0)
         if resp.status_code == 200:
             return
     except Exception:
         pass
 
-    model_path = config.LLAMACPP_MODEL_PATH
+    model_path = settings.llamacpp_model_path
     if not model_path:
         raise HTTPException(400, "Model path is required. Select and download a model first.")
 
@@ -65,10 +65,10 @@ async def _ensure_llamacpp_running() -> None:
 
     from urllib.parse import urlparse
 
-    parsed = urlparse(config.LLAMACPP_BASE_URL)
+    parsed = urlparse(settings.llamacpp_base_url)
     port = str(parsed.port or 8080)
 
-    ctx_size = config.LLAMACPP_CTX_SIZE
+    ctx_size = settings.llamacpp_ctx_size
 
     args = [
         str(binary),
@@ -77,12 +77,12 @@ async def _ensure_llamacpp_running() -> None:
         "--port",
         port,
         "--n-gpu-layers",
-        str(config.LLAMACPP_GPU_LAYERS),
+        str(settings.llamacpp_gpu_layers),
         "--ctx-size",
         str(ctx_size),
     ]
 
-    log_dir = config.STORAGE_PATH / "logs"
+    log_dir = settings.storage_path / "logs"
     success, message = await asyncio.to_thread(start_process, "llamacpp", args, log_dir)
     if not success:
         raise HTTPException(500, message)
@@ -92,7 +92,7 @@ async def _ensure_llamacpp_running() -> None:
         await asyncio.sleep(1)
         try:
             async with httpx.AsyncClient() as client:
-                resp = await client.get(f"{config.LLAMACPP_BASE_URL}/health", timeout=2.0)
+                resp = await client.get(f"{settings.llamacpp_base_url}/health", timeout=2.0)
             if resp.status_code == 200:
                 return
         except Exception:
@@ -113,7 +113,7 @@ async def get_llamacpp_status():
     running = False
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{config.LLAMACPP_BASE_URL}/health", timeout=2.0)
+            resp = await client.get(f"{settings.llamacpp_base_url}/health", timeout=2.0)
         if resp.status_code == 200:
             running = True
     except Exception:
@@ -122,7 +122,7 @@ async def get_llamacpp_status():
         "status": "running" if running else "not_running",
         "installed": installed,
         "binary_path": str(_llamacpp_binary() or ""),
-        "base_url": config.LLAMACPP_BASE_URL,
+        "base_url": settings.llamacpp_base_url,
         "managed": is_managed("llamacpp"),
     }
 
@@ -141,7 +141,7 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
         raise HTTPException(400, f"Invalid backend: {req.backend}. Choose from: {', '.join(_LLAMACPP_BACKENDS)}")
 
     backend_info = _LLAMACPP_BACKENDS[req.backend]
-    bin_dir = config.STORAGE_PATH / "bin"
+    bin_dir = settings.storage_path / "bin"
 
     async def event_stream():
         import io
@@ -212,7 +212,7 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
                                 target.write_bytes(zf.read(member))
 
             binary_path = str(bin_dir / "llama-server.exe")
-            config.LLAMACPP_BINARY_PATH = binary_path
+            settings.llamacpp_binary_path = binary_path
             update_env_file({"SWMT_LLAMACPP_BINARY_PATH": binary_path})
 
             print(f"[llamacpp] Installed {tag} ({backend_info['label']}) to {bin_dir}")
@@ -258,7 +258,7 @@ async def list_llamacpp_models():
     Returns:
         `models` list and `models_dir`.
     """
-    models_dir = config.LLAMACPP_MODELS_DIR
+    models_dir = settings.llamacpp_models_dir
     if not models_dir.exists():
         return {"models": [], "models_dir": str(models_dir)}
     models = []
@@ -277,7 +277,7 @@ async def download_gguf_model(req: GGUFDownloadRequest):
     Returns:
         SSE progress stream.
     """
-    models_dir = config.LLAMACPP_MODELS_DIR
+    models_dir = settings.llamacpp_models_dir
     models_dir.mkdir(parents=True, exist_ok=True)
     dest = models_dir / req.filename
 
@@ -362,7 +362,7 @@ async def delete_llamacpp_model(filename: str):
     Returns:
         `success` and `message`.
     """
-    models_dir = config.LLAMACPP_MODELS_DIR
+    models_dir = settings.llamacpp_models_dir
     target = models_dir / filename
     if not target.exists():
         raise HTTPException(404, f"Model not found: {filename}")

@@ -235,7 +235,7 @@ def test_combined_glossary_prompt_empty_mod():
 
 
 def test_get_combined_glossary_prompt_respects_allowed_categories():
-    """An explicit allowed_categories overrides config.GLOSSARY_CATEGORIES for the base glossary."""
+    """An explicit allowed_categories overrides settings.glossary_categories for the base glossary."""
     from backend.data.glossary_manager import get_combined_glossary_prompt
 
     base = {

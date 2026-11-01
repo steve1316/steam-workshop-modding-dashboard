@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from backend import config
 from backend.core.paths import GameStorage, safe_child
+from backend.core.settings import settings
 
 
 def test_plain_names_resolve_under_the_base(tmp_path: Path):
@@ -20,7 +20,7 @@ def test_names_that_could_escape_are_rejected(tmp_path: Path, name: str):
 
 
 def test_game_storage_resolves_under_the_per_game_namespace(monkeypatch, tmp_path: Path):
-    monkeypatch.setattr(config, "STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr(settings, "storage_path", tmp_path, raising=True)
     storage = GameStorage("chrono_ark")
     assert storage.root == tmp_path / "games" / "chrono_ark"
     assert storage.mods_dir == tmp_path / "games" / "chrono_ark" / "mods"

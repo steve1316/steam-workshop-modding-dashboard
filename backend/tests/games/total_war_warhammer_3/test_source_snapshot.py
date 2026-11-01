@@ -41,7 +41,7 @@ def test_accept_keys_rebaselines_only_the_given_keys():
 
 
 def test_load_parent_snapshot_normalizes_legacy_hash_strings(monkeypatch, tmp_path):
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / "mod1"
     mod_dir.mkdir(parents=True)
     (mod_dir / "parent_snapshot.json").write_text('{"units.loc.tsv": {"k1": "abc"}}', encoding="utf-8")

@@ -14,8 +14,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from backend import config
 from backend.core.os_open import open_path
+from backend.core.settings import settings
 from backend.data import character_context, mod_settings, translation_store
 from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
 from backend.data.mod_settings import (
@@ -101,11 +101,11 @@ def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, L
     Returns:
         Normalized filename to `{key: LocRow}`, merged across all parents.
     """
-    rpfm_str = config.TW3_RPFM_CLI_PATH or ""
+    rpfm_str = settings.tw3.rpfm_cli_path or ""
     if rpfm_str:
         rpfm: Path | None = Path(rpfm_str)
     else:
-        helper_str = config.TW3_HELPER_PATH or ""
+        helper_str = settings.tw3.helper_path or ""
         rpfm = Path(helper_str) / "rpfm_cli.exe" if helper_str else None
     if rpfm is None or not rpfm.is_file():
         raise HTTPException(500, f"rpfm_cli not found (tried {rpfm or 'TW3_RPFM_CLI_PATH'}); set SWMT_TW3_RPFM_CLI_PATH or place rpfm_cli.exe in SWMT_TW3_HELPER_PATH")

@@ -49,7 +49,7 @@ def _setup_helper(monkeypatch, tmp_path):
     helper.mkdir()
     _write_layout(helper)
     (helper / "data" / "supported_mods.py").write_text(_FIXTURE_SOURCE)
-    monkeypatch.setattr("backend.config.TW3_HELPER_PATH", str(helper))
+    monkeypatch.setattr("backend.core.settings.settings.tw3.helper_path", str(helper))
     return helper
 
 
@@ -80,7 +80,7 @@ def test_post_supported_mods_returns_409_on_duplicate(monkeypatch, tmp_path):
 
 def test_post_supported_mods_returns_503_when_helper_path_unset(monkeypatch):
     """POST returns 503 when TW3_HELPER_PATH is not configured."""
-    monkeypatch.setattr("backend.config.TW3_HELPER_PATH", "")
+    monkeypatch.setattr("backend.core.settings.settings.tw3.helper_path", "")
     body = {"entry": {"name": "X", "package_name": "x.pack", "modified_attributes": []}}
     res = TestClient(app).post("/api/games/total_war_warhammer_3/supported-mods", json=body)
     assert res.status_code == 503
@@ -115,7 +115,7 @@ def _setup_helper_with_two(monkeypatch, tmp_path):
     helper.mkdir()
     _write_layout(helper)
     (helper / "data" / "supported_mods.py").write_text(_TWO_ENTRY_FIXTURE)
-    monkeypatch.setattr("backend.config.TW3_HELPER_PATH", str(helper))
+    monkeypatch.setattr("backend.core.settings.settings.tw3.helper_path", str(helper))
     return helper
 
 
@@ -172,7 +172,7 @@ def test_get_supported_effects_returns_top_level_keys(monkeypatch, tmp_path):
     helper.mkdir()
     _write_layout(helper)
     (helper / "data" / "dynamic_rors_effects.py").write_text('SUPPORTED_EFFECTS = {"melee_attack": {"id": 1}, "missile_damage": {"id": 2}}\n')
-    monkeypatch.setattr("backend.config.TW3_HELPER_PATH", str(helper))
+    monkeypatch.setattr("backend.core.settings.settings.tw3.helper_path", str(helper))
     res = TestClient(app).get("/api/games/total_war_warhammer_3/supported-effects")
     assert res.status_code == 200
     assert sorted(res.json()["categories"]) == ["melee_attack", "missile_damage"]

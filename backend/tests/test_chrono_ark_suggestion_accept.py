@@ -28,7 +28,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     Returns:
         The test client.
     """
-    monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)
+    monkeypatch.setattr("backend.core.settings.settings.storage_path", tmp_path, raising=True)
     # key -> (source text, English from the mod's CSV)
     rows = {"intro": ("卡莉登场", "Kali appears"), "csv_only": ("卡莉", "Kali"), "other": ("别人", "Kali is mentioned")}
     monkeypatch.setattr(glossary_routes, "_source_and_csv_english", lambda mod_id: rows)

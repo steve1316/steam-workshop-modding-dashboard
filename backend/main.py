@@ -16,9 +16,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from backend import config
 from backend.core.json_store import write_json
 from backend.core.paths import glossary_path
+from backend.core.settings import settings
 from backend.data.glossary_manager import (
     add_glossary_term,
     build_glossary_from_base_game,
@@ -76,7 +76,7 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     if args.base_game:
         print("Extracting base game strings...")
         strings = adapter.extract_base_game_strings()
-        output_path = config.STORAGE_PATH / "base_game" / "strings.json"
+        output_path = settings.storage_path / "base_game" / "strings.json"
         save_extracted_strings(strings, output_path)
 
     elif args.mod:
@@ -92,7 +92,7 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 
         print(f"Extracting strings from mod {args.mod}...")
         strings, _ = adapter.extract_strings(mod_path)
-        output_path = config.STORAGE_PATH / "mods" / args.mod / "source.json"
+        output_path = settings.storage_path / "mods" / args.mod / "source.json"
         save_extracted_strings(strings, output_path)
 
         tracker = ProgressTracker(game_id=GAME_ID)
@@ -120,7 +120,7 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
             if mod_info.has_loc_files:
                 print(f"\nExtracting: {mod_info.name} ({mod_info.mod_id})...")
                 strings, _ = adapter.extract_strings(mod_info.path)
-                output = config.STORAGE_PATH / "mods" / mod_info.mod_id / "source.json"
+                output = settings.storage_path / "mods" / mod_info.mod_id / "source.json"
                 save_extracted_strings(strings, output)
                 tracker.update(mod_info.mod_id, strings, adapter.source_languages)
     else:
@@ -185,7 +185,7 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         _apply_translations(mod_id, cached_translations, tm)
         return
 
-    provider_name = args.provider or config.TRANSLATION_PROVIDER
+    provider_name = args.provider or settings.translation_provider
     try:
         provider = get_provider(provider_name)
     except ValueError as e:
@@ -228,9 +228,9 @@ def cmd_translate(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     for lang, entries in entries_by_lang.items():
         print(f"\n  Translating {len(entries)} {lang} strings...")
 
-        batch_size = config.BATCH_SIZE
+        batch_size = settings.batch_size
         batch_num = 1
-        batches = chunk_entries(entries, batch_size, config.BATCH_MAX_CHARS)
+        batches = chunk_entries(entries, batch_size, settings.batch_max_chars)
         total_batches = len(batches)
 
         for batch in batches:
@@ -314,7 +314,7 @@ def cmd_status(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         print(f"  Progress: {status['percentage']}%")
         print(f"  Last updated: {status['last_updated']}")
     else:
-        mods_dir = config.STORAGE_PATH / "mods"
+        mods_dir = settings.storage_path / "mods"
         if not mods_dir.exists():
             print("No mods extracted yet. Run 'extract --all-mods' first.")
             return
@@ -403,7 +403,7 @@ def cmd_export(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         if key in strings:
             strings[key].translations["English"] = english
 
-    export_dir = config.STORAGE_PATH / "mods" / mod_id / "export"
+    export_dir = settings.storage_path / "mods" / mod_id / "export"
     export_dir.mkdir(parents=True, exist_ok=True)
 
     by_source: dict[str, list] = {}
