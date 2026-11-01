@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from backend.core.json_store import write_json
-from backend.core.paths import safe_child
+from backend.core.paths import GameStorage, safe_child
 from backend.data.character_context import load_character_context, save_character_context
 from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 from backend.data.mod_settings import (
@@ -40,7 +40,6 @@ from backend.routes.helpers import (
     resolve_source_language,
 )
 from backend.routes.models import CharacterContext, HistorySnapshotRequest, SourceLanguageOverride, TargetLanguageOverride, TranslationUpdate
-from backend.translation.game_storage import GameStorage
 
 router = APIRouter()
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from backend import config
 from backend.core.json_store import write_json
-from backend.games.storage_paths import glossary_path, mods_path
+from backend.core.paths import glossary_path, mods_path
 from backend.models import LocString
 
 _NAME_KEY_SUFFIXES = ("_Name", "_name", "_PassiveName", "_SkinName")

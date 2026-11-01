@@ -11,8 +11,8 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
+from backend.core.paths import glossary_path
 from backend.data.glossary_manager import save_glossary
-from backend.games.storage_paths import glossary_path
 
 GAME_ID = "total_war_warhammer_3"
 

@@ -18,13 +18,13 @@ from fastapi import HTTPException
 
 from backend import config
 from backend.core.json_store import write_json, write_text_atomic
+from backend.core.paths import GameStorage
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
 from backend.games.base import GameAdapter
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.registry import get_adapter
-from backend.translation.game_storage import GameStorage
 from backend.translation.orchestrator import fill_duplicate_translations
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////

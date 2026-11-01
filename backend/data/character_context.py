@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.games.storage_paths import mods_path
+from backend.core.paths import mods_path
 
 _DEFAULTS = {"source_game": "", "character_name": "", "background": "", "created_at": "", "updated_at": ""}
 

@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.games.storage_paths import mods_path
+from backend.core.paths import mods_path
 
 _TAG_RE = re.compile(r"<[^>]+>")
 

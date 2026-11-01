@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.games.storage_paths import mods_path
+from backend.core.paths import mods_path
 
 
 def load_source_language_override(mod_id: str, *, storage_path: Path | None = None) -> str | None:

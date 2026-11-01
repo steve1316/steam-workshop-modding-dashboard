@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend import config
+from backend.core.paths import game_storage_path
 from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
 from backend.data.mod_settings import (
     load_source_language_override,
@@ -25,7 +26,6 @@ from backend.data.mod_settings import (
     save_source_language_override,
     save_target_language_override,
 )
-from backend.games.storage_paths import game_storage_path
 from backend.games.total_war_warhammer_3 import (
     api_responses_store,
     glossary_store,

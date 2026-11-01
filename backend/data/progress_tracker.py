@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
+from backend.core.paths import mods_path
 
-from ..games.storage_paths import mods_path
 from ..models import LocString
 
 

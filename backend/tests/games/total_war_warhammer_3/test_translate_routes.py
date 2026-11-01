@@ -105,8 +105,8 @@ def test_batch_translates_keys_and_persists(client: TestClient, monkeypatch, tmp
 
 def test_batch_persists_and_returns_new_glossary_suggestions(client: TestClient, monkeypatch, tmp_path: Path):
     """The provider's glossary suggestions are returned and persisted for the review modal; terms already in the glossary are filtered out."""
+    from backend.core.paths import game_storage_path
     from backend.data import suggestion_manager
-    from backend.games.storage_paths import game_storage_path
     from backend.games.total_war_warhammer_3 import glossary_store
 
     # "Lord" is already in the glossary, so it must be filtered out; only "Cathay" should survive.
@@ -253,8 +253,8 @@ def test_preview_scope_names_zero_state(client: TestClient, monkeypatch):
 
 def test_name_suggestions_builds_categorized_suggestions(client: TestClient, monkeypatch, tmp_path: Path):
     """After a names pass, name-suggestions maps each translated name row to a categorized suggestion and persists it."""
+    from backend.core.paths import game_storage_path
     from backend.data import suggestion_manager
-    from backend.games.storage_paths import game_storage_path
 
     mod_id = "3315737452"
 
@@ -541,8 +541,8 @@ def test_system_prompt_asks_for_one_word_per_name_syllable(client):
 
 def test_batch_splits_joined_names_in_translations_and_suggested_terms(client: TestClient, monkeypatch, tmp_path: Path):
     """A joined pinyin name from Claude is saved and returned with spaced syllables, in the translation and in its suggested glossary term."""
+    from backend.core.paths import game_storage_path
     from backend.data import suggestion_manager
-    from backend.games.storage_paths import game_storage_path
 
     monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"lord": LocRow("lord", "『狂飙烈风之主』妙影与烛龙", True)}})
 

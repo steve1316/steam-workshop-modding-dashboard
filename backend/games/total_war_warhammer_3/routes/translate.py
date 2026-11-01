@@ -13,8 +13,8 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from backend.core.paths import game_storage_path
 from backend.data import suggestion_manager
-from backend.games.storage_paths import game_storage_path
 from backend.games.total_war_warhammer_3.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes import translation as _t

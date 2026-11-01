@@ -55,7 +55,7 @@ def test_tw3_stub_adapter_registered():
 
 def test_game_storage_path_resolves_to_per_game_namespace(tmp_path, monkeypatch):
     from backend import config
-    from backend.games.storage_paths import game_storage_path
+    from backend.core.paths import game_storage_path
 
     monkeypatch.setattr(config, "STORAGE_PATH", tmp_path)
     assert game_storage_path("chrono_ark") == tmp_path / "games" / "chrono_ark"

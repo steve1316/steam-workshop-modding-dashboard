@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.games.storage_paths import translation_memory_path
+from backend.core.paths import translation_memory_path
 
 
 class TranslationMemory:

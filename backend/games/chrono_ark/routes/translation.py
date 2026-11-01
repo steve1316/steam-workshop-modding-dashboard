@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from backend import config
 from backend.core.json_store import write_json
+from backend.core.paths import GameStorage
 from backend.data.character_context import load_character_context
 from backend.data.glossary_manager import (
     extract_name_key_suggestions,
@@ -35,7 +36,6 @@ from backend.routes.helpers import (
 )
 from backend.routes.llamacpp import _ensure_llamacpp_running
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
-from backend.translation.game_storage import GameStorage
 from backend.translation.orchestrator import chunk_entries, run_batch
 
 router = APIRouter(prefix="/translate")

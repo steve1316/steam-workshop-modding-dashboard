@@ -7,8 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from backend.core.paths import game_storage_path
 from backend.data import suggestion_manager
-from backend.games.storage_paths import game_storage_path
 from backend.games.total_war_warhammer_3 import glossary_store
 from backend.games.total_war_warhammer_3.api_responses_store import list_entries
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module

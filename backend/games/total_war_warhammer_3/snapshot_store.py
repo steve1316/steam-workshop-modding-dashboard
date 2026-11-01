@@ -14,8 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json, write_text_atomic
-from backend.core.paths import safe_child
-from backend.games.storage_paths import game_storage_path
+from backend.core.paths import game_storage_path, safe_child
 
 GAME_ID = "total_war_warhammer_3"
 MAX_SNAPSHOTS = 20

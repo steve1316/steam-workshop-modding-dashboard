@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.games.storage_paths import game_storage_path
+from backend.core.paths import game_storage_path
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_manifest_path
 from backend.games.total_war_warhammer_3.translation_drift import DriftRow, hash_text
 

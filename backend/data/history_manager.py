@@ -6,8 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.core.paths import safe_child
-from backend.games.storage_paths import mods_path
+from backend.core.paths import mods_path, safe_child
 
 
 def _history_dir(mod_id: str, storage_path: Path | None = None) -> Path:

@@ -11,8 +11,8 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 
+from backend.core.paths import game_storage_path
 from backend.data import suggestion_manager
-from backend.games.storage_paths import game_storage_path
 from backend.games.total_war_warhammer_3 import api_responses_store, glossary_store, snapshot_store
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
