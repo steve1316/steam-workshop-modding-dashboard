@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from backend.models import LocString
 from backend.text_utils import has_cjk as _has_cjk
+from backend.core.json_store import write_json
 
 
 # Maps (schema, field_name) to a canonical suffix used in the localization key.
@@ -235,8 +236,7 @@ def export_gdata_translations(
                         modified = True
 
         if modified:
-            with open(json_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            write_json(json_file, data)
             files_modified.append(json_file.name)
 
     return files_modified

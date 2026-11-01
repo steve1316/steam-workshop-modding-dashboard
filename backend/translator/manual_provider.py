@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 from backend import config
 from backend.translator.base import TranslationProvider
+from backend.core.json_store import write_json
 
 
 class ManualProvider(TranslationProvider):
@@ -78,8 +79,7 @@ class ManualProvider(TranslationProvider):
         edit_path = self._output_dir / "manual_edit.json"
         edit_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(edit_path, "w", encoding="utf-8") as f:
-            json.dump(edit_data, f, indent=2, ensure_ascii=False)
+        write_json(edit_path, edit_data)
 
         print(f"\n{'=' * 60}")
         print(f"MANUAL TRANSLATION MODE")

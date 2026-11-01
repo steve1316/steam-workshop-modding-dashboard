@@ -7,12 +7,12 @@ The baseline lives in `<root>/mods/{id}/published_baseline.json`, outside `snaps
 from __future__ import annotations
 
 import json
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from backend.core.json_store import write_json
 from backend.games.storage_paths import game_storage_path
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_manifest_path
 from backend.games.total_war_warhammer_3.translation_drift import DriftRow, hash_text
@@ -82,10 +82,7 @@ def save_baseline(mod_id: str, strings: dict[str, dict[str, str]], changenote: s
     path = _baseline_path(mod_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"published_at": datetime.now(timezone.utc).isoformat(), "changenote": changenote, "strings": strings}
-    tmp = path.with_name(f"{BASELINE_FILENAME}.tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, path)
+    write_json(path, payload)
 
 
 def diff_counts(baseline: dict[str, dict[str, str]], shipped: dict[str, dict[str, str]]) -> tuple[int, int, int]:

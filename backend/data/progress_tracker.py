@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 from ..games.storage_paths import mods_path
 from ..models import LocString
+from backend.core.json_store import write_json
 
 
 @dataclass
@@ -93,8 +94,7 @@ class ProgressTracker:
         path = self._mod_progress_path(mod_id)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(snapshot, f, indent=2, ensure_ascii=False)
+        write_json(path, snapshot)
 
     @staticmethod
     def _hash_source_text(loc_string: LocString, source_languages: list[str]) -> str:

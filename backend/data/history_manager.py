@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 from backend.core.paths import safe_child
 from backend.games.storage_paths import mods_path
+from backend.core.json_store import write_json
 
 
 def _history_dir(mod_id: str, storage_path: Optional[Path] = None) -> Path:
@@ -105,8 +106,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
         "total_count": total_count,
         "glossary_count": glossary_count,
     }
-    with open(backup_dir / "meta.json", "w", encoding="utf-8") as f:
-        json.dump(meta, f, indent=2, ensure_ascii=False)
+    write_json(backup_dir / "meta.json", meta)
 
     # Prune old backups (keep last 20)
     _prune_backups(mod_id, max_backups=20, storage_path=storage_path)

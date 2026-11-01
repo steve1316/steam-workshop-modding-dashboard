@@ -36,6 +36,7 @@ from backend.routes.helpers import (
 )
 from backend.routes.llamacpp import _ensure_llamacpp_running
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
+from backend.core.json_store import write_json
 
 router = APIRouter(prefix="/translate")
 
@@ -482,8 +483,7 @@ async def translate_mod(req: TranslationRequest):
         _stamp_raw_responses(raw_responses)
         responses_path = GameStorage("chrono_ark").mod_file(req.mod_id, "last_api_responses.json")
         responses_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(responses_path, "w", encoding="utf-8") as f:
-            json.dump(raw_responses, f, indent=2, ensure_ascii=False)
+        write_json(responses_path, raw_responses)
 
     # Save translations.
     save_translations_bulk(req.mod_id, all_translations)
@@ -635,8 +635,7 @@ async def translate_batch(req: BatchTranslationRequest):
             except Exception:
                 pass
         existing_responses.extend(raw_responses)
-        with open(responses_path, "w", encoding="utf-8") as f:
-            json.dump(existing_responses, f, indent=2, ensure_ascii=False)
+        write_json(responses_path, existing_responses)
 
     # Save translations incrementally.
     save_translations_bulk(req.mod_id, translations)
@@ -652,8 +651,7 @@ async def translate_batch(req: BatchTranslationRequest):
             pass
     for key in translations:
         existing_providers[key] = provider_name
-    with open(providers_path, "w", encoding="utf-8") as f:
-        json.dump(existing_providers, f, indent=2, ensure_ascii=False)
+    write_json(providers_path, existing_providers)
 
     # Update progress.
     tracker = ProgressTracker()
@@ -830,8 +828,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                         except Exception:
                             pass
                     existing_responses.extend(raw_responses)
-                    with open(responses_path, "w", encoding="utf-8") as f:
-                        json.dump(existing_responses, f, indent=2, ensure_ascii=False)
+                    write_json(responses_path, existing_responses)
 
                 save_translations_bulk(req.mod_id, translations)
 

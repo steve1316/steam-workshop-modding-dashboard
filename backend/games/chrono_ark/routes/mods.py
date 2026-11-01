@@ -40,6 +40,7 @@ from backend.data.progress_tracker import ProgressTracker
 from backend.data.character_context import load_character_context, save_character_context
 from backend.data.history_manager import create_backup, list_backups, restore_backup, delete_backup
 from backend.main import save_extracted_strings
+from backend.core.json_store import write_json
 
 router = APIRouter()
 
@@ -350,8 +351,7 @@ async def update_string(mod_id: str, update: TranslationUpdate):
         except Exception:
             pass
     providers[update.key] = "manual"
-    with open(providers_path, "w", encoding="utf-8") as f:
-        json.dump(providers, f, indent=2, ensure_ascii=False)
+    write_json(providers_path, providers)
 
     # Update progress tracker
     tracker = ProgressTracker()
@@ -538,8 +538,7 @@ async def reset_mod(mod_id: str):
                 continue
             if mod_name in data:
                 del data[mod_name]
-                with open(json_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
+                write_json(json_path, data)
                 overrides_cleared = True
 
     # Selectively delete only translation-related files and directories,
@@ -808,8 +807,7 @@ async def export_mod(mod_id: str, resync: bool = False):
                 except (json.JSONDecodeError, OSError):
                     pass
             existing[mod_name] = keyed_overrides
-            with open(keyed_path, "w", encoding="utf-8") as f:
-                json.dump(existing, f, indent=2, ensure_ascii=False)
+            write_json(keyed_path, existing)
             keyed_overrides_written = len(keyed_overrides)
 
         if text_overrides:
@@ -822,8 +820,7 @@ async def export_mod(mod_id: str, resync: bool = False):
                 except (json.JSONDecodeError, OSError):
                     pass
             existing[mod_name] = text_overrides
-            with open(text_path, "w", encoding="utf-8") as f:
-                json.dump(existing, f, indent=2, ensure_ascii=False)
+            write_json(text_path, existing)
             text_overrides_written = len(text_overrides)
 
     # Save snapshot hash so export-status knows we're in sync.
@@ -833,19 +830,16 @@ async def export_mod(mod_id: str, resync: bool = False):
     # Save CSV-only hash so synced-key invalidation only triggers on
     # mod-author CSV changes, not on new user translations.
     csv_hash_path = GameStorage("chrono_ark").mod_file(mod_id, "last_csv_hash.json")
-    with open(csv_hash_path, "w", encoding="utf-8") as f:
-        json.dump({"hash": _compute_csv_snapshot(mod_path)}, f)
+    write_json(csv_hash_path, {"hash": _compute_csv_snapshot(mod_path)}, indent=None)
 
     # Save the set of synced keys so the UI can highlight them.
     synced_keys_path = GameStorage("chrono_ark").mod_file(mod_id, "synced_keys.json")
     synced_keys_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(synced_keys_path, "w", encoding="utf-8") as f:
-        json.dump([k for k, v in translations.items() if v], f, ensure_ascii=False)
+    write_json(synced_keys_path, [k for k, v in translations.items() if v], indent=None)
 
     # Save pre-export English values so the UI can show a diff for synced rows.
     pre_export_path = GameStorage("chrono_ark").mod_file(mod_id, "pre_export_english.json")
-    with open(pre_export_path, "w", encoding="utf-8") as f:
-        json.dump(pre_export_english, f, ensure_ascii=False)
+    write_json(pre_export_path, pre_export_english, indent=None)
 
     return {
         "status": "success",

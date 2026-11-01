@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from typing import Optional
 from backend.games.storage_paths import mods_path
+from backend.core.json_store import write_json
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -42,8 +43,7 @@ def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Optiona
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "pending_suggestions.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(suggestions, f, indent=2, ensure_ascii=False)
+    write_json(path, suggestions)
 
 
 def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Optional[Path] = None) -> None:

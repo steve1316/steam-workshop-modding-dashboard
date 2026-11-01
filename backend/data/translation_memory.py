@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from backend.games.storage_paths import translation_memory_path
+from backend.core.json_store import write_json
 
 
 class TranslationMemory:
@@ -49,8 +50,7 @@ class TranslationMemory:
     def save(self) -> None:
         """Persist translation memory to disk."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._path, "w", encoding="utf-8") as f:
-            json.dump(self._entries, f, indent=2, ensure_ascii=False)
+        write_json(self._path, self._entries)
 
     @staticmethod
     def _hash(text: str) -> str:

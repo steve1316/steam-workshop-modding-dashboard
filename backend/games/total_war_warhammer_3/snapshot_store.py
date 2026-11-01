@@ -20,6 +20,7 @@ from pathlib import Path
 
 from backend.core.paths import safe_child
 from backend.games.storage_paths import game_storage_path
+from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 MAX_SNAPSHOTS = 20
@@ -57,8 +58,7 @@ def _read_index(mod_id: str) -> list[dict]:
 def _write_index(mod_id: str, entries: list[dict]) -> None:
     p = _index_path(mod_id)
     p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
-        json.dump(entries, f, indent=2, ensure_ascii=False)
+    write_json(p, entries)
 
 
 def _read_file_or_default(p: Path, default):
@@ -116,8 +116,7 @@ def create_snapshot(mod_id: str, *, label: str, kind: str, local_source_dir: Pat
 
     _snapshots_dir(mod_id).mkdir(parents=True, exist_ok=True)
     snap_path = _snapshots_dir(mod_id) / f"{sid}.json"
-    with snap_path.open("w", encoding="utf-8") as f:
-        json.dump(snapshot, f, indent=2, ensure_ascii=False)
+    write_json(snap_path, snapshot)
 
     index = _read_index(mod_id)
     index.append({"ulid": sid, "created_at": snapshot["created_at"], "label": label, "kind": kind})
@@ -191,15 +190,11 @@ def restore_snapshot(mod_id: str, sid: str, *, local_source_dir: Path | None = N
 
     mod_dir = _mod_dir(mod_id)
     mod_dir.mkdir(parents=True, exist_ok=True)
-    with (mod_dir / "translations.json").open("w", encoding="utf-8") as f:
-        json.dump(snapshot.get("translations_raw", {}), f, indent=2, ensure_ascii=False)
-    with (mod_dir / "parent_snapshot.json").open("w", encoding="utf-8") as f:
-        json.dump(snapshot.get("parent_snapshot", {}), f, indent=2, ensure_ascii=False)
-    with (mod_dir / "api_responses.json").open("w", encoding="utf-8") as f:
-        json.dump(snapshot.get("api_responses", []), f, indent=2, ensure_ascii=False)
+    write_json((mod_dir / "translations.json"), snapshot.get("translations_raw", {}))
+    write_json((mod_dir / "parent_snapshot.json"), snapshot.get("parent_snapshot", {}))
+    write_json((mod_dir / "api_responses.json"), snapshot.get("api_responses", []))
     if "glossary" in snapshot:
-        with (mod_dir / "glossary.json").open("w", encoding="utf-8") as f:
-            json.dump(snapshot["glossary"], f, indent=2, ensure_ascii=False)
+        write_json((mod_dir / "glossary.json"), snapshot["glossary"])
 
     for path_str, body in snapshot.get("loc_tsv_files", {}).items():
         p = Path(path_str)

@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from backend.games.storage_paths import game_storage_path
+from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 MAX_ENTRIES = 20
@@ -34,8 +35,7 @@ def _load(mod_id: str) -> list[dict]:
 def _save(mod_id: str, entries: list[dict]) -> None:
     p = _path(mod_id)
     p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
-        json.dump(entries, f, indent=2, ensure_ascii=False)
+    write_json(p, entries)
 
 
 def append(mod_id: str, entry: dict) -> None:

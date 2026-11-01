@@ -16,7 +16,6 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from backend import config
@@ -43,6 +42,7 @@ from backend.translator.ollama_provider import OllamaProvider
 from backend.translator.llamacpp_provider import LlamaCppProvider
 from backend.translator.manual_provider import ManualProvider
 from backend.data.suggestion_manager import add_suggestions
+from backend.core.json_store import write_json
 
 
 def get_provider(provider_name: str) -> TranslationProvider:
@@ -89,8 +89,7 @@ def save_extracted_strings(strings: dict, output_path: Path) -> None:
             "source_file": loc_str.source_file,
         }
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    write_json(output_path, data)
 
     print(f"  Saved {len(data)} strings to {output_path}")
 

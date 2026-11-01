@@ -13,6 +13,7 @@ from pathlib import Path
 from backend.data import character_context as cc
 from backend.data import translation_store as ts
 from backend.games.storage_paths import game_storage_path
+from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 
@@ -54,8 +55,7 @@ def save_translations_raw(mod_id: str, data: dict[str, dict]) -> None:
     """
     path = _root() / "mods" / mod_id / "translations.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    write_json(path, data)
 
 
 def load_character_context(mod_id: str) -> dict:
@@ -108,8 +108,7 @@ def save_include_translated_names(mod_id: str, value: bool) -> None:
     """
     path = _root() / "mods" / mod_id / "prompt_options.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump({"include_translated_names": value}, f, indent=2)
+    write_json(path, {"include_translated_names": value})
 
 
 def load_parent_snapshot(mod_id: str) -> dict[str, dict[str, dict]]:
@@ -143,8 +142,7 @@ def save_parent_snapshot(mod_id: str, snapshot: dict[str, dict[str, dict]]) -> N
     """
     path = _root() / "mods" / mod_id / "parent_snapshot.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(snapshot, f, indent=2, ensure_ascii=False)
+    write_json(path, snapshot)
 
 
 def parent_pack_cache_dir(parent_workshop_id: str) -> Path:

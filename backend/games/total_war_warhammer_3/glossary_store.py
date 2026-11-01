@@ -13,6 +13,7 @@ from pathlib import Path
 
 from backend.data import glossary_manager as gm
 from backend.games.storage_paths import game_storage_path, glossary_path
+from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 
@@ -133,8 +134,7 @@ def apply_term_rename(mod_id: str, old_english: str, new_english: str) -> int:
             entry["text"] = new_text
             total += count
 
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(raw, f, indent=2, ensure_ascii=False)
+    write_json(path, raw)
     return total
 
 

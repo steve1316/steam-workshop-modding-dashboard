@@ -15,6 +15,7 @@ from typing import Optional
 from backend import config
 from backend.games.storage_paths import glossary_path, mods_path
 from backend.models import LocString
+from backend.core.json_store import write_json
 
 
 # Common game terms to auto-extract from the base game.
@@ -428,8 +429,7 @@ def save_glossary(glossary: dict, path: Optional[Path] = None) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(glossary, f, indent=2, ensure_ascii=False)
+    write_json(path, glossary)
 
     print(f"  Glossary saved to {path} ({len(glossary.get('terms', {}))} terms)")
 
@@ -648,8 +648,7 @@ def save_mod_glossary(mod_id: str, glossary: dict, storage_path: Optional[Path] 
     mods_dir = (storage_path / "mods") if storage_path else mods_path("chrono_ark")
     path = mods_dir / mod_id / "glossary.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(glossary, f, indent=2, ensure_ascii=False)
+    write_json(path, glossary)
 
 
 def merge_glossaries(base: dict, mod: dict) -> dict:

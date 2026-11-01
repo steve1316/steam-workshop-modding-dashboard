@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from backend.games.storage_paths import mods_path
+from backend.core.json_store import write_json
 
 _DEFAULTS = {"source_game": "", "character_name": "", "background": "", "created_at": "", "updated_at": ""}
 
@@ -56,5 +57,4 @@ def save_character_context(mod_id: str, ctx: dict, *, storage_path: Path | None 
     data["created_at"] = existing["created_at"] if existing["created_at"] else now
     data["updated_at"] = now
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    write_json(path, data)

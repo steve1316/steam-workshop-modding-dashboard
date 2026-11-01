@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from backend.games.storage_paths import mods_path
+from backend.core.json_store import write_json
 
 
 def _translations_path(mod_id: str, storage_path: Optional[Path] = None) -> Path:
@@ -71,8 +72,7 @@ def _save_raw_data(path: Path, data: dict) -> None:
         data: The translations dict to serialize.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    write_json(path, data)
 
 
 def load_translations(mod_id: str, *, storage_path: Optional[Path] = None) -> dict[str, str]:

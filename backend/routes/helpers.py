@@ -28,6 +28,7 @@ from backend.games.base import GameAdapter
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
+from backend.core.json_store import write_json
 
 # ---------------------------------------------------------------------------
 # Module-level state
@@ -390,8 +391,7 @@ def _save_last_export_hash(mod_id: str, snapshot_hash: str) -> None:
     """
     path = GameStorage("chrono_ark").mod_file(mod_id, "last_export.json")
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({"hash": snapshot_hash}, f)
+    write_json(path, {"hash": snapshot_hash}, indent=None)
 
 
 def _get_mod_csv_paths(mod_path: Path) -> list[Path]:

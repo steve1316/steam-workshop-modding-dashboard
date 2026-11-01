@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from backend.games.storage_paths import mods_path
+from backend.core.json_store import write_json
 
 
 def load_source_language_override(mod_id: str, *, storage_path: Path | None = None) -> str | None:
@@ -58,8 +59,7 @@ def save_source_language_override(
     existing["source_language_override"] = language if language else None
     existing["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(existing, f, indent=2, ensure_ascii=False)
+    write_json(path, existing)
 
 
 def load_target_language_override(mod_id: str, *, storage_path: Path | None = None) -> str | None:
@@ -113,5 +113,4 @@ def save_target_language_override(
     existing["target_language_override"] = language if language else None
     existing["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(existing, f, indent=2, ensure_ascii=False)
+    write_json(path, existing)
