@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import argparse
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.data.glossary_manager import save_glossary
@@ -174,7 +174,7 @@ def add_curated_terms(glossary: dict) -> dict:
     Returns:
         The same glossary.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     for term in CURATED_TERMS:
         glossary["terms"][term["english"]] = {
             "english": term["english"],
@@ -204,7 +204,7 @@ def build_glossary(en_db_dir: Path, cn_file: Path, kr_file: Path) -> dict:
     """
     cn = _parse_tsv(cn_file)
     kr = _parse_tsv(kr_file)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     terms: dict[str, dict] = {}
     seen: set[str] = set()
 

@@ -1,10 +1,11 @@
 """Load and save per-mod settings such as source and target language overrides."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from backend.games.storage_paths import mods_path
+
 from backend.core.json_store import write_json
+from backend.games.storage_paths import mods_path
 
 
 def load_source_language_override(mod_id: str, *, storage_path: Path | None = None) -> str | None:
@@ -22,7 +23,7 @@ def load_source_language_override(mod_id: str, *, storage_path: Path | None = No
     if not path.exists():
         return None
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
         return data.get("source_language_override") or None
     except (json.JSONDecodeError, OSError):
@@ -51,13 +52,13 @@ def save_source_language_override(
     existing: dict = {}
     if path.exists():
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 existing = json.load(f)
         except (json.JSONDecodeError, OSError):
             pass
 
     existing["source_language_override"] = language if language else None
-    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    existing["updated_at"] = datetime.now(UTC).isoformat()
 
     write_json(path, existing)
 
@@ -77,7 +78,7 @@ def load_target_language_override(mod_id: str, *, storage_path: Path | None = No
     if not path.exists():
         return None
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
         return data.get("target_language_override") or None
     except (json.JSONDecodeError, OSError):
@@ -105,12 +106,12 @@ def save_target_language_override(
     existing: dict = {}
     if path.exists():
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 existing = json.load(f)
         except (json.JSONDecodeError, OSError):
             pass
 
     existing["target_language_override"] = language if language else None
-    existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+    existing["updated_at"] = datetime.now(UTC).isoformat()
 
     write_json(path, existing)

@@ -10,7 +10,6 @@ from typing import Any
 
 import libcst as cst
 
-
 _TW3_APPID_FOLDER = "1142710"
 _PATH_PREFIX = "SteamLibrary/steamapps/workshop/content"
 _SUPPORTED_MODS_NAME = "SUPPORTED_MODS"

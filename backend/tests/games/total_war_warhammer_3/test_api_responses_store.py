@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from backend.games.total_war_warhammer_3.api_responses_store import append, list_entries
 
 

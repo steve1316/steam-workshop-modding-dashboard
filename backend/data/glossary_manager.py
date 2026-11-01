@@ -2,14 +2,13 @@
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
+
 from backend import config
+from backend.core.json_store import write_json
 from backend.games.storage_paths import glossary_path, mods_path
 from backend.models import LocString
-from backend.core.json_store import write_json
-
 
 _NAME_KEY_SUFFIXES = ("_Name", "_name", "_PassiveName", "_SkinName")
 
@@ -154,7 +153,7 @@ def build_glossary_from_base_game(
             if text:
                 source_mappings[lang] = text
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         glossary["terms"][key] = {
             "english": english,
             "category": category,
@@ -165,7 +164,7 @@ def build_glossary_from_base_game(
             "updated_at": now,
         }
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     for english, mappings in _MANUAL_MECHANIC_TERMS.items():
         manual_key = f"_manual/{english}"
         if manual_key not in glossary["terms"]:
@@ -354,7 +353,7 @@ def suggest_glossary_edits(
     return edits
 
 
-def load_glossary(path: Optional[Path] = None) -> dict:
+def load_glossary(path: Path | None = None) -> dict:
     """Load the glossary from a JSON file.
 
     Args:
@@ -369,11 +368,11 @@ def load_glossary(path: Optional[Path] = None) -> dict:
     if not path.exists():
         return {"terms": {}}
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_glossary(glossary: dict, path: Optional[Path] = None) -> None:
+def save_glossary(glossary: dict, path: Path | None = None) -> None:
     """Save the glossary to a JSON file.
 
     Args:
@@ -393,7 +392,7 @@ def save_glossary(glossary: dict, path: Optional[Path] = None) -> None:
 def add_glossary_term(
     glossary: dict,
     english_term: str,
-    source_mappings: Optional[dict[str, str]] = None,
+    source_mappings: dict[str, str] | None = None,
     category: str = "custom",
 ) -> dict:
     """Add or update a term in the glossary.
@@ -410,7 +409,7 @@ def add_glossary_term(
     if "terms" not in glossary:
         glossary["terms"] = {}
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     # Key by the first source text when available, else the English term.
     if source_mappings:
@@ -556,7 +555,7 @@ def get_combined_glossary_prompt(
     return mod_prompt or base_prompt
 
 
-def load_mod_glossary(mod_id: str, storage_path: Optional[Path] = None) -> dict:
+def load_mod_glossary(mod_id: str, storage_path: Path | None = None) -> dict:
     """Load a mod's glossary.
 
     Args:
@@ -570,11 +569,11 @@ def load_mod_glossary(mod_id: str, storage_path: Optional[Path] = None) -> dict:
     path = mods_dir / mod_id / "glossary.json"
     if not path.exists():
         return {"terms": {}}
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_mod_glossary(mod_id: str, glossary: dict, storage_path: Optional[Path] = None) -> None:
+def save_mod_glossary(mod_id: str, glossary: dict, storage_path: Path | None = None) -> None:
     """Save a mod's glossary.
 
     Args:

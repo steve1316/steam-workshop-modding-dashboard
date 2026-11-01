@@ -1,11 +1,11 @@
 from pathlib import Path
+
 from backend.games.chrono_ark.csv_extractor import (
-    find_all_csv_files,
+    _fix_oversized_row,
     classify_csv_file,
     extract_mod_strings,
-    _fix_oversized_row,
+    find_all_csv_files,
 )
-
 
 CSV_HEADER = "Key,Type,Desc,Korean,English,Japanese,Chinese,Chinese-TW [zh-tw]\n"
 

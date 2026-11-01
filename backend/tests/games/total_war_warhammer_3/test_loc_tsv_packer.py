@@ -2,7 +2,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from backend.games.total_war_warhammer_3 import loc_tsv_packer
 from backend.games.total_war_warhammer_3.loc_tsv_packer import (
     AmbiguousPackError,

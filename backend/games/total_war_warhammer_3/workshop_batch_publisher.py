@@ -8,14 +8,14 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import AsyncIterator, Literal
+from datetime import UTC, datetime
+from typing import Literal
 
 from backend.games.total_war_warhammer_3 import publish_notes
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
-
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ def start_batch(
     handle = BatchHandle(
         batch_id=batch_id,
         items=[BatchItem(workshop_id=str(it["workshop_id"]), title=str(it.get("title", "")), changenote=str(it["changenote"])) for it in items],
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     _batches[batch_id] = handle
     _current_batch_id = batch_id
@@ -218,7 +218,7 @@ def _emit(handle: BatchHandle, event_type: str, data: dict) -> None:
                 pass
             throttle = {
                 "event": "log_line",
-                "data": {"workshop_id": "", "line": "[... log throttled ...]", "ts": datetime.now(timezone.utc).isoformat()},
+                "data": {"workshop_id": "", "line": "[... log throttled ...]", "ts": datetime.now(UTC).isoformat()},
             }
             try:
                 q.put_nowait(throttle)
@@ -256,7 +256,7 @@ async def _run_batch(handle: BatchHandle, *, steamcmd_path: str, steam_username:
     try:
         for idx, item in enumerate(handle.items):
             item.status = "running"
-            item.started_at = datetime.now(timezone.utc)
+            item.started_at = datetime.now(UTC)
             _emit(
                 handle,
                 "mod_started",
@@ -325,7 +325,7 @@ async def _run_batch(handle: BatchHandle, *, steamcmd_path: str, steam_username:
                 failed += 1
             _emit_mod_finished(handle, item, duration=duration)
     finally:
-        handle.ended_at = datetime.now(timezone.utc)
+        handle.ended_at = datetime.now(UTC)
         _emit(
             handle,
             "batch_done",
@@ -347,7 +347,7 @@ def _finalize_item(item: BatchItem, *, status: ItemStatus, exit_code: int | None
     item.status = status
     item.exit_code = exit_code
     item.error = error
-    item.ended_at = datetime.now(timezone.utc)
+    item.ended_at = datetime.now(UTC)
 
 
 def _emit_mod_finished(handle: BatchHandle, item: BatchItem, *, duration: float) -> None:

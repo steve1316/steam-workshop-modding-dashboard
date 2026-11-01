@@ -1,10 +1,9 @@
 """OpenAI GPT translation provider."""
 
 import time
-from typing import Optional
+
 from backend import config
 from backend.translator.base import TranslationProvider
-
 
 OPENAI_MODELS: dict[str, dict] = {
     "gpt-4.1": {"label": "GPT-4.1", "input_per_mtok": 2.0, "output_per_mtok": 8.0},
@@ -21,7 +20,7 @@ _DEFAULT_PRICING = OPENAI_MODELS["gpt-4.1"]
 class OpenAIProvider(TranslationProvider):
     """Translation provider using OpenAI chat completions."""
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         """Initialize the OpenAI translation provider.
 
         Args:
@@ -61,7 +60,7 @@ class OpenAIProvider(TranslationProvider):
         Returns:
             (key -> translated text, suggested_terms dicts), or `({}, [])` on unrecoverable failure.
         """
-        from openai import OpenAI, RateLimitError, APIError
+        from openai import APIError, OpenAI, RateLimitError
 
         if not self._api_key:
             raise ValueError("OpenAI API key not set. Set SWMT_OPENAI_API_KEY env var.")

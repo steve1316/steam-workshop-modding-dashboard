@@ -6,7 +6,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from backend import config
 from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
 

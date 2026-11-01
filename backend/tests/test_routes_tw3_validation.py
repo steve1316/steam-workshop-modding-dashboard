@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 
 import backend.config as config
 from backend.games.total_war_warhammer_3.helper_scripts_loader import (
-    HelperScriptsNotConfiguredError,
     RegistryFileMissingError,
 )
 from backend.web_server import app

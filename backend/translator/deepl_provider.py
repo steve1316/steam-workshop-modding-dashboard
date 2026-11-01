@@ -1,6 +1,5 @@
 """DeepL provider. DeepL takes no custom prompts, so glossary enforcement relies on DeepL's own glossary feature."""
 
-from typing import Optional
 from backend import config
 from backend.translator.base import TranslationProvider
 
@@ -23,7 +22,7 @@ _DEEPL_TARGET_CODES = {
 class DeepLProvider(TranslationProvider):
     """Translation provider using the DeepL API, with no custom prompts or glossary term suggestions."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """Initialize the DeepL provider.
 
         Args:

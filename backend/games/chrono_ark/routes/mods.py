@@ -4,43 +4,43 @@ import json
 import os
 import shutil
 import subprocess
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from backend import config
+from backend.core.json_store import write_json
 from backend.core.paths import safe_child
-from backend.translation.game_storage import GameStorage
-from backend.routes.helpers import (
-    chrono_ark_adapter,
-    _find_mod,
-    _find_mod_path,
-    _find_mod_preview_image,
-    _compute_export_snapshot,
-    _compute_csv_snapshot,
-    _load_last_export_hash,
-    _save_last_export_hash,
-    _merge_gdata_originals,
-    _get_mod_csv_paths,
-    _recalculate_mod_progress,
-    resolve_source_language,
-)
-from backend.routes.models import TranslationUpdate, CharacterContext, SourceLanguageOverride, TargetLanguageOverride, HistorySnapshotRequest
+from backend.data.character_context import load_character_context, save_character_context
+from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 from backend.data.mod_settings import (
     load_source_language_override,
     load_target_language_override,
     save_source_language_override,
     save_target_language_override,
 )
+from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import (
+    clear_all_translations,
     load_translations,
     update_single_translation,
-    clear_all_translations,
 )
-from backend.data.progress_tracker import ProgressTracker
-from backend.data.character_context import load_character_context, save_character_context
-from backend.data.history_manager import create_backup, list_backups, restore_backup, delete_backup
 from backend.main import save_extracted_strings
-from backend.core.json_store import write_json
+from backend.routes.helpers import (
+    _compute_csv_snapshot,
+    _compute_export_snapshot,
+    _find_mod,
+    _find_mod_path,
+    _find_mod_preview_image,
+    _get_mod_csv_paths,
+    _load_last_export_hash,
+    _merge_gdata_originals,
+    _recalculate_mod_progress,
+    _save_last_export_hash,
+    chrono_ark_adapter,
+    resolve_source_language,
+)
+from backend.routes.models import CharacterContext, HistorySnapshotRequest, SourceLanguageOverride, TargetLanguageOverride, TranslationUpdate
+from backend.translation.game_storage import GameStorage
 
 router = APIRouter()
 
@@ -181,7 +181,7 @@ async def get_mod_detail(mod_id: str):
     translation_providers: dict[str, str] = {}
     if providers_path.exists():
         try:
-            with open(providers_path, "r", encoding="utf-8") as f:
+            with open(providers_path, encoding="utf-8") as f:
                 translation_providers = json.load(f)
         except Exception:
             pass
@@ -193,7 +193,7 @@ async def get_mod_detail(mod_id: str):
     synced_keys: set[str] = set()
     if synced_keys_path.exists():
         try:
-            with open(synced_keys_path, "r", encoding="utf-8") as f:
+            with open(synced_keys_path, encoding="utf-8") as f:
                 synced_keys = set(json.load(f))
         except Exception:
             pass
@@ -204,7 +204,7 @@ async def get_mod_detail(mod_id: str):
         csv_hash_path = GameStorage("chrono_ark").mod_file(mod_id, "last_csv_hash.json")
         if csv_hash_path.exists():
             try:
-                with open(csv_hash_path, "r", encoding="utf-8") as f:
+                with open(csv_hash_path, encoding="utf-8") as f:
                     last_csv_hash = json.load(f).get("hash", "")
             except Exception:
                 last_csv_hash = ""
@@ -223,7 +223,7 @@ async def get_mod_detail(mod_id: str):
         pre_export_path = GameStorage("chrono_ark").mod_file(mod_id, "pre_export_english.json")
         if pre_export_path.exists():
             try:
-                with open(pre_export_path, "r", encoding="utf-8") as f:
+                with open(pre_export_path, encoding="utf-8") as f:
                     pre_export_english = json.load(f)
             except Exception:
                 pass
@@ -316,7 +316,7 @@ async def update_string(mod_id: str, update: TranslationUpdate):
     providers: dict[str, str] = {}
     if providers_path.exists():
         try:
-            with open(providers_path, "r", encoding="utf-8") as f:
+            with open(providers_path, encoding="utf-8") as f:
                 providers = json.load(f)
         except Exception:
             pass
@@ -474,7 +474,7 @@ async def reset_mod(mod_id: str):
             if not json_path.exists():
                 continue
             try:
-                with open(json_path, "r", encoding="utf-8") as f:
+                with open(json_path, encoding="utf-8") as f:
                     data = json.load(f)
             except (json.JSONDecodeError, OSError):
                 continue
@@ -706,7 +706,7 @@ async def export_mod(mod_id: str, resync: bool = False):
             existing: dict = {}
             if keyed_path.exists():
                 try:
-                    with open(keyed_path, "r", encoding="utf-8") as f:
+                    with open(keyed_path, encoding="utf-8") as f:
                         existing = json.load(f)
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -719,7 +719,7 @@ async def export_mod(mod_id: str, resync: bool = False):
             existing = {}
             if text_path.exists():
                 try:
-                    with open(text_path, "r", encoding="utf-8") as f:
+                    with open(text_path, encoding="utf-8") as f:
                         existing = json.load(f)
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -962,5 +962,5 @@ async def get_api_responses(mod_id: str):
     responses_path = GameStorage("chrono_ark").mod_file(mod_id, "last_api_responses.json")
     if not responses_path.exists():
         return []
-    with open(responses_path, "r", encoding="utf-8") as f:
+    with open(responses_path, encoding="utf-8") as f:
         return json.load(f)

@@ -2,17 +2,17 @@
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
-from backend.games.storage_paths import translation_memory_path
+
 from backend.core.json_store import write_json
+from backend.games.storage_paths import translation_memory_path
 
 
 class TranslationMemory:
     """Persistent cache of source text -> English translations, keyed by SHA-256 of the source so lookups work across mods."""
 
-    def __init__(self, path: Optional[Path] = None):
+    def __init__(self, path: Path | None = None):
         """Initialize the translation memory.
 
         Args:
@@ -30,7 +30,7 @@ class TranslationMemory:
         """Load translation memory from disk."""
         if self._path.exists():
             try:
-                with open(self._path, "r", encoding="utf-8") as f:
+                with open(self._path, encoding="utf-8") as f:
                     self._entries = json.load(f)
             except (json.JSONDecodeError, UnicodeDecodeError):
                 self._entries = {}
@@ -52,7 +52,7 @@ class TranslationMemory:
         """
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-    def lookup(self, source_text: str) -> Optional[str]:
+    def lookup(self, source_text: str) -> str | None:
         """Look up a cached translation for the source text.
 
         Args:
@@ -87,7 +87,7 @@ class TranslationMemory:
             "source": source_text,
             "translation": translation,
             "source_lang": source_lang,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     def get_stats(self) -> dict:

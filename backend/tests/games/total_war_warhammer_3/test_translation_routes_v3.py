@@ -5,14 +5,13 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
-from backend.games.total_war_warhammer_3.api_responses_store import append, list_entries
+from backend.games.total_war_warhammer_3.api_responses_store import append
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.snapshot_store import list_snapshots
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

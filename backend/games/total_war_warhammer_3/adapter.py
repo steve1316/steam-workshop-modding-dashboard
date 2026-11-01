@@ -7,14 +7,14 @@ Implements `GameAdapter` and `TranslationCapability` for the Cathay-themed Chine
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter
 
+from backend.data import glossary_manager as gm
 from backend.games.base import GameAdapter, ModInfo
 from backend.games.capabilities.translation import TranslationCapability
-from backend.data import glossary_manager as gm
-from backend.games.total_war_warhammer_3 import glossary_store, translation_context as tc
+from backend.games.total_war_warhammer_3 import glossary_store
+from backend.games.total_war_warhammer_3 import translation_context as tc
 from backend.games.total_war_warhammer_3.loc_extractor import (
     normalize_loc_filename,
     read_translation_loc_tsv,
@@ -110,13 +110,13 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
         return gm.get_glossary_prompt(glossary_store.load_base_glossary(), allowed_categories=tc.BASE_GLOSSARY_PROMPT_CATEGORIES, source_lang=source_lang, target_lang=target_lang)
 
     @property
-    def base_game_path(self) -> Optional[Path]:
+    def base_game_path(self) -> Path | None:
         return None
 
-    def extract_base_game_strings(self, game_path: Optional[Path] = None) -> dict[str, LocString]:
+    def extract_base_game_strings(self, game_path: Path | None = None) -> dict[str, LocString]:
         return {}
 
-    def scan_mods(self, search_path: Optional[Path] = None) -> list[ModInfo]:
+    def scan_mods(self, search_path: Path | None = None) -> list[ModInfo]:
         """Return the static list of WH3 translation mods from `translation_mods.WH3_TRANSLATION_MODS`.
 
         Args:
@@ -171,7 +171,7 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
                 )
         return strings, warnings
 
-    def detect_source_language(self, loc_string: LocString) -> Optional[str]:
+    def detect_source_language(self, loc_string: LocString) -> str | None:
         return "Chinese"
 
     def get_untranslated(self, strings: dict[str, LocString]) -> dict[str, LocString]:
@@ -181,10 +181,10 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
         """Not implemented: export is handled by the pack rebuild + publish workflow."""
         raise NotImplementedError("WH3 translation export uses the existing pack rebuild flow; see backend/games/total_war_warhammer_3/routes/packs.py.")
 
-    def get_mod_url(self, mod_id: str) -> Optional[str]:
+    def get_mod_url(self, mod_id: str) -> str | None:
         if get_translation_mod(mod_id) is None:
             return None
         return f"https://steamcommunity.com/sharedfiles/filedetails/?id={mod_id}"
 
-    def get_translation_overrides_dir(self) -> Optional[Path]:
+    def get_translation_overrides_dir(self) -> Path | None:
         return None

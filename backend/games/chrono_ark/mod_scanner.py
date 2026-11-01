@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+
 from backend.games.base import ModInfo
 from backend.games.chrono_ark.csv_extractor import extract_mod_strings
 
@@ -21,7 +22,7 @@ def _read_mod_metadata(mod_path: Path, metadata_filename: str) -> dict:
         return {}
 
     try:
-        with open(json_path, "r", encoding="utf-8") as f:
+        with open(json_path, encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, UnicodeDecodeError):
         return {}

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
 
 from backend.core.json_store import write_json
 from backend.games.storage_paths import game_storage_path
@@ -81,7 +81,7 @@ def save_baseline(mod_id: str, strings: dict[str, dict[str, str]], changenote: s
     """
     path = _baseline_path(mod_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"published_at": datetime.now(timezone.utc).isoformat(), "changenote": changenote, "strings": strings}
+    payload = {"published_at": datetime.now(UTC).isoformat(), "changenote": changenote, "strings": strings}
     write_json(path, payload)
 
 

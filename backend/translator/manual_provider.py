@@ -2,16 +2,16 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+
 from backend import config
-from backend.translator.base import TranslationProvider
 from backend.core.json_store import write_json
+from backend.translator.base import TranslationProvider
 
 
 class ManualProvider(TranslationProvider):
     """Interactive manual translation provider."""
 
-    def __init__(self, output_dir: Optional[Path] = None):
+    def __init__(self, output_dir: Path | None = None):
         """Initialize the manual provider.
 
         Args:
@@ -61,14 +61,14 @@ class ManualProvider(TranslationProvider):
         write_json(edit_path, edit_data)
 
         print(f"\n{'=' * 60}")
-        print(f"MANUAL TRANSLATION MODE")
+        print("MANUAL TRANSLATION MODE")
         print(f"{'=' * 60}")
         print(f"\n  {len(entries)} strings exported for manual translation.")
         print(f"  Source language: {source_lang}")
-        print(f"\n  Edit this file:")
+        print("\n  Edit this file:")
         print(f"    {edit_path}")
-        print(f'\n  Fill in the "translation" field for each entry.')
-        print(f"  Leave blank to skip an entry.")
+        print('\n  Fill in the "translation" field for each entry.')
+        print("  Leave blank to skip an entry.")
         print(f"\n{'=' * 60}")
 
         input("\n  Press Enter when finished editing... ")
@@ -85,7 +85,7 @@ class ManualProvider(TranslationProvider):
             Key -> English translation, skipping blanks.
         """
         try:
-            with open(edit_path, "r", encoding="utf-8") as f:
+            with open(edit_path, encoding="utf-8") as f:
                 edit_data = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError) as e:
             print(f"  Error reading edit file: {e}")

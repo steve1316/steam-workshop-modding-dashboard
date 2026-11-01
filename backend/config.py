@@ -6,6 +6,7 @@ Game-specific settings live in the game adapter under games/<game_id>/adapter.py
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # The Settings page writes this file, so values are read literally instead of expanding ${VAR}.

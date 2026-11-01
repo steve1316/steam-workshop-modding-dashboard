@@ -4,7 +4,7 @@ import hashlib
 import re
 import struct
 from pathlib import Path
-from typing import Optional
+
 from backend.models import LocString
 from backend.text_utils import has_cjk as _has_cjk
 
@@ -147,8 +147,8 @@ def extract_dll_loc_strings(
         if pos2 - pos1 > MAX_GAP:
             continue
 
-        key: Optional[str] = None
-        value: Optional[str] = None
+        key: str | None = None
+        value: str | None = None
 
         if _is_loc_key(str1) and _has_cjk(str2):
             key, value = str1, str2

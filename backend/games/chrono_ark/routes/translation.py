@@ -8,35 +8,35 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from backend import config
-from backend.translation.game_storage import GameStorage
-from backend.translation.orchestrator import chunk_entries, run_batch
+from backend.core.json_store import write_json
 from backend.data.character_context import load_character_context
 from backend.data.glossary_manager import (
-    get_combined_glossary_prompt,
     extract_name_key_suggestions,
+    get_combined_glossary_prompt,
     load_glossary,
     load_mod_glossary,
 )
 from backend.data.history_manager import create_backup
+from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.suggestion_manager import add_suggestions, load_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.main import get_provider
-from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.routes.helpers import (
-    chrono_ark_adapter,
     _active_translations,
     _fill_duplicate_translations,
     _filter_suggestions,
     _find_mod_path,
     _merge_gdata_originals,
     _stamp_raw_responses,
+    chrono_ark_adapter,
     resolve_source_language,
 )
 from backend.routes.llamacpp import _ensure_llamacpp_running
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
-from backend.core.json_store import write_json
+from backend.translation.game_storage import GameStorage
+from backend.translation.orchestrator import chunk_entries, run_batch
 
 router = APIRouter(prefix="/translate")
 
@@ -564,7 +564,7 @@ async def translate_batch(req: BatchTranslationRequest):
         existing_responses = []
         if not req.is_first_batch and responses_path.exists():
             try:
-                with open(responses_path, "r", encoding="utf-8") as f:
+                with open(responses_path, encoding="utf-8") as f:
                     existing_responses = json.load(f)
             except Exception:
                 pass
@@ -577,7 +577,7 @@ async def translate_batch(req: BatchTranslationRequest):
     existing_providers: dict[str, str] = {}
     if providers_path.exists():
         try:
-            with open(providers_path, "r", encoding="utf-8") as f:
+            with open(providers_path, encoding="utf-8") as f:
                 existing_providers = json.load(f)
         except Exception:
             pass
@@ -718,7 +718,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
         while True:
             try:
                 event = await asyncio.wait_for(queue.get(), timeout=1.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 if await request.is_disconnected():
                     cancel_event.set()
                     break
@@ -748,7 +748,7 @@ async def translate_batch_stream(req: BatchTranslationRequest, request: Request)
                     existing_responses = []
                     if not req.is_first_batch and responses_path.exists():
                         try:
-                            with open(responses_path, "r", encoding="utf-8") as f:
+                            with open(responses_path, encoding="utf-8") as f:
                                 existing_responses = json.load(f)
                         except Exception:
                             pass

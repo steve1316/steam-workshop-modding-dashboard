@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path, PurePath
-from typing import Any, Iterator
-
+from typing import Any
 
 _TW3_APPID_FOLDER = "1142710"
 

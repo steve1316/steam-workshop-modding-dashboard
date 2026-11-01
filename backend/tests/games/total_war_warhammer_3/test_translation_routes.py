@@ -5,13 +5,10 @@ do not require RPFM CLI or local workshop directories.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
 from backend.games.total_war_warhammer_3.api_responses_store import list_entries
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
@@ -21,6 +18,8 @@ from backend.games.total_war_warhammer_3.translation_store_helpers import (
     load_translations_raw,
     save_translations_raw,
 )
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -107,7 +106,7 @@ def test_get_strings_overlay_from_translations_json(client: TestClient):
 
     A key with no `.loc.tsv` translation but a seeded `translations.json` entry should appear as translated with the seeded text and provider.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     save_translations_raw(
         "3315737452",
         {"k2": {"text": "Seeded", "provider": "claude", "created_at": now, "updated_at": now}},

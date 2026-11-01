@@ -1,15 +1,17 @@
 """FastAPI backend for the Steam Workshop Modding Dashboard, with routes organized under `backend.routes`."""
 
-import uvicorn
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from backend import config
+from backend.games.registry import get_adapter, list_games
+from backend.routes import llamacpp, ollama, settings, steamcmd
 from backend.routes.helpers import chrono_ark_adapter
-from backend.routes import ollama, llamacpp, settings, steamcmd
-from backend.games.registry import list_games, get_adapter
 from backend.scripts.migrate_storage_v1_to_v2 import run_migration
 from backend.scripts.migrate_storage_v2_to_v3 import run_migration as run_migration_v2_to_v3
 

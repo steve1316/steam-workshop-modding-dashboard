@@ -1,6 +1,7 @@
 import os
 
 import pytest
+
 from backend import config
 from backend.models import LocString
 from backend.routes import helpers

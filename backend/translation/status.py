@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -11,7 +11,7 @@ RowStatus = Literal["synced", "untouched", "pending", "changed", "missing", "unt
 
 def classify_status(
     *,
-    untranslatable_reason: Optional[str] = None,
+    untranslatable_reason: str | None = None,
     has_translation: bool = False,
     is_synced: bool = False,
     is_untouched: bool = False,
@@ -50,9 +50,9 @@ class StatusRow(BaseModel):
 
     key: str
     source_file: str = ""
-    source_text: Optional[str] = None
-    target_text: Optional[str] = None
+    source_text: str | None = None
+    target_text: str | None = None
     status: RowStatus
-    provider: Optional[str] = None
-    original_target: Optional[str] = None
-    untranslatable_reason: Optional[str] = None
+    provider: str | None = None
+    original_target: str | None = None
+    untranslatable_reason: str | None = None

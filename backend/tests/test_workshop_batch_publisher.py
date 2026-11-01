@@ -8,14 +8,13 @@ exercised deterministically without spawning real SteamCMD subprocesses.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator, Awaitable
 from pathlib import Path
-from typing import AsyncIterator, Awaitable
 
 import pytest
 
 from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
-
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////

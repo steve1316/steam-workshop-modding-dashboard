@@ -4,16 +4,16 @@ import asyncio
 import json
 import os
 import shutil
+from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pathlib import Path
 
 from backend import config
-from backend.process_manager import start_process, stop_process, is_managed
+from backend.process_manager import is_managed, start_process, stop_process
 from backend.routes.helpers import _gguf_download_cancels, _update_env_file
-from backend.routes.models import LlamaCppInstallRequest, GGUFDownloadRequest
+from backend.routes.models import GGUFDownloadRequest, LlamaCppInstallRequest
 
 router = APIRouter(prefix="/api/llamacpp")
 
@@ -143,8 +143,8 @@ async def install_llamacpp(req: LlamaCppInstallRequest):
     bin_dir = config.STORAGE_PATH / "bin"
 
     async def event_stream():
-        import zipfile
         import io
+        import zipfile
 
         try:
             yield f"data: {json.dumps({'status': 'fetching_release'})}\n\n"

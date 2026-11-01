@@ -7,7 +7,7 @@ Suggestions come from the `/translate/batch` loop, Scan for Terms and Suggest Ed
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 
@@ -159,7 +159,7 @@ def _log_call(mod_id: str, kind: str, keys: list[str], suggestions: list[dict]) 
     api_responses_store.append(
         mod_id,
         {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "kind": kind,
             "provider": "claude",
             "model": "claude",

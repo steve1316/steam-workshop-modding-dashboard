@@ -3,9 +3,8 @@
 import csv
 import re
 from pathlib import Path
-from typing import Optional
-from backend.models import LocString
 
+from backend.models import LocString
 
 _CANONICAL_NAMES = {"LangDataDB.csv", "LangSystemDB.csv", "LangDialogueDB.csv", "LangRecordsDB.csv"}
 
@@ -148,7 +147,7 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
     results = []
 
     try:
-        f = open(file_path, "r", encoding="utf-8-sig", newline="")
+        f = open(file_path, encoding="utf-8-sig", newline="")
         reader = csv.reader(f)
     except Exception as e:
         print(f"Error opening CSV {file_path}: {e}")
@@ -165,7 +164,7 @@ def _parse_csv_content(file_path: Path) -> list[LocString]:
     language_columns = ["Korean", "English", "Japanese", "Chinese", "Chinese-TW [zh-tw]"]
     active_langs = [l for l in language_columns if l in col_indices]
 
-    last_entry: Optional[LocString] = None
+    last_entry: LocString | None = None
     # Column the last entry was populating, for continuation ("zombie") rows.
     current_col_offset = 0
 
@@ -394,7 +393,7 @@ def extract_mod_strings(mod_path: Path) -> tuple[dict[str, LocString], list[str]
 def detect_source_language(
     loc_string: LocString,
     source_languages: list[str],
-) -> Optional[str]:
+) -> str | None:
     """Return the first source language with text.
 
     Args:

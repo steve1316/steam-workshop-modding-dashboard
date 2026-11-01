@@ -1,13 +1,13 @@
 from backend.data.glossary_manager import (
-    build_glossary_from_base_game,
-    load_glossary,
-    save_glossary,
     add_glossary_term,
-    get_glossary_prompt,
+    build_glossary_from_base_game,
     get_combined_glossary_prompt,
+    get_glossary_prompt,
+    load_glossary,
     load_mod_glossary,
-    save_mod_glossary,
     merge_glossaries,
+    save_glossary,
+    save_mod_glossary,
 )
 
 

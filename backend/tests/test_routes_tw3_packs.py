@@ -220,7 +220,7 @@ def test_open_pack_folder_returns_404_when_drive_unset(monkeypatch):
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # POST /packs/{workshop_id}/publish
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
 
@@ -229,7 +229,7 @@ def _make_handle(workshop_id: str = "999") -> wp.PublishHandle:
     return wp.PublishHandle(
         publish_id="test-publish-id",
         workshop_id=workshop_id,
-        started_at=datetime(2026, 5, 14, 0, 0, 0, tzinfo=timezone.utc),
+        started_at=datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC),
     )
 
 

@@ -9,7 +9,7 @@ import logging
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -19,7 +19,6 @@ from pydantic import BaseModel
 
 from backend import config
 from backend.data.glossary_manager import get_combined_glossary_prompt, replace_whole_term
-from backend.games.total_war_warhammer_3 import translation_context as tc
 from backend.data.mod_settings import (
     load_source_language_override,
     load_target_language_override,
@@ -31,11 +30,13 @@ from backend.games.total_war_warhammer_3 import (
     api_responses_store,
     glossary_store,
     snapshot_store,
-    translation_store_helpers as store,
 )
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
+from backend.games.total_war_warhammer_3 import translation_context as tc
+from backend.games.total_war_warhammer_3 import (
+    translation_store_helpers as store,
+)
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
-from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.canonical_status import to_status_rows
 from backend.games.total_war_warhammer_3.loc_extractor import (
     LocRow,
@@ -50,6 +51,7 @@ from backend.games.total_war_warhammer_3.loc_tsv_packer import (
     resolve_rpfm_cli_path,
 )
 from backend.games.total_war_warhammer_3.loc_tsv_writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv
+from backend.games.total_war_warhammer_3.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.source_snapshot import accept_keys, refresh_unchanged
 from backend.games.total_war_warhammer_3.translation_drift import (
@@ -432,7 +434,7 @@ def rescan(mod_id: str) -> RescanSummary:
         mod_id=mod_id,
         counts=counts,
         canonical_counts=canonical_counts,
-        scanned_at=datetime.now(timezone.utc).isoformat(),
+        scanned_at=datetime.now(UTC).isoformat(),
         has_unsynced_changes=_has_unsynced_changes(mod_id, translation),
         has_mod_context=has_mod_context,
     )
@@ -514,7 +516,7 @@ def put_string(mod_id: str, key: str, edit: TranslationEdit) -> dict:
     """
     mod = _require_mod(mod_id)
     raw = store.load_translations_raw(mod_id)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     existing = raw.get(key, {})
     raw[key] = {
         "text": edit.text,
@@ -610,7 +612,7 @@ def translate_batch(mod_id: str, req: TranslateBatchRequest) -> dict:
     )
 
     raw = store.load_translations_raw(mod_id)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     keep = glossary_words(mod_terms["terms"])
     for key, text in translations.items():
         existing = raw.get(key, {})
@@ -714,7 +716,7 @@ def clear_translations(mod_id: str) -> dict:
                 keys_with_english.add(key)
 
     # Empty-string overrides mask the .loc.tsv content so rows show as untranslated until synced.
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     cleared: dict[str, dict] = {}
     for key in keys_with_english:
         existing = raw.get(key) if isinstance(raw.get(key), dict) else {}
@@ -941,7 +943,7 @@ def _rename_in_translations(mod, mod_id: str, source: str, old_english: str, new
     drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=store.load_parent_snapshot(mod_id))
     raw = store.load_translations_raw(mod_id)
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     changed = 0
     for row in _overlay_translations(drift, raw):
         if not row.translation_text or source not in (row.parent_text or ""):

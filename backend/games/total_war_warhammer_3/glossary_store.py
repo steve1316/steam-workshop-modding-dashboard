@@ -10,9 +10,9 @@ import json
 import re
 from pathlib import Path
 
+from backend.core.json_store import write_json
 from backend.data import glossary_manager as gm
 from backend.games.storage_paths import game_storage_path, glossary_path
-from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 

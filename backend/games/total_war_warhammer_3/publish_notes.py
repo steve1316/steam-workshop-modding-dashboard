@@ -7,7 +7,7 @@ Registered translation mods diff against their published baseline, and every oth
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn

@@ -3,15 +3,15 @@
 import csv
 import os
 from pathlib import Path
-from typing import Optional
+
 from fastapi import APIRouter
-from backend.models import LocString
-from backend.games.base import GameAdapter, ModInfo
-from backend.games.capabilities.translation import TranslationCapability
+
 from backend import config
 from backend.data import glossary_manager as gm
+from backend.games.base import GameAdapter, ModInfo
+from backend.games.capabilities.translation import TranslationCapability
 from backend.games.chrono_ark import csv_extractor, dll_extractor, gdata_extractor, mod_scanner
-
+from backend.models import LocString
 
 # (short_suffix, long_suffix) pairs that may coexist across CSV and gdata sources.
 _DESC_SUFFIX_PAIRS = [
@@ -238,7 +238,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             return "LangDataDB.csv"
         return "LangSystemDB.csv"
 
-    def get_translation_overrides_dir(self) -> Optional[Path]:
+    def get_translation_overrides_dir(self) -> Path | None:
         """Return the ModTranslationInjector mod directory, derived from `_BASE_GAME_PATH` (`ChronoArk_Data/StreamingAssets`).
 
         Returns:
@@ -251,7 +251,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return overrides_dir
 
     @property
-    def base_game_path(self) -> Optional[Path]:
+    def base_game_path(self) -> Path | None:
         return self._BASE_GAME_PATH
 
     @property
@@ -314,7 +314,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             examples = self._STYLE_EXAMPLES["Korean"]
         return examples
 
-    def scan_mods(self, search_path: Optional[Path] = None) -> list[ModInfo]:
+    def scan_mods(self, search_path: Path | None = None) -> list[ModInfo]:
         """Discover installed workshop mods by their `ChronoArkMod.json` files.
 
         Args:
@@ -403,7 +403,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         _drop_cross_source_duplicates(strings)
         return strings, variants
 
-    def extract_base_game_strings(self, game_path: Optional[Path] = None) -> dict[str, LocString]:
+    def extract_base_game_strings(self, game_path: Path | None = None) -> dict[str, LocString]:
         """Parse the base game's `Lang*.csv` files for glossary building.
 
         Args:
@@ -415,7 +415,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         path = game_path or self._BASE_GAME_PATH
         return csv_extractor.extract_base_game_strings(path, self._CSV_FILES)
 
-    def detect_source_language(self, loc_string: LocString) -> Optional[str]:
+    def detect_source_language(self, loc_string: LocString) -> str | None:
         """Return the first source language (in `_SOURCE_LANGUAGES` order) with non-empty text.
 
         Args:
@@ -474,7 +474,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
                     row.append(entry.translations.get(lang, ""))
                 writer.writerow(row)
 
-    def get_mod_url(self, mod_id: str) -> Optional[str]:
+    def get_mod_url(self, mod_id: str) -> str | None:
         """Return the Steam Workshop URL for a mod.
 
         Args:

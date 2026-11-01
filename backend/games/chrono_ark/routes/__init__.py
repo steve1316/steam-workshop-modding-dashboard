@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from backend.games.chrono_ark.routes import mods, translation, glossary
+from backend.games.chrono_ark.routes import glossary, mods, translation
 
 
 def build_chrono_ark_router() -> APIRouter:

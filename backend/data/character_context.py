@@ -1,10 +1,11 @@
 """Load and save per-mod character context for translation prompts."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from backend.games.storage_paths import mods_path
+
 from backend.core.json_store import write_json
+from backend.games.storage_paths import mods_path
 
 _DEFAULTS = {"source_game": "", "character_name": "", "background": "", "created_at": "", "updated_at": ""}
 
@@ -24,7 +25,7 @@ def load_character_context(mod_id: str, *, storage_path: Path | None = None) -> 
     if not path.exists():
         return dict(_DEFAULTS)
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
         return {k: data.get(k, "") for k in _DEFAULTS}
     except (json.JSONDecodeError, OSError):
@@ -46,7 +47,7 @@ def save_character_context(mod_id: str, ctx: dict, *, storage_path: Path | None 
 
     # Preserve existing created_at if the file already exists.
     existing = load_character_context(mod_id, storage_path=storage_path)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     data = {k: ctx.get(k, "") for k in _DEFAULTS}
     data["created_at"] = existing["created_at"] if existing["created_at"] else now

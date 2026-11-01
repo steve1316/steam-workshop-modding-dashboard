@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from backend.games.base import ModInfo
@@ -54,11 +54,11 @@ class TranslationCapability(ABC):
         """
 
     @abstractmethod
-    def scan_mods(self, search_path: Optional[Path] = None) -> list["ModInfo"]:
+    def scan_mods(self, search_path: Path | None = None) -> list[ModInfo]:
         """Return discovered mods at `search_path` (or default workshop path)."""
 
     @abstractmethod
-    def extract_strings(self, mod_path: Path) -> tuple[dict[str, "LocString"], list[str]]:
+    def extract_strings(self, mod_path: Path) -> tuple[dict[str, LocString], list[str]]:
         """Extract localizable strings from `mod_path`.
 
         Args:
@@ -70,19 +70,19 @@ class TranslationCapability(ABC):
 
     @property
     @abstractmethod
-    def base_game_path(self) -> Optional[Path]:
+    def base_game_path(self) -> Path | None:
         """Return the on-disk base-game path, or `None` if not configured."""
 
     @abstractmethod
-    def extract_base_game_strings(self, game_path: Optional[Path] = None) -> dict[str, "LocString"]:
+    def extract_base_game_strings(self, game_path: Path | None = None) -> dict[str, LocString]:
         """Extract base-game strings from `game_path` (defaults to `base_game_path`)."""
 
     @abstractmethod
-    def detect_source_language(self, loc_string: "LocString") -> Optional[str]:
+    def detect_source_language(self, loc_string: LocString) -> str | None:
         """Auto-detect the source language of `loc_string`."""
 
     @abstractmethod
-    def get_untranslated(self, strings: dict[str, "LocString"]) -> dict[str, "LocString"]:
+    def get_untranslated(self, strings: dict[str, LocString]) -> dict[str, LocString]:
         """Filter `strings` down to entries lacking a target-language translation."""
 
     @abstractmethod
@@ -90,13 +90,13 @@ class TranslationCapability(ABC):
         """Return category-name to file-or-directory hints for glossary auto-build."""
 
     @abstractmethod
-    def export_strings(self, output_path: Path, entries: list["LocString"]) -> None:
+    def export_strings(self, output_path: Path, entries: list[LocString]) -> None:
         """Write `entries` to `output_path` in the game's native format."""
 
     @abstractmethod
-    def get_mod_url(self, mod_id: str) -> Optional[str]:
+    def get_mod_url(self, mod_id: str) -> str | None:
         """Return a public URL for `mod_id` (e.g. Steam Workshop link)."""
 
-    def get_translation_overrides_dir(self) -> Optional[Path]:
+    def get_translation_overrides_dir(self) -> Path | None:
         """Return the injector's overrides directory, or `None` when the adapter has no injector."""
         return None

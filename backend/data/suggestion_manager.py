@@ -3,14 +3,14 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional
-from backend.games.storage_paths import mods_path
+
 from backend.core.json_store import write_json
+from backend.games.storage_paths import mods_path
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
-def load_suggestions(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]:
+def load_suggestions(mod_id: str, storage_path: Path | None = None) -> list[dict]:
     """Load pending suggestions for a mod.
 
     Args:
@@ -24,11 +24,11 @@ def load_suggestions(mod_id: str, storage_path: Optional[Path] = None) -> list[d
     path = mods_dir / mod_id / "pending_suggestions.json"
     if not path.exists():
         return []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Optional[Path] = None) -> None:
+def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Path | None = None) -> None:
     """Save pending suggestions for a mod.
 
     Args:
@@ -42,7 +42,7 @@ def save_suggestions(mod_id: str, suggestions: list[dict], storage_path: Optiona
     write_json(path, suggestions)
 
 
-def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Optional[Path] = None) -> None:
+def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Path | None = None) -> None:
     """Append new suggestions, deduplicating by english term.
 
     Existing suggestions with the same english term are kept, not overwritten.
@@ -63,7 +63,7 @@ def add_suggestions(mod_id: str, new_suggestions: list[dict], storage_path: Opti
     save_suggestions(mod_id, existing, storage_path)
 
 
-def remove_suggestions(mod_id: str, terms: list[str], storage_path: Optional[Path] = None) -> None:
+def remove_suggestions(mod_id: str, terms: list[str], storage_path: Path | None = None) -> None:
     """Remove suggestions by english term.
 
     Args:

@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module

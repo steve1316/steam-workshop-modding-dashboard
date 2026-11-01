@@ -8,10 +8,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from backend.core.json_store import write_json
 from backend.data import character_context as cc
 from backend.data import translation_store as ts
 from backend.games.storage_paths import game_storage_path
-from backend.core.json_store import write_json
 
 GAME_ID = "total_war_warhammer_3"
 

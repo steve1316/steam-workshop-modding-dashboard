@@ -3,12 +3,13 @@
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
+
+from backend.core.json_store import write_json
+
 from ..games.storage_paths import mods_path
 from ..models import LocString
-from backend.core.json_store import write_json
 
 
 @dataclass
@@ -24,7 +25,7 @@ class ProgressDiff:
 class ProgressTracker:
     """Tracks translation progress per mod, storing a snapshot of content hashes for change detection."""
 
-    def __init__(self, storage_path: Optional[Path] = None):
+    def __init__(self, storage_path: Path | None = None):
         """Initialize the progress tracker.
 
         Args:
@@ -58,7 +59,7 @@ class ProgressTracker:
             return {}
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, UnicodeDecodeError):
             return {}
@@ -164,7 +165,7 @@ class ProgressTracker:
         new_snapshot = {
             "hashes": new_hashes,
             "translated": sorted((old_translated & current_keys) - excluded_keys),
-            "last_updated": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(UTC).isoformat(),
             "total_keys": len(current_keys) - len(excluded_keys),
         }
         self._save_snapshot(mod_id, new_snapshot)

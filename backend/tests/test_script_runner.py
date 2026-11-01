@@ -1,19 +1,19 @@
 """Tests for the TW3 script runner."""
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from backend.games.total_war_warhammer_3 import script_runner as sr
 from backend.games.total_war_warhammer_3.script_runner import (
+    _TEST_SCRIPT_REGISTRY,
     SCRIPT_REGISTRY,
     PreflightError,
     RunInProgressError,
     ScriptDef,
     UnknownScriptError,
-    _TEST_SCRIPT_REGISTRY,
     _log,
     _preflight,
     cancel_run,
@@ -193,19 +193,19 @@ def test_stream_lines_keeps_streaming_after_the_bounded_log_fills(monkeypatch):
     import asyncio
     import threading
     from collections import deque
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    handle = sr.RunHandle(run_id="r", script_id="s", started_at=datetime.now(timezone.utc))
+    handle = sr.RunHandle(run_id="r", script_id="s", started_at=datetime.now(UTC))
     monkeypatch.setattr(sr, "_current", handle)
     monkeypatch.setattr(sr, "_log", deque(maxlen=5))
 
     def produce():
         for seq in range(40):
-            sr._log.append(sr._LogLine(line=f"line {seq}", ts=datetime.now(timezone.utc), seq=seq))
+            sr._log.append(sr._LogLine(line=f"line {seq}", ts=datetime.now(UTC), seq=seq))
             sr._event_new_line.set()
             time.sleep(0.01)
         handle.exit_code = 0
-        handle.ended_at = datetime.now(timezone.utc)
+        handle.ended_at = datetime.now(UTC)
         sr._event_new_line.set()
 
     async def collect():
@@ -228,7 +228,7 @@ def test_stream_lines_keeps_streaming_after_the_bounded_log_fills(monkeypatch):
 
 def _pipeline_handle() -> sr.RunHandle:
     """Build a pipeline handle with every step queued, as `start_run` seeds it."""
-    handle = sr.RunHandle(run_id="x", script_id=sr.PIPELINE_SCRIPT_ID, started_at=datetime.now(timezone.utc))
+    handle = sr.RunHandle(run_id="x", script_id=sr.PIPELINE_SCRIPT_ID, started_at=datetime.now(UTC))
     handle.steps = {sid: sr.StepStatus.QUEUED for sid in sr.PIPELINE_UNIT_SCRIPTS.values()}
     return handle
 

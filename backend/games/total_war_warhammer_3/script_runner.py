@@ -15,11 +15,11 @@ import sys
 import threading
 import uuid
 from collections import deque
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import AsyncIterator
 
 
 @dataclass(frozen=True)
@@ -158,7 +158,7 @@ class UnknownScriptError(RunnerError):
 _lock = threading.Lock()
 _current: RunHandle | None = None
 _proc: subprocess.Popen | None = None
-_log: "deque[_LogLine]" = deque(maxlen=5000)
+_log: deque[_LogLine] = deque(maxlen=5000)
 _event_new_line = threading.Event()
 
 
@@ -277,7 +277,7 @@ def start_run(
         handle = RunHandle(
             run_id=run_id,
             script_id=script_id,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         if script_id == PIPELINE_SCRIPT_ID:
             handle.steps = {sid: StepStatus.QUEUED for sid in PIPELINE_UNIT_SCRIPTS.values()}
@@ -334,12 +334,12 @@ def _reader_thread(proc: subprocess.Popen, handle: RunHandle) -> None:
     assert proc.stdout is not None
     for seq, raw in enumerate(proc.stdout):
         line = raw.rstrip("\n")
-        _log.append(_LogLine(line=line, ts=datetime.now(timezone.utc), seq=seq))
+        _log.append(_LogLine(line=line, ts=datetime.now(UTC), seq=seq))
         _track_step(handle, line)
         _event_new_line.set()
     proc.wait()
     handle.exit_code = proc.returncode
-    handle.ended_at = datetime.now(timezone.utc)
+    handle.ended_at = datetime.now(UTC)
     _event_new_line.set()
 
 

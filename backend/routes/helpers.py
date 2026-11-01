@@ -7,9 +7,9 @@ import hashlib
 import json
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from backend.models import LocString
@@ -17,14 +17,14 @@ if TYPE_CHECKING:
 from fastapi import HTTPException
 
 from backend import config
-from backend.translation.game_storage import GameStorage
-from backend.translation.orchestrator import fill_duplicate_translations
-from backend.games.registry import get_adapter
-from backend.games.base import GameAdapter
+from backend.core.json_store import write_json, write_text_atomic
 from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_store import load_translations
-from backend.core.json_store import write_json, write_text_atomic
+from backend.games.base import GameAdapter
+from backend.games.registry import get_adapter
+from backend.translation.game_storage import GameStorage
+from backend.translation.orchestrator import fill_duplicate_translations
 
 # ---------------------------------------------------------------------------
 # Module-level state
@@ -113,7 +113,7 @@ def _stamp_raw_responses(responses: list[dict]) -> list[dict]:
     Returns:
         The same list, modified in place.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     for r in responses:
         r["timestamp"] = now
     return responses
@@ -200,7 +200,7 @@ def _find_mod_path(mod_id: str) -> Path:
 
 def _merge_gdata_originals(
     mod_id: str,
-    strings: dict[str, "LocString"],
+    strings: dict[str, LocString],
     target_lang: str = "English",
 ) -> None:
     """Restore original source text for gdata entries from backup.
@@ -218,7 +218,7 @@ def _merge_gdata_originals(
     if not backup_dir.exists():
         return
 
-    originals: dict[str, "LocString"] = {}
+    originals: dict[str, LocString] = {}
     for json_file in sorted(backup_dir.glob("*.json")):
         originals.update(gdata_extractor._extract_gdata_file(json_file))
 
@@ -231,7 +231,7 @@ def _merge_gdata_originals(
                 live.translations[lang] = text
 
 
-def _find_mod_preview_image(mod_path: Path) -> Optional[Path]:
+def _find_mod_preview_image(mod_path: Path) -> Path | None:
     """Find the first `.png`, `.jpg`, or `.jpeg` in the mod's root directory.
 
     Args:
@@ -281,7 +281,7 @@ def _compute_export_snapshot(mod_id: str, mod_path: Path, mod_name: str = "") ->
             if not json_path.exists():
                 continue
             try:
-                with open(json_path, "r", encoding="utf-8") as f:
+                with open(json_path, encoding="utf-8") as f:
                     data = json.load(f)
             except (json.JSONDecodeError, OSError):
                 continue
@@ -322,7 +322,7 @@ def _load_last_export_hash(mod_id: str) -> str:
     if not path.exists():
         return ""
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f).get("hash", "")
     except Exception:
         return ""

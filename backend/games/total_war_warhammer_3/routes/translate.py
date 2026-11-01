@@ -8,7 +8,7 @@ The provider call goes through the game-agnostic `run_batch` orchestrator.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -315,7 +315,7 @@ def _log_batch_call(mod_id: str, keys: list[str], raw_responses: list[dict], err
     _t.api_responses_store.append(
         mod_id,
         {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "kind": "translate-batch",
             "provider": "claude",
             **_t.api_responses_store.provider_call_fields(raw_responses, error=error),
@@ -394,7 +394,7 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
         suggestion_manager.add_suggestions(req.mod_id, suggestions, storage_path=game_storage_path(GAME_ID))
 
     raw = _t.store.load_translations_raw(req.mod_id)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     for key, text in spaced.items():
         existing = raw.get(key, {})
         raw[key] = {"text": text, "created_at": existing.get("created_at") or now, "updated_at": now, "provider": "claude"}

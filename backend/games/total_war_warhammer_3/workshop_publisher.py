@@ -15,10 +15,10 @@ import tempfile
 import threading
 import uuid
 from collections import deque
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import AsyncIterator, Callable
 
 from backend.games.total_war_warhammer_3 import published_times
 from backend.games.total_war_warhammer_3.routes._paths import TW3_APPID
@@ -74,7 +74,7 @@ class PublisherPreflightError(PublisherError):
 _lock = threading.Lock()
 _current: PublishHandle | None = None
 _proc: subprocess.Popen | None = None
-_log: "deque[_LogLine]" = deque(maxlen=5000)
+_log: deque[_LogLine] = deque(maxlen=5000)
 _event_new_line = threading.Event()
 _active_vdf: Path | None = None
 
@@ -243,7 +243,7 @@ def start_publish(
         handle = PublishHandle(
             publish_id=publish_id,
             workshop_id=workshop_id,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         _current = handle
         _proc = proc
@@ -268,24 +268,24 @@ def _reader_thread(proc: subprocess.Popen, handle: PublishHandle, vdf_path: Path
     assert proc.stdout is not None
     for raw in proc.stdout:
         line = raw.rstrip("\n")
-        _log.append(_LogLine(line=line, ts=datetime.now(timezone.utc)))
+        _log.append(_LogLine(line=line, ts=datetime.now(UTC)))
         _event_new_line.set()
     proc.wait()
     if proc.returncode == 0:
         try:
             published_times.record(handle.workshop_id)
         except OSError as exc:
-            _log.append(_LogLine(line=f"Published, but saving the publish time failed: {exc}", ts=datetime.now(timezone.utc)))
+            _log.append(_LogLine(line=f"Published, but saving the publish time failed: {exc}", ts=datetime.now(UTC)))
     # Run the hook before exit_code is set, since `stream_lines` ends the stream as soon as it sees exit_code.
     if on_exit is not None:
         try:
             result = on_exit(proc.returncode)
             if result:
-                _log.append(_LogLine(line=result, ts=datetime.now(timezone.utc)))
+                _log.append(_LogLine(line=result, ts=datetime.now(UTC)))
         except Exception as exc:
-            _log.append(_LogLine(line=f"Published, but recording the upload failed: {exc}", ts=datetime.now(timezone.utc)))
+            _log.append(_LogLine(line=f"Published, but recording the upload failed: {exc}", ts=datetime.now(UTC)))
     handle.exit_code = proc.returncode
-    handle.ended_at = datetime.now(timezone.utc)
+    handle.ended_at = datetime.now(UTC)
     _event_new_line.set()
     try:
         vdf_path.unlink(missing_ok=True)

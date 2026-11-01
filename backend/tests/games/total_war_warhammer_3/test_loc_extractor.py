@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from backend.games.total_war_warhammer_3.loc_extractor import LocRow, escape_loc_text, read_translation_loc_tsv, unescape_loc_text
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_translation.loc.tsv"

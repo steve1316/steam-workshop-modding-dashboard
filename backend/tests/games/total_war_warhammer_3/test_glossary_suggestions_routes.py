@@ -7,15 +7,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
 from backend.data import suggestion_manager
 from backend.games.storage_paths import game_storage_path
 from backend.games.total_war_warhammer_3 import glossary_store
 from backend.games.total_war_warhammer_3.api_responses_store import list_entries
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
 from backend.games.total_war_warhammer_3.translation_mods import WH3TranslationMod
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 GAME_ID = "total_war_warhammer_3"
 MOD_ID = "3315737452"

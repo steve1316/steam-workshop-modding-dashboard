@@ -22,7 +22,7 @@ from backend.data.suggestion_manager import (
     save_suggestions,
 )
 from backend.data.translation_store import load_translations, replace_in_translations, save_translations_bulk
-from backend.routes.helpers import chrono_ark_adapter, _find_mod_path, _merge_gdata_originals, resolve_source_language
+from backend.routes.helpers import _find_mod_path, _merge_gdata_originals, chrono_ark_adapter, resolve_source_language
 from backend.routes.models import (
     GlossaryReplacePreview,
     GlossaryTerm,

@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend import config
-from backend.games.total_war_warhammer_3 import published_times, publish_notes
+from backend.games.total_war_warhammer_3 import publish_notes, published_times
 from backend.games.total_war_warhammer_3 import workshop_batch_publisher as wbp
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
 from backend.games.total_war_warhammer_3.routes._paths import tw3_workshop_content_dir

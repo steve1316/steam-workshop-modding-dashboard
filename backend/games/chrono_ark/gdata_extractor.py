@@ -2,10 +2,10 @@
 
 import json
 from pathlib import Path
+
+from backend.core.json_store import write_json
 from backend.models import LocString
 from backend.text_utils import has_cjk as _has_cjk
-from backend.core.json_store import write_json
-
 
 # Maps a JSON field name to its localization key suffix (e.g. "Name" -> "_Name").
 _FIELD_SUFFIXES: dict[str, str] = {
@@ -83,7 +83,7 @@ def _extract_gdata_file(file_path: Path) -> dict[str, LocString]:
         `{key: LocString}`, empty if the file is unreadable or has nothing localizable.
     """
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         print(f"  Warning: Could not read {file_path.name}: {e}")
@@ -175,7 +175,7 @@ def export_gdata_translations(
 
     for json_file in json_files:
         try:
-            with open(json_file, "r", encoding="utf-8") as f:
+            with open(json_file, encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
             continue

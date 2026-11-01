@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from fastapi.testclient import TestClient
-
 from backend.games.total_war_warhammer_3 import compat_change_notes as ccn
 from backend.games.total_war_warhammer_3 import publish_notes as pn
 from backend.games.total_war_warhammer_3 import translation_change_notes as tcn
 from backend.web_server import app
+from fastapi.testclient import TestClient
 
 TRANSLATION_ID = "10"
 SHIPPED = {"units.loc.tsv": {"k1": "h1"}}

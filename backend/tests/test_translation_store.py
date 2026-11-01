@@ -2,12 +2,12 @@ import json
 import time
 
 from backend.data.translation_store import (
+    clear_all_translations,
     load_translations,
     load_translations_raw,
+    replace_in_translations,
     save_translations_bulk,
     update_single_translation,
-    clear_all_translations,
-    replace_in_translations,
 )
 
 

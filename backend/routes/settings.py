@@ -4,11 +4,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from backend import config
+from backend.data.progress_tracker import ProgressTracker
+from backend.data.translation_memory import TranslationMemory
 from backend.games.registry import list_games as registry_list_games
 from backend.process_manager import is_managed
-from backend.data.translation_memory import TranslationMemory
-from backend.data.progress_tracker import ProgressTracker
-from backend.routes.helpers import chrono_ark_adapter, current_adapter, _mask_key, _update_env_file, set_active_game
+from backend.routes.helpers import _mask_key, _update_env_file, chrono_ark_adapter, current_adapter, set_active_game
 from backend.routes.models import SettingsResponse, SettingsUpdate
 
 router = APIRouter(prefix="/api")

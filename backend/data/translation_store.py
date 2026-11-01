@@ -4,15 +4,14 @@ Consumers that only need the text should use `load_translations`, which returns 
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
-from backend.games.storage_paths import mods_path
 from backend.core.json_store import write_json
+from backend.games.storage_paths import mods_path
 
 
-def _translations_path(mod_id: str, storage_path: Optional[Path] = None) -> Path:
+def _translations_path(mod_id: str, storage_path: Path | None = None) -> Path:
     """Build the path to a mod's `translations.json`.
 
     Args:
@@ -52,7 +51,7 @@ def _load_raw_data(path: Path) -> dict:
     if not path.exists():
         return {}
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return {}
@@ -69,7 +68,7 @@ def _save_raw_data(path: Path, data: dict) -> None:
     write_json(path, data)
 
 
-def load_translations(mod_id: str, *, storage_path: Optional[Path] = None) -> dict[str, str]:
+def load_translations(mod_id: str, *, storage_path: Path | None = None) -> dict[str, str]:
     """Load translations as a flat `{key: text}` dict, whichever format is on disk.
 
     Args:
@@ -91,7 +90,7 @@ def load_translations(mod_id: str, *, storage_path: Optional[Path] = None) -> di
     return result
 
 
-def load_translations_raw(mod_id: str, *, storage_path: Optional[Path] = None) -> dict[str, dict]:
+def load_translations_raw(mod_id: str, *, storage_path: Path | None = None) -> dict[str, dict]:
     """Load translations in full timestamped format, normalizing old flat entries with `None` timestamps.
 
     Args:
@@ -109,7 +108,7 @@ def save_translations_bulk(
     mod_id: str,
     new_entries: dict[str, str],
     *,
-    storage_path: Optional[Path] = None,
+    storage_path: Path | None = None,
 ) -> None:
     """Merge new flat translations into the existing timestamped store.
 
@@ -122,7 +121,7 @@ def save_translations_bulk(
     """
     path = _translations_path(mod_id, storage_path)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     for key, text in new_entries.items():
         if key in existing:
@@ -140,7 +139,7 @@ def update_single_translation(
     key: str,
     text: str,
     *,
-    storage_path: Optional[Path] = None,
+    storage_path: Path | None = None,
 ) -> None:
     """Update a single translation key for manual edits.
 
@@ -152,7 +151,7 @@ def update_single_translation(
     """
     path = _translations_path(mod_id, storage_path)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     if key in existing:
         existing[key]["text"] = text
@@ -167,7 +166,7 @@ def clear_all_translations(
     mod_id: str,
     keys: list[str],
     *,
-    storage_path: Optional[Path] = None,
+    storage_path: Path | None = None,
 ) -> None:
     """Set the given keys to empty strings, creating any that don't exist.
 
@@ -178,7 +177,7 @@ def clear_all_translations(
     """
     path = _translations_path(mod_id, storage_path)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     for key in keys:
         if key in existing:
@@ -195,7 +194,7 @@ def replace_in_translations(
     old_text: str,
     new_text: str,
     *,
-    storage_path: Optional[Path] = None,
+    storage_path: Path | None = None,
 ) -> int:
     """Find-and-replace within translation text, touching `updated_at` only where something changed.
 
@@ -210,7 +209,7 @@ def replace_in_translations(
     """
     path = _translations_path(mod_id, storage_path)
     existing = {k: _normalize_entry(v) for k, v in _load_raw_data(path).items()}
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     replaced = 0
 
     for entry in existing.values():

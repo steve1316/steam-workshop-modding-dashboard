@@ -7,13 +7,12 @@ the real `steamcmd.exe`.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from backend.games.total_war_warhammer_3 import workshop_publisher as wp
-
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -126,7 +125,7 @@ class _FakeProc:
 
 def _handle() -> wp.PublishHandle:
     """Build a fresh publish handle for reader-thread tests."""
-    return wp.PublishHandle(publish_id="p", workshop_id="1", started_at=datetime.now(timezone.utc))
+    return wp.PublishHandle(publish_id="p", workshop_id="1", started_at=datetime.now(UTC))
 
 
 def test_reader_thread_runs_on_exit_before_the_exit_code_is_published(tmp_path):

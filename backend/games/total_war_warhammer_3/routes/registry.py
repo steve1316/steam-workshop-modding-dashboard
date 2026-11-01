@@ -7,6 +7,7 @@ import shutil
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from backend.core.json_store import write_text_atomic
 from backend.games.total_war_warhammer_3.helper_scripts_loader import (
     HelperScriptsLoaderError,
     HelperScriptsNotConfiguredError,
@@ -23,7 +24,6 @@ from backend.games.total_war_warhammer_3.supported_mods_writer import (
     remove_entry,
     update_entry,
 )
-from backend.core.json_store import write_text_atomic
 
 router = APIRouter()
 

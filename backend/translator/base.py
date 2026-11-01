@@ -2,10 +2,9 @@
 
 import json
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass
 from threading import Event
-from typing import Generator
-
 
 _SYSTEM_PROMPT_TEMPLATE = """You are a professional game translator specializing in translating {source_lang} text into {target_lang} for the game {game_context}.
 

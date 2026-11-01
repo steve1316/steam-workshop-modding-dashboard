@@ -1,6 +1,5 @@
 """Pydantic request/response models for the REST API."""
 
-from typing import Optional
 from pydantic import BaseModel
 
 
@@ -42,7 +41,7 @@ class TranslationRequest(BaseModel):
     """
 
     mod_id: str
-    provider: Optional[str] = None
+    provider: str | None = None
     retranslate: bool = False
     scope: str = "all"
 
@@ -56,7 +55,7 @@ class BatchTranslationRequest(BaseModel):
     """
 
     mod_id: str
-    provider: Optional[str] = None
+    provider: str | None = None
     keys: list[str]
     source_lang: str
     is_first_batch: bool = False
@@ -89,7 +88,7 @@ class SourceLanguageOverride(BaseModel):
         source_language: Language name, or None to revert to auto-detection.
     """
 
-    source_language: Optional[str] = None
+    source_language: str | None = None
 
 
 class TargetLanguageOverride(BaseModel):
@@ -99,7 +98,7 @@ class TargetLanguageOverride(BaseModel):
         target_language: Language name, or None to revert to English.
     """
 
-    target_language: Optional[str] = None
+    target_language: str | None = None
 
 
 class HistorySnapshotRequest(BaseModel):
@@ -161,30 +160,30 @@ class SettingsUpdate(BaseModel):
     Every field is optional and `None` fields are left unchanged.
     """
 
-    provider: Optional[str] = None
-    batch_size: Optional[int] = None
-    anthropic_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    deepl_api_key: Optional[str] = None
-    claude_model: Optional[str] = None
-    openai_model: Optional[str] = None
-    ollama_base_url: Optional[str] = None
-    ollama_model: Optional[str] = None
-    ollama_vram_tier: Optional[str] = None
-    llamacpp_base_url: Optional[str] = None
-    llamacpp_model: Optional[str] = None
-    llamacpp_binary_path: Optional[str] = None
-    llamacpp_model_path: Optional[str] = None
-    llamacpp_gpu_layers: Optional[int] = None
-    llamacpp_ctx_size: Optional[int] = None
-    llamacpp_vram_tier: Optional[str] = None
-    ignored_mods: Optional[list[str]] = None
-    active_game: Optional[str] = None
-    tw3_helper_path: Optional[str] = None
-    tw3_rpfm_cli_path: Optional[str] = None
-    tw3_steam_library_drive: Optional[str] = None
-    steamcmd_path: Optional[str] = None
-    steam_username: Optional[str] = None
+    provider: str | None = None
+    batch_size: int | None = None
+    anthropic_api_key: str | None = None
+    openai_api_key: str | None = None
+    deepl_api_key: str | None = None
+    claude_model: str | None = None
+    openai_model: str | None = None
+    ollama_base_url: str | None = None
+    ollama_model: str | None = None
+    ollama_vram_tier: str | None = None
+    llamacpp_base_url: str | None = None
+    llamacpp_model: str | None = None
+    llamacpp_binary_path: str | None = None
+    llamacpp_model_path: str | None = None
+    llamacpp_gpu_layers: int | None = None
+    llamacpp_ctx_size: int | None = None
+    llamacpp_vram_tier: str | None = None
+    ignored_mods: list[str] | None = None
+    active_game: str | None = None
+    tw3_helper_path: str | None = None
+    tw3_rpfm_cli_path: str | None = None
+    tw3_steam_library_drive: str | None = None
+    steamcmd_path: str | None = None
+    steam_username: str | None = None
 
 
 class GlossaryReplacePreview(BaseModel):

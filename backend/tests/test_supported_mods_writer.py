@@ -12,7 +12,6 @@ from backend.games.total_war_warhammer_3.supported_mods_writer import (
     update_entry,
 )
 
-
 _BASE_SOURCE = """from utilities import STEAM_LIBRARY_DRIVE
 
 SUPPORTED_MODS = [

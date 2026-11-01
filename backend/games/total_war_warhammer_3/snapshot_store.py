@@ -10,12 +10,12 @@ from __future__ import annotations
 import json
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
+from backend.core.json_store import write_json, write_text_atomic
 from backend.core.paths import safe_child
 from backend.games.storage_paths import game_storage_path
-from backend.core.json_store import write_json, write_text_atomic
 
 GAME_ID = "total_war_warhammer_3"
 MAX_SNAPSHOTS = 20
@@ -99,7 +99,7 @@ def create_snapshot(mod_id: str, *, label: str, kind: str, local_source_dir: Pat
 
     snapshot = {
         "ulid": sid,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "label": label,
         "kind": kind,
         "translations_raw": _read_file_or_default(mod_dir / "translations.json", {}),

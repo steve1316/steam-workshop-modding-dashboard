@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from backend.games.total_war_warhammer_3.glossary_store import (
     add_term,
     apply_term_rename,
@@ -77,6 +75,7 @@ def test_load_glossary_returns_empty_when_missing(monkeypatch, tmp_path: Path):
 
 def test_load_base_glossary_reads_storage(tmp_path, monkeypatch):
     import json
+
     from backend.games.total_war_warhammer_3 import glossary_store
 
     monkeypatch.setattr("backend.config.STORAGE_PATH", tmp_path, raising=True)

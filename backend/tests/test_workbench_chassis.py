@@ -30,6 +30,7 @@ def test_list_games_metadata_returns_chrono_ark():
 
 def test_api_games_endpoint_lists_chrono_ark():
     from fastapi.testclient import TestClient
+
     from backend.web_server import app
 
     client = TestClient(app)
@@ -41,7 +42,7 @@ def test_api_games_endpoint_lists_chrono_ark():
 
 
 def test_tw3_stub_adapter_registered():
-    from backend.games.registry import list_games_metadata, get_adapter
+    from backend.games.registry import get_adapter, list_games_metadata
 
     metadata = list_games_metadata()
     tw3 = next((m for m in metadata if m["game_id"] == "total_war_warhammer_3"), None)
@@ -95,6 +96,7 @@ def test_migration_idempotent(tmp_path, monkeypatch):
 
 def test_chrono_ark_mods_endpoint_under_game_prefix():
     from fastapi.testclient import TestClient
+
     from backend.web_server import app
 
     client = TestClient(app)
@@ -104,8 +106,9 @@ def test_chrono_ark_mods_endpoint_under_game_prefix():
 
 def test_post_settings_active_game_rotates_adapter():
     from fastapi.testclient import TestClient
-    from backend.web_server import app
+
     from backend.routes import helpers
+    from backend.web_server import app
 
     client = TestClient(app)
 

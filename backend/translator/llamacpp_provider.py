@@ -2,9 +2,11 @@
 
 import json
 import time
+from collections.abc import Generator
 from threading import Event
-from typing import Generator, Optional
+
 import requests
+
 from backend import config
 from backend.translator.base import TranslationProvider
 
@@ -12,7 +14,7 @@ from backend.translator.base import TranslationProvider
 class LlamaCppProvider(TranslationProvider):
     """Translation provider using a local llama-server instance. The model name is display-only because llama-server ignores it."""
 
-    def __init__(self, base_url: Optional[str] = None, model: Optional[str] = None):
+    def __init__(self, base_url: str | None = None, model: str | None = None):
         """Initialize the llama.cpp provider.
 
         Args:

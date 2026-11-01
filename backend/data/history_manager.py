@@ -2,15 +2,15 @@
 
 import json
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
+
+from backend.core.json_store import write_json
 from backend.core.paths import safe_child
 from backend.games.storage_paths import mods_path
-from backend.core.json_store import write_json
 
 
-def _history_dir(mod_id: str, storage_path: Optional[Path] = None) -> Path:
+def _history_dir(mod_id: str, storage_path: Path | None = None) -> Path:
     """Return the history directory for a mod, which may not exist yet.
 
     Args:
@@ -24,7 +24,7 @@ def _history_dir(mod_id: str, storage_path: Optional[Path] = None) -> Path:
     return mods_dir / mod_id / "history"
 
 
-def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None, kind: str = "auto") -> Optional[str]:
+def create_backup(mod_id: str, reason: str, storage_path: Path | None = None, kind: str = "auto") -> str | None:
     """Create a timestamped backup of the mod's current state.
 
     Args:
@@ -53,7 +53,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
     if not any((mod_dir / f).exists() for f in files_to_backup):
         return None
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     hist_dir = _history_dir(mod_id, storage_path)
     hist_dir.mkdir(parents=True, exist_ok=True)
     # A second backup within the same second, e.g. "Before restore", must not overwrite the first. The suffix still sorts newest first.
@@ -80,13 +80,13 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
     glossary_count = 0
     progress_path = mod_dir / "progress.json"
     if progress_path.exists():
-        with open(progress_path, "r", encoding="utf-8") as pf:
+        with open(progress_path, encoding="utf-8") as pf:
             progress = json.load(pf)
             total_count = progress.get("total_keys", 0)
             translated_count = len(progress.get("translated", []))
     glossary_path = mod_dir / "glossary.json"
     if glossary_path.exists():
-        with open(glossary_path, "r", encoding="utf-8") as gf:
+        with open(glossary_path, encoding="utf-8") as gf:
             glossary = json.load(gf)
             glossary_count = len(glossary.get("terms", {}))
 
@@ -94,7 +94,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
         "timestamp": timestamp,
         "reason": reason,
         "kind": kind,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "files": [f for f in files_to_backup if (mod_dir / f).exists()],
         "translated_count": translated_count,
         "total_count": total_count,
@@ -107,7 +107,7 @@ def create_backup(mod_id: str, reason: str, storage_path: Optional[Path] = None,
     return backup_dir.name
 
 
-def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]:
+def list_backups(mod_id: str, storage_path: Path | None = None) -> list[dict]:
     """List all available backups for a mod, newest first.
 
     Args:
@@ -125,7 +125,7 @@ def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]
         if entry.is_dir():
             meta_path = entry / "meta.json"
             if meta_path.exists():
-                with open(meta_path, "r", encoding="utf-8") as f:
+                with open(meta_path, encoding="utf-8") as f:
                     meta = json.load(f)
                 meta["id"] = entry.name
                 # Backfill the kind for older backups taken before the field existed.
@@ -137,20 +137,20 @@ def list_backups(mod_id: str, storage_path: Optional[Path] = None) -> list[dict]
                     meta["glossary_count"] = 0
                     progress_path = entry / "progress.json"
                     if progress_path.exists():
-                        with open(progress_path, "r", encoding="utf-8") as pf:
+                        with open(progress_path, encoding="utf-8") as pf:
                             progress = json.load(pf)
                             meta["total_count"] = progress.get("total_keys", 0)
                             meta["translated_count"] = len(progress.get("translated", []))
                     glossary_path = entry / "glossary.json"
                     if glossary_path.exists():
-                        with open(glossary_path, "r", encoding="utf-8") as gf:
+                        with open(glossary_path, encoding="utf-8") as gf:
                             glossary = json.load(gf)
                             meta["glossary_count"] = len(glossary.get("terms", {}))
                 backups.append(meta)
     return backups
 
 
-def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = None) -> bool:
+def restore_backup(mod_id: str, backup_id: str, storage_path: Path | None = None) -> bool:
     """Restore a mod's state from a backup.
 
     Backs up the current state first, then copies the backed-up files into the mod directory.
@@ -177,7 +177,7 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = N
     mod_dir = mods_dir / mod_id
     meta_path = backup_dir / "meta.json"
     if meta_path.exists():
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)
         backed_up_files = set(meta.get("files", []))
         for filename in backed_up_files:
@@ -194,7 +194,7 @@ def restore_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = N
     return True
 
 
-def delete_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = None) -> bool:
+def delete_backup(mod_id: str, backup_id: str, storage_path: Path | None = None) -> bool:
     """Delete a specific backup.
 
     Args:
@@ -215,7 +215,7 @@ def delete_backup(mod_id: str, backup_id: str, storage_path: Optional[Path] = No
     return True
 
 
-def _prune_backups(mod_id: str, max_backups: int = 20, storage_path: Optional[Path] = None) -> None:
+def _prune_backups(mod_id: str, max_backups: int = 20, storage_path: Path | None = None) -> None:
     """Remove oldest backups when the total exceeds `max_backups`.
 
     Args:

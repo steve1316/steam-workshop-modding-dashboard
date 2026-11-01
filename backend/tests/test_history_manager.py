@@ -1,7 +1,7 @@
 """Tests for the Chrono Ark history manager, focused on the auto/manual kind field."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -57,7 +57,7 @@ def test_delete_and_restore_ignore_ids_that_leave_the_history_dir(tmp_path: Path
 
 
 def test_backups_in_the_same_second_get_their_own_ids(tmp_path: Path, monkeypatch):
-    fixed = datetime(2026, 11, 1, 12, 0, 0, tzinfo=timezone.utc)
+    fixed = datetime(2026, 11, 1, 12, 0, 0, tzinfo=UTC)
 
     class _FrozenDatetime(datetime):
         @classmethod
@@ -79,7 +79,7 @@ def test_listing_an_unknown_mod_creates_nothing(tmp_path: Path):
 
 
 def test_suffixed_backup_id_points_at_its_folder(tmp_path: Path, monkeypatch):
-    fixed = datetime(2026, 11, 1, 12, 0, 0, tzinfo=timezone.utc)
+    fixed = datetime(2026, 11, 1, 12, 0, 0, tzinfo=UTC)
 
     class _FrozenDatetime(datetime):
         @classmethod

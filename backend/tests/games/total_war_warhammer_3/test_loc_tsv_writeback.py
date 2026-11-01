@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from backend.games.total_war_warhammer_3.loc_tsv_writeback import (
     apply_row_patches,
     read_loc_tsv_lines,

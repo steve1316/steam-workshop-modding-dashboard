@@ -1,11 +1,10 @@
 """Anthropic Claude translation provider."""
 
 import time
-from typing import Optional
+
 from backend import config
 from backend.translation.orchestrator import chunk_entries
 from backend.translator.base import ITEMS_OUTPUT_FORMAT, TranslationProvider
-
 
 CLAUDE_MODELS: dict[str, dict] = {
     "claude-opus-5-5": {"label": "Claude Opus 5.5", "input_per_mtok": 4.0, "output_per_mtok": 20.0},
@@ -90,7 +89,7 @@ class ClaudeProvider(TranslationProvider):
 
     output_format_template = ITEMS_OUTPUT_FORMAT
 
-    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         """Initialize the Claude translation provider.
 
         Args:

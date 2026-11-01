@@ -15,31 +15,32 @@ Usage:
 import argparse
 import sys
 from pathlib import Path
+
 from backend import config
-from backend.translation.orchestrator import chunk_entries
+from backend.core.json_store import write_json
 from backend.data.glossary_manager import (
     add_glossary_term,
     build_glossary_from_base_game,
     get_combined_glossary_prompt,
     load_glossary,
+    load_mod_glossary,
     print_glossary,
     save_glossary,
-    load_mod_glossary,
 )
 from backend.data.progress_tracker import ProgressTracker
+from backend.data.suggestion_manager import add_suggestions
 from backend.data.translation_memory import TranslationMemory
 from backend.data.translation_store import load_translations, save_translations_bulk
-from backend.games.registry import get_adapter, list_games
 from backend.games.base import GameAdapter
+from backend.games.registry import get_adapter, list_games
+from backend.translation.orchestrator import chunk_entries
 from backend.translator.base import TranslationProvider
 from backend.translator.claude_provider import ClaudeProvider
-from backend.translator.openai_provider import OpenAIProvider
 from backend.translator.deepl_provider import DeepLProvider
-from backend.translator.ollama_provider import OllamaProvider
 from backend.translator.llamacpp_provider import LlamaCppProvider
 from backend.translator.manual_provider import ManualProvider
-from backend.data.suggestion_manager import add_suggestions
-from backend.core.json_store import write_json
+from backend.translator.ollama_provider import OllamaProvider
+from backend.translator.openai_provider import OpenAIProvider
 
 
 def get_provider(provider_name: str) -> TranslationProvider:
