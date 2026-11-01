@@ -12,34 +12,40 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / ".env", interpolate=False)
 
 
-# ── Server ────────────────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Server
 # Also consumed by the Vite frontend via define.
 API_PORT = int(os.environ.get("SWMT_API_PORT", "8008"))
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Paths
 STORAGE_PATH = Path(os.environ.get("SWMT_STORAGE_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "storage")))
 
-# ── API Keys ───────────────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# API Keys
 ANTHROPIC_API_KEY = os.environ.get("SWMT_ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("SWMT_OPENAI_API_KEY", "")
 DEEPL_API_KEY = os.environ.get("SWMT_DEEPL_API_KEY", "")
 
-# ── Model Selection ────────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Model Selection
 CLAUDE_MODEL = os.environ.get("SWMT_CLAUDE_MODEL", "claude-sonnet-5")
 OPENAI_MODEL = os.environ.get("SWMT_OPENAI_MODEL", "gpt-4.1")
 
-# ── Ollama Settings ───────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Ollama Settings
 OLLAMA_BASE_URL = os.environ.get("SWMT_OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("SWMT_OLLAMA_MODEL", "qwen2.5:7b")
 OLLAMA_VRAM_TIER = os.environ.get("SWMT_OLLAMA_VRAM_TIER", "")
 
-# ── llama.cpp Settings ───────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# llama.cpp Settings
 LLAMACPP_BASE_URL = os.environ.get("SWMT_LLAMACPP_BASE_URL", "http://localhost:8080")
 LLAMACPP_MODEL = os.environ.get("SWMT_LLAMACPP_MODEL", "")
 LLAMACPP_BINARY_PATH = os.environ.get("SWMT_LLAMACPP_BINARY_PATH", "llama-server")
@@ -56,8 +62,9 @@ LLAMACPP_MODELS_DIR = Path(
     )
 )
 
-# ── Translation Settings ──────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Translation Settings
 # One of claude, openai, deepl, ollama, llamacpp, manual.
 TRANSLATION_PROVIDER = os.environ.get("SWMT_TRANSLATION_PROVIDER", "claude")
 
@@ -70,13 +77,15 @@ BATCH_MAX_CHARS = int(os.environ.get("SWMT_BATCH_MAX_CHARS", "6000"))
 # Only these base glossary categories are sent to the LLM.
 GLOSSARY_CATEGORIES = os.environ.get("SWMT_GLOSSARY_CATEGORIES", "characters,mechanics").split(",")
 
-# ── Mod Filtering ─────────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Mod Filtering
 # Comma-separated workshop mod IDs to hide.
 IGNORED_MODS: list[str] = [m.strip() for m in os.environ.get("SWMT_IGNORED_MODS", "").split(",") if m.strip()]
 
-# ── Game Selection ─────────────────────────────────────────────────────────────
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Game Selection
 ACTIVE_GAME = os.environ.get("SWMT_ACTIVE_GAME", "chrono_ark")
 
 TW3_HELPER_PATH = os.environ.get("SWMT_TW3_HELPER_PATH", "")

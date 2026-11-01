@@ -90,9 +90,9 @@ def save_extracted_strings(strings: dict, output_path: Path) -> None:
     print(f"  Saved {len(data)} strings to {output_path}")
 
 
-# ── Subcommand: extract ───────────────────────────────────────────────────────
-
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Subcommand: extract
 def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
     """Handle the `extract` subcommand for the base game, one mod, or all workshop mods.
 
@@ -155,9 +155,9 @@ def cmd_extract(args: argparse.Namespace, adapter: GameAdapter) -> None:
         sys.exit(1)
 
 
-# ── Subcommand: translate ─────────────────────────────────────────────────────
-
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Subcommand: translate
 def cmd_translate(args: argparse.Namespace, adapter: GameAdapter) -> None:
     """Handle the `translate` subcommand, using translation memory and supporting a dry-run cost estimate.
 
@@ -318,9 +318,9 @@ def _apply_translations(
     tm.save()
 
 
-# ── Subcommand: status ────────────────────────────────────────────────────────
-
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Subcommand: status
 def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
     """Handle the `status` subcommand, showing one mod's progress or a summary of all extracted mods.
 
@@ -354,9 +354,9 @@ def cmd_status(args: argparse.Namespace, adapter: GameAdapter) -> None:
                     print(f"{mod_dir.name:<15} " f"{status['total']:<8} " f"{status['translated']:<8} " f"{status['untranslated']:<8} " f"{status['percentage']:<10}%")
 
 
-# ── Subcommand: glossary ──────────────────────────────────────────────────────
-
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Subcommand: glossary
 def cmd_glossary(args: argparse.Namespace, adapter: GameAdapter) -> None:
     """Handle the `glossary` subcommand to show, build from base game strings, or add an entry.
 
@@ -395,9 +395,9 @@ def cmd_glossary(args: argparse.Namespace, adapter: GameAdapter) -> None:
         sys.exit(1)
 
 
-# ── Subcommand: export ────────────────────────────────────────────────────────
-
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# Subcommand: export
 def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
     """Handle the `export` subcommand, writing translated strings back to CSV files.
 
@@ -446,9 +446,9 @@ def cmd_export(args: argparse.Namespace, adapter: GameAdapter) -> None:
     print(f"\n  Export complete: {export_dir}")
 
 
-# ── CLI Setup ─────────────────────────────────────────────────────────────────
-
-
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////
+# CLI Setup
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
