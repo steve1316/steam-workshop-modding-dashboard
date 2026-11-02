@@ -16,8 +16,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from backend.core.json_store import write_json
-from backend.core.paths import glossary_path
+from backend.core.errors import DomainError
+from backend.core.paths import GameStorage, glossary_path
 from backend.core.settings import settings
 from backend.data.glossary_manager import (
     add_glossary_term,
@@ -28,38 +28,15 @@ from backend.data.glossary_manager import (
 )
 from backend.data.progress_tracker import ProgressTracker
 from backend.data.translation_memory import TranslationMemory
-from backend.data.translation_store import load_translations, save_translations_bulk
+from backend.data.translation_store import save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
+from backend.games.chrono_ark.services.mods import export_mod, extract_mod, save_extracted_strings
 from backend.games.chrono_ark.services.translation import load_mod_strings, persist_batch, prompt_context
 from backend.games.registry import get_adapter, list_games
 from backend.providers.factory import get_provider
 from backend.translation.orchestrator import chunk_entries
 from backend.translation.pipeline import BatchError, BatchJob, run_translation_batch
-
-
-def save_extracted_strings(strings: dict, output_path: Path) -> None:
-    """
-    Save extracted strings to a JSON file.
-
-    Args:
-        strings: Key -> `LocString`.
-        output_path: JSON file to write.
-    """
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    data = {}
-    for key, loc_str in strings.items():
-        data[key] = {
-            "type": loc_str.type,
-            "desc": loc_str.desc,
-            "translations": loc_str.translations,
-            "source_file": loc_str.source_file,
-        }
-
-    write_json(output_path, data)
-
-    print(f"  Saved {len(data)} strings to {output_path}")
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,27 +52,24 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
     if args.base_game:
         print("Extracting base game strings...")
         strings = adapter.extract_base_game_strings()
-        output_path = settings.storage_path / "base_game" / "strings.json"
+        output_path = GameStorage(GAME_ID).root / "base_game" / "strings.json"
         save_extracted_strings(strings, output_path)
+        print(f"  Saved {len(strings)} strings to {output_path}")
 
     elif args.mod:
         mod_path = Path(args.mod)
-        # A bare ID rather than a path is resolved by scanning.
-        if not mod_path.exists():
-            mods = adapter.scan_mods()
-            matching = [m for m in mods if m.mod_id == args.mod]
-            if not matching:
+        # A mod folder is named after its Workshop id. A bare id is looked up instead.
+        if mod_path.exists():
+            mod_id = mod_path.name
+        else:
+            mod = adapter.find_mod(args.mod)
+            if mod is None:
                 print(f"Mod not found: {args.mod}")
                 sys.exit(1)
-            mod_path = matching[0].path
+            mod_id, mod_path = mod.mod_id, mod.path
 
-        print(f"Extracting strings from mod {args.mod}...")
-        strings, _ = adapter.extract_strings(mod_path)
-        output_path = settings.storage_path / "mods" / args.mod / "source.json"
-        save_extracted_strings(strings, output_path)
-
-        tracker = ProgressTracker(game_id=GAME_ID)
-        diff = tracker.update(args.mod, strings, adapter.source_languages)
+        print(f"Extracting strings from mod {mod_id}...")
+        diff = extract_mod(mod_id, mod_path)
         print(f"  New keys: {len(diff.new_keys)}")
         print(f"  Modified: {len(diff.modified_keys)}")
         print(f"  Removed: {len(diff.removed_keys)}")
@@ -114,14 +88,10 @@ def cmd_extract(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
             name = mod.name[:28] if len(mod.name) > 28 else mod.name
             print(f"{mod.mod_id:<15} {name:<30} {csv_flag:<5} {dll_flag:<5} {entries:<8}")
 
-        tracker = ProgressTracker(game_id=GAME_ID)
         for mod_info in mods:
             if mod_info.has_loc_files:
                 print(f"\nExtracting: {mod_info.name} ({mod_info.mod_id})...")
-                strings, _ = adapter.extract_strings(mod_info.path)
-                output = settings.storage_path / "mods" / mod_info.mod_id / "source.json"
-                save_extracted_strings(strings, output)
-                tracker.update(mod_info.mod_id, strings, adapter.source_languages)
+                extract_mod(mod_info.mod_id, mod_info.path)
     else:
         print("Specify --base-game, --mod <id>, or --all-mods")
         sys.exit(1)
@@ -273,7 +243,7 @@ def cmd_status(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
         print(f"  Progress: {status['percentage']}%")
         print(f"  Last updated: {status['last_updated']}")
     else:
-        mods_dir = settings.storage_path / "mods"
+        mods_dir = GameStorage(GAME_ID).mods_dir
         if not mods_dir.exists():
             print("No mods extracted yet. Run 'extract --all-mods' first.")
             return
@@ -333,51 +303,28 @@ def cmd_glossary(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # Subcommand: export
 def cmd_export(args: argparse.Namespace, adapter: ChronoArkAdapter) -> None:
-    """Handle the `export` subcommand, writing translated strings back to CSV files.
+    """Handle the `export` subcommand, writing saved translations into the mod's files like the dashboard's Export.
 
     Args:
         args: Parsed CLI arguments with the mod ID.
         adapter: Active game adapter.
     """
     mod_id = args.mod
-    if not mod_id:
-        print("Specify --mod <id>")
-        sys.exit(1)
-
-    mods = adapter.scan_mods()
-    matching = [m for m in mods if m.mod_id == mod_id]
-    if not matching:
+    if adapter.find_mod(mod_id) is None:
         print(f"Mod not found: {mod_id}")
         sys.exit(1)
-    mod_path = matching[0].path
 
-    strings, _ = adapter.extract_strings(mod_path)
-
-    translations = load_translations(mod_id, game_id=GAME_ID)
-    if not translations:
-        print(f"No translations found for mod {mod_id}. Run 'translate --mod {mod_id}' first.")
+    try:
+        result = export_mod(mod_id)
+    except DomainError as e:
+        print(f"{e}. Run 'translate --mod {mod_id}' first.")
         sys.exit(1)
 
-    for key, english in translations.items():
-        if key in strings:
-            strings[key].translations["English"] = english
-
-    export_dir = settings.storage_path / "mods" / mod_id / "export"
-    export_dir.mkdir(parents=True, exist_ok=True)
-
-    by_source: dict[str, list] = {}
-    for loc_str in strings.values():
-        source = loc_str.source_file or adapter.csv_for_key(loc_str.key)
-        if source not in by_source:
-            by_source[source] = []
-        by_source[source].append(loc_str)
-
-    for csv_filename, entries in by_source.items():
-        output_path = export_dir / csv_filename
-        adapter.export_strings(output_path, entries)
-        print(f"  Exported {csv_filename}: {len(entries)} entries → {output_path}")
-
-    print(f"\n  Export complete: {export_dir}")
+    print(f"  Applied {result['applied']} translations")
+    for name in result["files_written"] + result["gdata_files_written"]:
+        print(f"  Wrote {name}")
+    if result["keyed_overrides_written"] or result["text_overrides_written"]:
+        print(f"  Wrote {result['keyed_overrides_written']} keyed and {result['text_overrides_written']} text overrides for the injector mod")
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -417,7 +364,7 @@ def main() -> None:
     glossary_group.add_argument("--build", action="store_true", help="Auto-build from base game")
     glossary_group.add_argument("--add", nargs=2, metavar=("SOURCE", "ENGLISH"), help="Add a glossary entry")
 
-    export_parser = subparsers.add_parser("export", help="Export translated CSV files")
+    export_parser = subparsers.add_parser("export", help="Write saved translations into the mod's files")
     export_parser.add_argument("--mod", type=str, required=True, help="Mod Workshop ID")
 
     args = parser.parse_args()
