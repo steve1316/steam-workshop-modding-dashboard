@@ -1268,18 +1268,6 @@ fieldset.panel {
     margin: 0.75rem 0 1.5rem;
 }
 
-/* Native selects draw their arrow jammed against the right border. Reset appearance and supply a custom chevron with a fixed gap and reserved padding. */
-.app-select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.6rem center;
-    background-size: 0.9rem;
-}
-
 .mod-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -2058,10 +2046,6 @@ th {
     color: var(--text-main);
 }
 .glossary-source {
-    color: var(--text-dim);
-}
-.glossary-category {
-    font-size: 0.8rem;
     color: var(--text-dim);
 }
 /* //////////////////////////////////////////////////////////////////////////////////////////////// */

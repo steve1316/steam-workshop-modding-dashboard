@@ -9,7 +9,6 @@ import { API_BASE } from "@/lib/config"
 import { getGame, getGameBySlug, slugForId } from "@/games/registry"
 import "@/games/chrono_ark" // side-effect: registers manifest
 import "@/games/total_war_warhammer_3" // side-effect: registers manifest
-import "@/index.css"
 
 /**
  * Renders the resolved game's route subtree, or redirects home when the slug is unknown.

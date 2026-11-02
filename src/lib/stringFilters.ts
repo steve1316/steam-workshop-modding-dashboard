@@ -24,19 +24,6 @@ export function getRowStatus(s: LocString): RowStatus {
 }
 
 /**
- * Get the background style for a string table row.
- * @param s - String to evaluate.
- * @returns A style with `backgroundColor`, or undefined for default rows.
- */
-export function getRowStyle(s: LocString): React.CSSProperties | undefined {
-    if (s.untranslatable_reason) return { backgroundColor: "rgba(148, 163, 184, 0.1)" }
-    if (s.is_synced) return { backgroundColor: "rgba(52, 211, 153, 0.1)" }
-    const hasOverride = !s.is_synced && s.english !== s.original_english
-    if (hasOverride) return { backgroundColor: "rgba(255, 220, 40, 0.15)" }
-    return undefined
-}
-
-/**
  * Filter strings by status tab and search. Rows with empty source text are always hidden.
  * @param strings - All strings.
  * @param filter - Active filter tab.

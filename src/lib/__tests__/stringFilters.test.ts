@@ -1,4 +1,4 @@
-import { getRowStatus, getRowStyle, filterStrings, sortStrings } from "@/lib/stringFilters"
+import { getRowStatus, filterStrings, sortStrings } from "@/lib/stringFilters"
 import type { LocString } from "@/lib/types"
 
 function makeString(overrides: Partial<LocString> = {}): LocString {
@@ -45,27 +45,6 @@ describe("getRowStatus", () => {
     })
     it("prioritizes untranslatable over synced", () => {
         expect(getRowStatus(makeString({ untranslatable_reason: "DLL", is_synced: true }))).toBe("untranslatable")
-    })
-})
-
-describe("getRowStyle", () => {
-    it("returns grey for untranslatable", () => {
-        expect(getRowStyle(makeString({ untranslatable_reason: "hardcoded" }))).toEqual({ backgroundColor: "rgba(148, 163, 184, 0.1)" })
-    })
-    it("returns green for synced", () => {
-        expect(getRowStyle(makeString({ is_synced: true }))).toEqual({ backgroundColor: "rgba(52, 211, 153, 0.1)" })
-    })
-    it("returns yellow for override", () => {
-        expect(getRowStyle(makeString({ english: "New", original_english: "Old" }))).toEqual({ backgroundColor: "rgba(255, 220, 40, 0.15)" })
-    })
-    it("returns undefined for untouched", () => {
-        expect(getRowStyle(makeString({ is_untouched: true }))).toBeUndefined()
-    })
-    it("returns undefined for default rows", () => {
-        expect(getRowStyle(makeString())).toBeUndefined()
-    })
-    it("returns undefined when english matches original", () => {
-        expect(getRowStyle(makeString({ english: "Same", original_english: "Same" }))).toBeUndefined()
     })
 })
 
