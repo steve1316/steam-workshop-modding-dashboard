@@ -1,7 +1,6 @@
 """FastAPI backend for the Steam Workshop Modding Dashboard, with routes organized under `backend.routes`."""
 
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
@@ -62,7 +61,7 @@ def _mount_workshop(target: FastAPI) -> None:
     """
     # Only Chrono Ark links /workshop/ thumbnails, so this must not follow whichever game was active at startup.
     workshop_path = chrono_ark_adapter().workshop_path
-    if Path(workshop_path).exists():
+    if workshop_path is not None and workshop_path.exists():
         target.mount("/api/workshop", StaticFiles(directory=str(workshop_path)), name="workshop")
 
 

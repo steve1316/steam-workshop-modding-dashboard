@@ -30,3 +30,16 @@ def test_numbers_are_parsed(monkeypatch):
     s = Settings()
     assert s.batch_size == 25
     assert s.llamacpp_gpu_layers == -1
+
+
+def test_game_paths_have_no_machine_default(monkeypatch):
+    monkeypatch.delenv("SWMT_BASE_GAME_PATH", raising=False)
+    monkeypatch.delenv("SWMT_WORKSHOP_PATH", raising=False)
+    s = Settings()
+    assert s.base_game_path is None
+    assert s.workshop_path is None
+
+
+def test_blank_game_path_is_unset(monkeypatch):
+    monkeypatch.setenv("SWMT_WORKSHOP_PATH", "  ")
+    assert Settings().workshop_path is None

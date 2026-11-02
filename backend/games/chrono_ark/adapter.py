@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from backend.core.errors import DomainError
 from backend.core.paths import glossary_path
 from backend.core.settings import settings
 from backend.games.base import GameAdapter, ModInfo
@@ -239,8 +240,10 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         """Return the ModTranslationInjector mod directory, derived from `settings.base_game_path` (`ChronoArk_Data/StreamingAssets`).
 
         Returns:
-            Mod directory, or None if it does not exist.
+            Mod directory, or None if it does not exist or the base game path is unset.
         """
+        if settings.base_game_path is None:
+            return None
         game_root = settings.base_game_path.parent.parent
         overrides_dir = game_root / "Mod" / "ModTranslationInjector"
         if not overrides_dir.exists():
@@ -252,7 +255,7 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         return settings.base_game_path
 
     @property
-    def workshop_path(self) -> Path:
+    def workshop_path(self) -> Path | None:
         return settings.workshop_path
 
     @property
@@ -325,6 +328,8 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             `ModInfo` per mod, sorted by mod_id.
         """
         workshop_path = search_path or settings.workshop_path
+        if workshop_path is None:
+            return []
         return mod_scanner.scan_workshop(
             workshop_path=workshop_path,
             metadata_filename=self._METADATA_FILENAME,
@@ -342,8 +347,11 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
         Returns:
             The mod's `ModInfo`, or `None` when it is not installed or is ignored.
         """
+        workshop_path = search_path or settings.workshop_path
+        if workshop_path is None:
+            return None
         return mod_scanner.find_workshop_mod(
-            workshop_path=search_path or settings.workshop_path,
+            workshop_path=workshop_path,
             mod_id=mod_id,
             metadata_filename=self._METADATA_FILENAME,
             skip_dlls=self._SKIP_DLLS,
@@ -432,6 +440,8 @@ class ChronoArkAdapter(GameAdapter, TranslationCapability):
             `{key: LocString}`.
         """
         path = game_path or settings.base_game_path
+        if path is None:
+            raise DomainError("Set SWMT_BASE_GAME_PATH in backend/.env to Chrono Ark's StreamingAssets folder.")
         return csv_extractor.extract_base_game_strings(path, self._CSV_FILES)
 
     def detect_source_language(self, loc_string: LocString) -> str | None:

@@ -36,6 +36,9 @@ class TotalWarWarhammer3Settings(BaseSettings):
     steam_library_drive: str = ""
     """Drive letter of the Steam library, e.g. `F:`. Passed to helper_scripts as `STEAM_LIBRARY_DRIVE`."""
 
+    translation_mods_path: str = ""
+    """Folder holding one loose-source folder per translation mod, e.g. `totalwar-modding/warhammer3_mods`."""
+
 
 class Settings(BaseSettings):
     """Every app setting, one field per `SWMT_<FIELD>` env var."""
@@ -84,11 +87,11 @@ class Settings(BaseSettings):
 
     active_game: str = "chrono_ark"
 
-    base_game_path: Path = Path(r"F:\SteamLibrary\steamapps\common\Chrono Ark\ChronoArk_Data\StreamingAssets")
-    """Chrono Ark `StreamingAssets` folder holding the base-game localization CSVs."""
+    base_game_path: Path | None = None
+    """Chrono Ark `StreamingAssets` folder holding the base-game localization CSVs. None until set in `.env`."""
 
-    workshop_path: Path = Path(r"F:\SteamLibrary\steamapps\workshop\content\1188930")
-    """Chrono Ark Steam Workshop content folder."""
+    workshop_path: Path | None = None
+    """Chrono Ark Steam Workshop content folder. None until set in `.env`."""
 
     steamcmd_path: str = ""
     """Path to steamcmd.exe. Empty disables Publish to Workshop."""
@@ -111,6 +114,21 @@ class Settings(BaseSettings):
         """
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
+        return value
+
+    @field_validator("base_game_path", "workshop_path", mode="before")
+    @classmethod
+    def _blank_path_is_unset(cls, value: object) -> object:
+        """Treat a blank path as unset, since `Path("")` would point at the working directory.
+
+        Args:
+            value: Raw field input.
+
+        Returns:
+            None for a blank string, else the input unchanged.
+        """
+        if isinstance(value, str) and not value.strip():
+            return None
         return value
 
 
