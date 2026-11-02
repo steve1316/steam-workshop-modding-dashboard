@@ -19,7 +19,6 @@ import { BatchReviewBanner } from "@/components/TranslationPage/BatchReviewBanne
 import { ContextPanel, type ContextFields } from "@/components/TranslationPage/ContextPanel"
 import { SyncButton } from "@/components/TranslationPage/SyncButton"
 import { TranslationToolbar } from "@/components/TranslationPage/TranslationToolbar"
-import { usePendingSuggestions } from "@/hooks/usePendingSuggestions"
 import SplitButton from "@/components/ui/SplitButton"
 import { LanguageControls } from "@/components/TranslationPage/LanguageControls"
 import { OpenFolderButton, PendingSyncPill, SteamLink } from "@/components/TranslationPage/TitleAdornments"
@@ -27,11 +26,11 @@ import { StatusBadge } from "@/components/TranslationPage/StatusBadge"
 import { TranslationCell } from "@/components/TranslationPage/TranslationCell"
 import { canonicalRowStyle, TRANSLATION_COLUMN_WIDTHS, translationColumns } from "@/components/TranslationPage/helpers"
 import HighlightText from "@/components/ui/HighlightText"
-import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"
 import { useLanguageOverrides, type LanguageOverrides } from "@/hooks/useLanguageOverrides"
 import { useModContext } from "@/hooks/useModContext"
 import { useTableView } from "@/hooks/useTableView"
+import { useTranslationRun } from "@/hooks/useTranslationRun"
 
 const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
     is_translated: TRANSLATION_COLUMN_WIDTHS.status,
@@ -43,6 +42,23 @@ const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
 }
 
 const EMPTY_CONTEXT: ContextFields = { source_game: "", character_name: "", background: "" }
+
+type CaPreview = TranslationPreview & { batch_plan?: BatchDescriptor[] }
+
+/**
+ * Preview a translate run.
+ *
+ * @param modId Workshop id.
+ * @param provider Provider for the run.
+ * @param retranslate Include already translated rows.
+ * @returns The preview, with its batch plan.
+ */
+async function fetchPreview(modId: string, provider: string, retranslate: boolean): Promise<CaPreview> {
+    const res = await gameApi("chrono_ark").post("/translate/preview", { mod_id: modId, provider, retranslate })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`)
+    return data
+}
 
 const LANGUAGE_DEFAULTS = { source: "Chinese", target: "Chinese" }
 
@@ -124,17 +140,11 @@ const ModDetail: React.FC = () => {
     const [hasPreviousSync, setHasPreviousSync] = useState(false)
 
     const [showSuggestionModal, setShowSuggestionModal] = useState(false)
-    const [showReviewModal, setShowReviewModal] = useState(false)
     const [modGlossary, setModGlossary] = useState<Record<string, GlossaryTerm>>({})
 
-    const [translationPreview, setTranslationPreview] = useState<(TranslationPreview & { batch_plan?: BatchDescriptor[] }) | null>(null)
     const [pendingRetranslate, setPendingRetranslate] = useState(false)
-    const [pendingProvider, setPendingProvider] = useState<string>("")
-    const [activeProvider, setActiveProvider] = useState<string>("")
     const [showGlossary, setShowGlossary] = useState(false)
     const [manualQueue, setManualQueue] = useState<LocString[] | null>(null)
-    const [translateBanner, setTranslateBanner] = useState<{ type: "success" | "error"; message: string } | null>(null)
-    const { suggestions, refresh: fetchSuggestions, scan, scanning } = usePendingSuggestions("chrono_ark", modId ?? "", setTranslateBanner)
 
     const [showCharacterContext, setShowCharacterContext] = useState(false)
     const characterContext = useModContext(
@@ -155,38 +165,25 @@ const ModDetail: React.FC = () => {
         entryDate?: string
     } | null>(null)
 
-    /** Merge each finished batch's translations into the table. */
-    const handleBatchTranslated = useCallback((translations: Record<string, string>) => {
-        setStrings((prev) =>
-            prev.map((s) => {
-                if (s.key in translations) {
-                    return { ...s, english: translations[s.key], is_translated: true }
-                }
-                return s
-            })
-        )
-        fetchExportStatus()
-    }, [])
-
-    const { state: batchState, startTranslation, continueAfterReview, cancel: cancelTranslation } = useIterativeTranslation("chrono_ark", modId ?? "", handleBatchTranslated)
-
-    useEffect(() => {
-        if (batchState.phase === "reviewing") {
-            setShowReviewModal(true)
-        } else if (batchState.phase === "complete") {
-            setShowReviewModal(false)
-            setTranslateBanner({ type: "success", message: `Translated ${batchState.totalTranslated} strings.` })
-            fetchSuggestions()
+    const run = useTranslationRun<CaPreview>({
+        gameId: "chrono_ark",
+        modId: modId ?? "",
+        autoOpenReview: true,
+        onBatchTranslated: (translations) => {
+            setStrings((prev) => prev.map((s) => (s.key in translations ? { ...s, english: translations[s.key], is_translated: true } : s)))
             fetchExportStatus()
+        },
+        onSettled: (state) => {
+            if (state.phase === "reviewing") return
+            if (state.phase === "complete") {
+                setTranslateBanner({ type: "success", message: `Translated ${state.totalTranslated} strings.` })
+                fetchExportStatus()
+            }
             fetchModDetail(true)
-        } else if (batchState.phase === "error") {
-            setShowReviewModal(false)
-            const partial = batchState.completedBatches > 0 ? ` ${batchState.completedBatches} batch(es) completed before the error.` : ""
-            setTranslateBanner({ type: "error", message: `${batchState.message}${partial}` })
-            fetchSuggestions()
-            fetchModDetail(true)
-        }
-    }, [batchState.phase]) // eslint-disable-line react-hooks/exhaustive-deps
+        },
+    })
+    const { banner: translateBanner, setBanner: setTranslateBanner, state: batchState } = run
+    const { suggestions, refresh: fetchSuggestions, scan, scanning } = run.pending
 
     /**
      * Fetch a translation preview, which opens the confirm modal. Confirming starts the batch loop in `useIterativeTranslation`.
@@ -196,32 +193,15 @@ const ModDetail: React.FC = () => {
      */
     const handleTranslateClick = async (provider: string, retranslate = false) => {
         if (!modId) return
-        setTranslateBanner(null)
         // Manual mode has no backend run. It steps through the rows in a dialog instead.
-        if ((provider || activeProvider) === "manual") {
+        if ((provider || run.provider) === "manual") {
             const queue = strings.filter((s) => (retranslate ? s.source.trim() && !s.untranslatable_reason : getRowStatus(s) === "missing"))
-            if (queue.length === 0) setTranslateBanner({ type: "success", message: "All strings are already translated." })
-            else setManualQueue(queue)
+            setTranslateBanner(queue.length === 0 ? { type: "success", message: "All strings are already translated." } : null)
+            if (queue.length > 0) setManualQueue(queue)
             return
         }
-        try {
-            const res = await gameApi("chrono_ark").post("/translate/preview", { mod_id: modId, provider, retranslate })
-            const data = await res.json()
-            if (!res.ok) {
-                setTranslateBanner({ type: "error", message: data.detail || "Failed to fetch translation preview." })
-                return
-            }
-            if (data.total_strings === 0) {
-                setTranslateBanner({ type: "success", message: "All strings are already translated." })
-                return
-            }
-            setPendingProvider(provider)
-            setPendingRetranslate(retranslate)
-            setTranslationPreview(data)
-        } catch (err) {
-            console.error("Failed to fetch translation preview:", err)
-            setTranslateBanner({ type: "error", message: "Failed to reach the server for translation preview." })
-        }
+        setPendingRetranslate(retranslate)
+        await run.openPreview(provider, (p) => fetchPreview(modId, p, retranslate))
     }
 
     /** Check whether there are unsynced changes to export. */
@@ -300,10 +280,6 @@ const ModDetail: React.FC = () => {
         fetchModDetail()
         fetchExportStatus()
         fetchModGlossary()
-        fetch(`${API_BASE}/settings`)
-            .then((r) => r.json())
-            .then((data) => setActiveProvider(data.provider))
-            .catch(() => {})
     }, [modId])
 
     /**
@@ -550,7 +526,7 @@ const ModDetail: React.FC = () => {
                     clearEnglish={{ onClick: handleClearTranslationsConfirm }}
                     translate={
                         <SplitButton
-                            label={`Translate${activeProvider ? ` (${activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)})` : ""}`}
+                            label={`Translate${run.provider ? ` (${run.provider.charAt(0).toUpperCase() + run.provider.slice(1)})` : ""}`}
                             onClick={() => handleTranslateClick("")}
                             disabled={batchState.phase === "translating" || batchState.phase === "reviewing"}
                             menuLabel="Translate options"
@@ -579,26 +555,9 @@ const ModDetail: React.FC = () => {
             columns={columns}
             getRowKey={(s) => s.key}
             getRowStyle={(s) => canonicalRowStyle(getRowStatus(s), { override: !s.is_synced && s.english !== s.original_english })}
-            translating={batchState.phase === "translating" ? { batchIndex: batchState.batchIndex, totalBatches: batchState.totalBatches, streaming: batchState.streamingProgress } : null}
-            onCancelTranslate={() => {
-                cancelTranslation()
-                setTranslateBanner({ type: "success", message: "Translation cancelled." })
-            }}
-            extraBanners={
-                batchState.phase === "reviewing" &&
-                !showReviewModal && (
-                    <BatchReviewBanner
-                        batchIndex={batchState.batchIndex}
-                        totalBatches={batchState.totalBatches}
-                        onReview={() => setShowReviewModal(true)}
-                        onContinue={continueAfterReview}
-                        onCancel={() => {
-                            cancelTranslation()
-                            setTranslateBanner({ type: "success", message: `Translation cancelled. ${batchState.batchIndex} of ${batchState.totalBatches} batches completed.` })
-                        }}
-                    />
-                )
-            }
+            translating={run.translating}
+            onCancelTranslate={run.cancel}
+            extraBanners={run.pausedBanner && <BatchReviewBanner {...run.pausedBanner} />}
             banner={translateBanner}
             onDismissBanner={() => setTranslateBanner(null)}
             panels={<>{showCharacterContext && <ContextPanel title="Character Context" value={characterContext.context} onSave={(next) => characterContext.save(next)} />}</>}
@@ -649,36 +608,25 @@ const ModDetail: React.FC = () => {
 
                     {showApiResponses && modId && <ApiResponsesModal modId={modId} onClose={() => setShowApiResponses(false)} />}
 
-                    {translationPreview && (
+                    {run.preview && (
                         <TranslationConfirmModal
-                            preview={translationPreview}
+                            preview={run.preview.data}
                             title={pendingRetranslate ? "Confirm Re-Translation" : undefined}
-                            onConfirm={() => {
-                                const plan: BatchDescriptor[] = translationPreview.batch_plan || []
-                                setTranslationPreview(null)
-                                setTranslateBanner(null)
-                                startTranslation(pendingProvider || activeProvider, plan)
-                            }}
-                            onCancel={() => setTranslationPreview(null)}
+                            onConfirm={() => run.confirmPreview()}
+                            onCancel={run.closePreview}
                         />
                     )}
 
                     {/* Closing this modal pauses the run. The paused banner resumes it. */}
-                    {batchState.phase === "reviewing" && showReviewModal && (
+                    {run.review && (
                         <GlossarySuggestionModal
                             gameId="chrono_ark"
                             onTranslationsChanged={() => fetchModDetail(true)}
                             modId={modId!}
-                            suggestions={batchState.suggestions}
-                            onClose={() => setShowReviewModal(false)}
+                            {...run.review}
                             onUpdated={() => {
                                 fetchSuggestions()
                                 fetchModGlossary()
-                            }}
-                            batchProgress={{ current: batchState.batchIndex + 1, total: batchState.totalBatches }}
-                            onContinue={() => {
-                                setShowReviewModal(false)
-                                continueAfterReview()
                             }}
                         />
                     )}

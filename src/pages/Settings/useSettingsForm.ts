@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { API_BASE, fetchJson } from "@/lib/api"
+import { API_BASE } from "@/lib/api"
 import { listGames } from "@/games/registry"
+import { settingsQuery } from "@/lib/queryClient"
 import type { KeyField } from "@/pages/Settings/constants"
 
 /** The editable settings, keyed by the `/api/settings` field each one saves to. */
@@ -52,7 +53,7 @@ export const DEFAULT_FORM: SettingsForm = {
     game: {},
 }
 
-const SETTINGS_KEY = ["settings"]
+const SETTINGS_KEY = settingsQuery.queryKey
 
 type SettingsResponse = Record<string, unknown>
 
@@ -119,7 +120,7 @@ export function diffSettings(draft: SettingsForm, saved: SettingsForm): Settings
  */
 export function useSettingsForm() {
     const queryClient = useQueryClient()
-    const { data, error, isPending, isFetching, refetch } = useQuery({ queryKey: SETTINGS_KEY, queryFn: () => fetchJson<SettingsResponse>(`${API_BASE}/settings`) })
+    const { data, error, isPending, isFetching, refetch } = useQuery(settingsQuery)
     const [edits, setEdits] = useState<Partial<SettingsForm>>({})
     const [saving, setSaving] = useState(false)
     const [saveSuccess, setSaveSuccess] = useState(false)
