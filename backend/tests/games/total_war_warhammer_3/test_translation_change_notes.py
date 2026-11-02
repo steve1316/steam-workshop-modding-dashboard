@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.translation.drift import DriftRow, DriftStatus, hash_text

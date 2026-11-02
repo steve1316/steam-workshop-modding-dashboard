@@ -1,10 +1,13 @@
-"""Tests for the Plan 3 translation routes (sync, snapshots, glossary, api-responses)."""
+"""WH3 translation routes that write: clear, sync, snapshots, glossary and api-responses."""
 
 import json
 from collections import Counter
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
 from backend.core.errors import register_error_handler
 from backend.data.api_response_log import append
 from backend.data.history_manager import list_backups
@@ -12,15 +15,13 @@ from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client(monkeypatch, tmp_path: Path) -> TestClient:
     """Build a TestClient with all I/O paths isolated to tmp_path.
 
-    Plan 3 tests actually write `.loc.tsv` files (via sync) and create snapshots that include local source content. The registry's real `local_source_dir`
+    These tests actually write `.loc.tsv` files (via sync) and create snapshots that include local source content. The registry's real `local_source_dir`
     points at the user's hand-edited mod folder on the host machine - we MUST not touch that. Override `get_translation_mod` to return a synthetic mod
     whose `local_source_dir` lives under tmp_path.
     """

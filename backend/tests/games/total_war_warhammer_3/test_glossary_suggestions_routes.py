@@ -7,6 +7,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
 from backend.core.errors import register_error_handler
 from backend.data import suggestion_manager, translation_store
 from backend.data.api_response_log import list_entries
@@ -15,8 +18,6 @@ from backend.games.total_war_warhammer_3.routes import glossary_suggestions as g
 from backend.games.total_war_warhammer_3.routes import translation as translation_routes
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 MOD_ID = "3315737452"
 

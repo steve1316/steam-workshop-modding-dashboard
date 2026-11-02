@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from backend.core.errors import DomainError
 from backend.core.paths import GameStorage
 from backend.data.translation_store import load_translations, save_translations_bulk

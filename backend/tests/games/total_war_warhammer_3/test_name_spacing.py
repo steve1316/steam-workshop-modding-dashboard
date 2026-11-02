@@ -1,6 +1,7 @@
 """Tests for `space_pinyin_names`, which splits joined pinyin names in WH3 translations into one capitalized word per syllable."""
 
 import pytest
+
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 
 

@@ -2,7 +2,7 @@
 line-length = 200
 target-version = "py312"
 # Intentionally-unparseable fixture used to test the loader's SyntaxError handling.
-extend-exclude = ["tests/fixtures/helper_scripts/_test_syntax_error.py", "storage"]
+extend-exclude = ["tests/games/total_war_warhammer_3/fixtures/helper_scripts/_test_syntax_error.py", "storage"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
@@ -11,7 +11,7 @@ ignore = ["E501"]
 
 [tool.pyright]
 include = ["."]
-exclude = ["storage", "tests/fixtures", "**/__pycache__"]
+exclude = ["storage", "tests/**/fixtures", "**/__pycache__"]
 # Imports are written as `backend.*`, so resolve them from the repo root.
 extraPaths = [".."]
 pythonVersion = "3.12"

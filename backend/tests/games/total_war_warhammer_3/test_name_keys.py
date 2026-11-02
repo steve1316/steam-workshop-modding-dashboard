@@ -1,6 +1,7 @@
 """Tests for the WH3 name-key classifier used by the 'Translate Names First' pass."""
 
 import pytest
+
 from backend.games.total_war_warhammer_3.translation.name_keys import classify_name_key, is_name_key
 
 

@@ -3,10 +3,11 @@
 import json
 from pathlib import Path
 
+from fastapi.testclient import TestClient
+
 from backend.games.base import ModInfo
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.models import LocString
-from fastapi.testclient import TestClient
 
 FAKE_MOD = ModInfo(mod_id="900000003", name="Fake Mod", author="Tester", path=Path("fake"))
 
