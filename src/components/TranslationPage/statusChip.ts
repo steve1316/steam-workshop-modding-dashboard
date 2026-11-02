@@ -1,4 +1,4 @@
-import type { RowStatus } from "@/lib/stringFilters"
+import type { RowStatus } from "@/lib/search"
 
 /** A status badge's display label and the CSS class (from index.css) that colors it. */
 export interface StatusChip {

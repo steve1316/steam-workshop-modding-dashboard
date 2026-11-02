@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import DashboardHeader from "@/components/Dashboard/DashboardHeader"
-import { progressLabel } from "@/lib/progressLabel"
+import { progressLabel } from "@/lib/format"
 
 describe("DashboardHeader", () => {
     it("renders the title, tagline, and one toolbar row holding the search field and the actions", () => {

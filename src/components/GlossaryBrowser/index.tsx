@@ -6,7 +6,7 @@ import LoadingState from "@/components/ui/LoadingState"
 import PageHeader from "@/components/ui/PageHeader"
 import Panel from "@/components/ui/Panel"
 import SearchInput from "@/components/ui/SearchInput"
-import { extractCategories, filterGlossaryTerms } from "@/lib/glossaryFilters"
+import { extractCategories, filterGlossaryTerms } from "@/lib/search"
 
 /** One game-specific column of the glossary table. */
 export interface GlossaryColumn {

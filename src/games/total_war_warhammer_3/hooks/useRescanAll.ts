@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import type { TaskProgress } from "@/lib/progressLabel"
+import type { TaskProgress } from "@/lib/format"
 import type { WH3RescanSummary } from "@/lib/types"
 import { rescanMod } from "@/games/total_war_warhammer_3/lib/translationApi"
 

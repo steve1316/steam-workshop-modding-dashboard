@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState, type ReactNode } from "react"
 
 import HighlightText from "@/components/ui/HighlightText"
 import SearchInput from "@/components/ui/SearchInput"
+import { matchesSearch } from "@/lib/search"
 
 /** One glossary term in the shared editor's normalized shape. */
 export interface GlossaryEditorTerm {
@@ -64,17 +65,6 @@ function sourceSummary(t: GlossaryEditorTerm, perLanguage: boolean, query: strin
 }
 
 /**
- * Check whether a term matches by English text, any source text, or category.
- * @param t - Term to check.
- * @param query - Lowercased, trimmed query.
- * @returns True when it matches or the query is empty.
- */
-function matchesSearch(t: GlossaryEditorTerm, query: string): boolean {
-    if (!query) return true
-    return t.english.toLowerCase().includes(query) || t.category.toLowerCase().includes(query) || Object.values(t.sourceMappings).some((v) => v.toLowerCase().includes(query))
-}
-
-/**
  * Shared glossary editor body: an add form, a term list with inline edit and remove, and slots for game-specific actions.
  * @param props - See `GlossaryEditorProps`.
  * @returns The editor.
@@ -107,10 +97,10 @@ export function GlossaryEditor({
     const [editCategory, setEditCategory] = useState(defaultCategory)
     const [search, setSearch] = useState("")
 
-    const sorted = useMemo(() => {
-        const q = search.trim().toLowerCase()
-        return terms.filter((t) => matchesSearch(t, q)).sort((a, b) => a.english.localeCompare(b.english))
-    }, [terms, search])
+    const sorted = useMemo(
+        () => terms.filter((t) => matchesSearch(search, t.english, t.category, ...Object.values(t.sourceMappings))).sort((a, b) => a.english.localeCompare(b.english)),
+        [terms, search]
+    )
     const groups = useMemo(() => {
         if (!groupByCategory) return null
         const out = new Map<string, GlossaryEditorTerm[]>()
