@@ -31,10 +31,10 @@ Each game plugs in as an adapter and shares an AI translation pipeline, glossary
 
 Each game has its own guide in the [Wiki](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki), covering its pages, file formats, sync behaviour and settings.
 
-| | Game | Source → Target | Highlights | Guide |
-| :---: | --- | --- | --- | --- |
-| <img src="src/assets/games/chrono_ark.png" width="40" alt="Chrono Ark"> | [**Chrono Ark**](https://store.steampowered.com/app/1188930/Chrono_Ark/) | Korean / Chinese / Japanese / Chinese-TW → English | Every installed Workshop mod. CSV, .NET DLL and GData JSON strings, written back into the mod's files. | [Wiki ↗](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki/Chrono-Ark) |
-| <img src="src/assets/games/wh3.png" width="40" alt="Total War: Warhammer III"> | [**Total War: Warhammer III**](https://store.steampowered.com/app/1142710/Total_War_WARHAMMER_III/) | Chinese → English | Translation mods for Workshop mods. `.loc.tsv` strings, `.pack` rebuilds via RPFM, Workshop publishing and a compatibility-pack registry. | [Wiki ↗](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki/Total-War-Warhammer-III) |
+| Game | Source → Target | Highlights | Guide |
+| --- | --- | --- | --- |
+| [**Chrono Ark**](https://store.steampowered.com/app/1188930/Chrono_Ark/) | Korean / Chinese / Japanese / Chinese-TW → English | Every installed Workshop mod. CSV, .NET DLL and GData JSON strings, written back into the mod's files. | [Wiki ↗](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki/Chrono-Ark) |
+| [**Total War: Warhammer III**](https://store.steampowered.com/app/1142710/Total_War_WARHAMMER_III/) | Chinese → English | Translation mods for Workshop mods. `.loc.tsv` strings, `.pack` rebuilds via RPFM, Workshop publishing and a compatibility-pack registry. | [Wiki ↗](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki/Total-War-Warhammer-III) |
 
 > [!NOTE]
 > The project started as a Chrono Ark-only tool (first `chrono-ark-translator`, then `steam-workshop-mod-translator`) and has grown into a general modding dashboard. More games are on the way.
