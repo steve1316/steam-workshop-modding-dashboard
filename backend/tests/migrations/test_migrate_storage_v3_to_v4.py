@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from backend.core.settings import settings
-from backend.scripts.migrate_storage_v3_to_v4 import run_migration
+from backend.migrations.migrate_storage_v3_to_v4 import run_migration
 
 
 def _write(path: Path, data) -> None:

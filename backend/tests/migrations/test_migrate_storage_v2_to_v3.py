@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from backend.core.settings import settings
-from backend.scripts.migrate_storage_v2_to_v3 import run_migration
+from backend.migrations.migrate_storage_v2_to_v3 import run_migration
 
 
 def _write(path: Path, text: str) -> None:

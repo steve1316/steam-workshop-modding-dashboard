@@ -11,13 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from backend.core.errors import register_error_handler
 from backend.core.settings import settings
 from backend.games.registry import get_adapter, list_games
+from backend.migrations.migrate_storage_v1_to_v2 import run_migration
+from backend.migrations.migrate_storage_v2_to_v3 import run_migration as run_migration_v2_to_v3
+from backend.migrations.migrate_storage_v3_to_v4 import run_migration as run_migration_v3_to_v4
+from backend.migrations.migrate_storage_v4_to_v5 import run_migration as run_migration_v4_to_v5
 from backend.routes import llamacpp, ollama, steamcmd
 from backend.routes import settings as settings_routes
 from backend.routes.helpers import chrono_ark_adapter
-from backend.scripts.migrate_storage_v1_to_v2 import run_migration
-from backend.scripts.migrate_storage_v2_to_v3 import run_migration as run_migration_v2_to_v3
-from backend.scripts.migrate_storage_v3_to_v4 import run_migration as run_migration_v3_to_v4
-from backend.scripts.migrate_storage_v4_to_v5 import run_migration as run_migration_v4_to_v5
 
 
 @asynccontextmanager

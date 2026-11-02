@@ -63,7 +63,7 @@ def test_game_storage_path_resolves_to_per_game_namespace(tmp_path, monkeypatch)
 
 def test_migration_moves_legacy_storage(tmp_path, monkeypatch):
     from backend.core.settings import settings
-    from backend.scripts.migrate_storage_v1_to_v2 import run_migration
+    from backend.migrations.migrate_storage_v1_to_v2 import run_migration
 
     legacy_root = tmp_path
     (legacy_root / "mods" / "1234").mkdir(parents=True)
@@ -84,7 +84,7 @@ def test_migration_moves_legacy_storage(tmp_path, monkeypatch):
 
 def test_migration_idempotent(tmp_path, monkeypatch):
     from backend.core.settings import settings
-    from backend.scripts.migrate_storage_v1_to_v2 import run_migration
+    from backend.migrations.migrate_storage_v1_to_v2 import run_migration
 
     monkeypatch.setattr(settings, "storage_path", tmp_path)
     (tmp_path / "_migrations").mkdir(parents=True)

@@ -1,6 +1,6 @@
 """Filesystem path helpers, including per-game storage under `<STORAGE_PATH>/games/<game_id>`.
 
-Legacy flat storage is migrated into this layout by `backend.scripts.migrate_storage_v1_to_v2` at startup.
+Legacy flat storage is migrated into this layout by `backend.migrations.migrate_storage_v1_to_v2` at startup.
 """
 
 from __future__ import annotations

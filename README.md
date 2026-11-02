@@ -176,7 +176,7 @@ backend/storage/
   _migrations/                       markers for one-time storage migrations
 ```
 
-Each game's [Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki) shows its exact layout. Storage migrations in `backend/scripts/` run automatically at startup. They move the original flat, Chrono Ark-only layout into `games/chrono_ark/`.
+Each game's [Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki) shows its exact layout. Storage migrations in `backend/migrations/` run automatically at startup. They move the original flat, Chrono Ark-only layout into `games/chrono_ark/`.
 
 </details>
 
