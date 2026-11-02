@@ -247,11 +247,38 @@ def test_batch_rejects_keys_with_no_source_text(client: TestClient):
     assert resp.status_code == 400
 
 
-def test_cancel_returns_ok(client: TestClient):
-    """Cancel is a safe no-op for WH3's non-streaming Claude path and returns a cancelled flag."""
+def test_cancel_with_nothing_streaming_reports_false(client: TestClient):
+    """Cancel answers with a flag, which stays False while no batch for the mod is streaming."""
     resp = client.post(f"{PREFIX}/cancel?mod_id=3315737452")
     assert resp.status_code == 200
-    assert "cancelled" in resp.json()
+    assert resp.json() == {"cancelled": False}
+
+
+def test_batch_stream_saves_and_returns_the_complete_event(client: TestClient, monkeypatch, tmp_path: Path):
+    """A non-streaming provider streams one `complete` event, saved the same way as `/translate/batch`."""
+
+    def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
+        return ({"k2": "Streamed"}, [])
+
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    resp = client.post(f"{PREFIX}/batch/stream", json={"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese"})
+    assert resp.status_code == 200
+    events = [json.loads(line[len("data: ") :]) for line in resp.text.splitlines() if line.startswith("data: ")]
+    assert [(e["type"], e["translations"]) for e in events] == [("complete", {"k2": "Streamed"})]
+    raw_path = tmp_path / "games" / "total_war_warhammer_3" / "mods" / "3315737452" / "translations.json"
+    assert json.loads(raw_path.read_text(encoding="utf-8"))["k2"]["text"] == "Streamed"
+
+
+@pytest.mark.parametrize("route", ["/batch", "/batch/stream"])
+def test_first_batch_backs_the_mod_up(client: TestClient, monkeypatch, route: str):
+    """A run's first batch takes a backup first, as in Chrono Ark, and later batches do not."""
+    labels: list[str] = []
+    monkeypatch.setattr(routes_module, "_backup", lambda mod, label, **kwargs: labels.append(label))
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, **kwargs: ({"k2": "New"}, []))
+    body = {"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese"}
+    assert client.post(f"{PREFIX}{route}", json={**body, "is_first_batch": True}).status_code == 200
+    assert client.post(f"{PREFIX}{route}", json=body).status_code == 200
+    assert labels == ["Before translation run"]
 
 
 def test_preview_scope_names_includes_only_name_keys(client: TestClient, monkeypatch):

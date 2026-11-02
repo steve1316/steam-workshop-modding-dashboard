@@ -158,4 +158,16 @@ describe("useIterativeTranslation", () => {
         expect(batchCall).toBeTruthy()
         expect(String(batchCall![0])).toContain("/games/total_war_warhammer_3/translate/batch")
     })
+
+    it("sends the run mode with a streamed batch", async () => {
+        mockFetch.mockReturnValue(errorResponse("stop"))
+        const { result } = renderHook(() => useIterativeTranslation("total_war_warhammer_3", MOD_ID, vi.fn()))
+        await act(async () => {
+            result.current.startTranslation("ollama", makePlan(1), "update")
+        })
+        await waitFor(() => expect(result.current.state.phase).toBe("error"))
+        const streamCall = mockFetch.mock.calls.find((call) => typeof call[0] === "string" && call[0].includes("/translate/batch/stream"))
+        expect(streamCall).toBeTruthy()
+        expect(JSON.parse(streamCall![1].body).mode).toBe("update")
+    })
 })

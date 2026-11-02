@@ -102,6 +102,7 @@ export function useIterativeTranslation(gameId: string, modId: string, onBatchTr
                     "/translate/batch/stream",
                     {
                         mod_id: modId,
+                        mode: modeRef.current,
                         provider: providerRef.current,
                         keys: batch.keys,
                         source_lang: batch.source_lang,

@@ -1,4 +1,4 @@
-"""CA-parity translate endpoints for WH3: `/translate/preview`, `/translate/batch`, `/translate/cancel`.
+"""CA-parity translate endpoints for WH3: `/translate/preview`, `/translate/batch`, `/translate/batch/stream`, `/translate/cancel`.
 
 Mirrors Chrono Ark's `/translate` contract so the shared `useIterativeTranslation` hook and modals drive WH3 identically.
 Drift and the translations.json overlay come from `translation.workspace`, shared with the sibling `translation` routes.
@@ -11,7 +11,7 @@ import asyncio
 import re
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from backend.core.settings import settings
@@ -35,6 +35,7 @@ from backend.translation.orchestrator import chunk_entries
 from backend.translation.pipeline import BatchJob, BatchOutcome, PersistHook, run_translation_batch
 from backend.translation.planning import batch_plan_entry, plan_batches
 from backend.translation.prompt import PromptContext
+from backend.translation.streaming import cancel_batch, stream_batch
 
 # WH3 colour and icon tags such as `[[col:red]]` and `[[img:ui/x.png]][[/img]]`, left out of name terms.
 _MARKUP_RE = re.compile(r"\[\[[^\]]*\]\]")
@@ -319,6 +320,29 @@ def _persist_batch(mod_id: str, provider_name: str, parent: dict, entries: list[
     return persist
 
 
+async def _batch_job(req: BatchTranslationRequest) -> BatchJob:
+    """Build a batch job, starting its provider and backing the mod up before a run's first batch.
+
+    The glossary and Mod Context are reloaded on each call so newly accepted terms apply.
+
+    Args:
+        req: Batch request.
+
+    Returns:
+        The job.
+    """
+    mod, parent, entries, revisions = await asyncio.to_thread(_load_batch, req)
+    provider_name = req.provider or settings.translation_provider
+    provider = await ready_web_provider(provider_name)
+    provider.revisions = revisions or None
+    if req.is_first_batch:
+        await asyncio.to_thread(_t._backup, mod, "Before translation run")
+    _source_lang, target_lang = _t._languages(mod)
+    context = await asyncio.to_thread(_prompt_context, mod, req.mod_id, req.source_lang, target_lang)
+    persist = _persist_batch(req.mod_id, provider_name, parent, entries)
+    return BatchJob(mod_id=req.mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=entries, context=context, persist=persist)
+
+
 @router.post("/batch")
 async def translate_batch(req: BatchTranslationRequest) -> dict:
     """Translate one batch of keys with the picked provider and persist into translations.json.
@@ -332,16 +356,21 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     Returns:
         `{"status": "success", "translated": N, "translations": {key: text}, "suggestions": [...]}`.
     """
-    mod, parent, entries, revisions = await asyncio.to_thread(_load_batch, req)
-    provider_name = req.provider or settings.translation_provider
-    provider = await ready_web_provider(provider_name)
-    provider.revisions = revisions or None
-    _source_lang, target_lang = _t._languages(mod)
-    context = await asyncio.to_thread(_prompt_context, mod, req.mod_id, req.source_lang, target_lang)
-    persist = _persist_batch(req.mod_id, provider_name, parent, entries)
-    job = BatchJob(mod_id=req.mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=entries, context=context, persist=persist)
-    outcome = await asyncio.to_thread(run_translation_batch, job)
+    outcome = await asyncio.to_thread(run_translation_batch, await _batch_job(req))
     return outcome.response()
+
+
+@router.post("/batch/stream")
+async def translate_batch_stream(req: BatchTranslationRequest, request: Request):
+    """Translate one batch like `/translate/batch`, streaming SSE progress for providers that support it (Ollama and llama.cpp).
+
+    Non-streaming providers fall back to a single `complete` event.
+
+    Args:
+        req: Batch request, as for `/translate/batch`.
+        request: Starlette request, to detect disconnect and stop the provider early.
+    """
+    return stream_batch(await _batch_job(req), request)
 
 
 @router.post("/name-suggestions")
@@ -368,15 +397,14 @@ def name_suggestions(req: NameSuggestionsRequest) -> dict:
 
 @router.post("/cancel")
 def cancel(mod_id: str = "") -> dict:
-    """Signal cancellation of an in-progress translation run.
+    """Signal an in-progress streaming batch to stop.
 
-    WH3 batches are not streamed, so an in-flight batch cannot be aborted and cancellation is driven client-side by stopping the batch loop.
-    This exists for parity with Chrono Ark and is a safe no-op.
+    A non-streamed batch cannot be aborted, so the frontend also stops its batch loop.
 
     Args:
-        mod_id: Workshop id of the translation mod, accepted for parity but unused.
+        mod_id: Workshop id of the translation mod.
 
     Returns:
-        `{"cancelled": False}`, since nothing was aborted server-side.
+        `{"cancelled": True}` when a streaming batch got the signal.
     """
-    return {"cancelled": False}
+    return {"cancelled": cancel_batch(GAME_ID, mod_id)}
