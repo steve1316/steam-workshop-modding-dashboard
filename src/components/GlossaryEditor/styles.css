@@ -1,0 +1,68 @@
+/* Glossary editor (src/components/GlossaryEditor) */
+.glossary-editor-list {
+    max-height: 300px;
+    overflow: auto;
+    padding-right: 0.75rem;
+}
+
+.glossary-editor-fill {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.glossary-editor-fill .glossary-editor-list {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Glossary rows, grouped under a header in the scan-for-terms and suggest-edits lists */
+.glossary-group {
+    margin-bottom: 1rem;
+}
+.glossary-group-header {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.4rem;
+}
+.glossary-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 4px;
+}
+.glossary-row > .glossary-english,
+.glossary-row > .glossary-source {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.glossary-row > input[type="text"] {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-main);
+}
+.glossary-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+.glossary-english {
+    font-weight: 500;
+    color: var(--text-main);
+}
+.glossary-source {
+    color: var(--text-dim);
+}

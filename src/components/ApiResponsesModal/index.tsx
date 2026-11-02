@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import Modal from "@/components/ui/Modal"
+import "@/components/ApiResponsesModal/styles.css"
 
 /** One provider API-response record as the modal shows it. */
 export interface ApiResponseEntry {

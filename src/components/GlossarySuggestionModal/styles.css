@@ -1,0 +1,25 @@
+/* Glossary suggestion modal (src/components/GlossarySuggestionModal) */
+/* Suggested glossary term: the English with its edit pencil, the edit box, and the "was" line under an edited term. */
+.suggestion-term {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.suggestion-term-input.input {
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.suggestion-edit {
+    font-size: 0.8rem;
+}
+
+.suggestion-was {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
+}

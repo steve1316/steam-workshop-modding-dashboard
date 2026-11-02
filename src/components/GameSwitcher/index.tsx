@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { API_BASE, fetchGames, type GameMetadata } from "@/lib/api"
 import { getBranding, slugForId } from "@/games/registry"
 import { useActiveGame } from "@/context/ActiveGameContext"
+import "@/components/GameSwitcher/styles.css"
 
 /**
  * Segmented toggle for switching between registered games. Navigates to the new game's dashboard at once, then saves `active_game` in the background.

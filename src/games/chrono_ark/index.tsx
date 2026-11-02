@@ -2,6 +2,7 @@ import chronoArkLogo from "@/assets/games/chrono_ark.png"
 import { registerGame } from "@/games/registry"
 import { chronoArkNav } from "@/games/chrono_ark/nav"
 import { ChronoArkRoutes } from "@/games/chrono_ark/routes"
+import "@/games/chrono_ark/styles.css"
 
 /** Side-effect import that registers Chrono Ark before the router renders. */
 registerGame({

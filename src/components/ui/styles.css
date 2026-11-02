@@ -1,0 +1,322 @@
+/* Page header (src/components/ui/PageHeader.tsx) */
+.page-back {
+    margin-bottom: 1rem;
+}
+
+.page-header-identity {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.page-header-image {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    object-fit: cover;
+    border: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.page-header-text {
+    min-width: 0;
+}
+
+/* The title shrinks and wraps inside itself so the adornments stay beside it. */
+.page-header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.title-group h1.page-header-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.page-header-adornments {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Scoped under .title-group so it outranks the generic .title-group p margin. */
+.title-group .page-header-subtitle,
+.title-group .page-header-progress {
+    margin-top: 0.25rem;
+}
+
+.page-header-subtitle {
+    color: var(--text-dim);
+}
+
+.title-group p {
+    color: var(--text-dim);
+    margin-top: 0.5rem;
+}
+
+/* Split button (src/components/ui/SplitButton.tsx) */
+.split-button {
+    position: relative;
+    display: inline-flex;
+}
+
+.split-button-main {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.split-button-toggle {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 0.4rem;
+}
+
+.split-button-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 0.25rem 0;
+    z-index: 20;
+    min-width: 100%;
+    white-space: nowrap;
+}
+
+.split-button-item {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 1rem;
+}
+
+/* Panel (src/components/ui/Panel.tsx) */
+.help-text {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+}
+
+.panel {
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.panel-title {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.panel-help {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+/* A panel that is only a title and help line, like the WH3 dashboard intro, has no gap under the help line. */
+.panel-help:last-child {
+    margin-bottom: 0;
+}
+
+/* A fieldset panel drops the browser's groove border and inline margin, and floats its legend inside the card like an h3. */
+fieldset.panel {
+    min-width: 0;
+    margin-inline: 0;
+}
+
+.panel-legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+    font-size: 1.17em;
+    font-weight: 700;
+}
+
+.panel-legend + * {
+    clear: both;
+}
+
+/* Loading and error states (src/components/ui/LoadingState.tsx, src/components/ui/ErrorState.tsx) */
+.loading-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+}
+
+.loading-state h2 {
+    color: var(--text-dim);
+    animation: pulse 2s infinite;
+}
+
+.error-state {
+    max-width: 640px;
+    margin: 4rem auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+.error-state p {
+    color: var(--text-dim);
+    margin: 0.75rem 0 1.5rem;
+}
+
+.mod-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: 2rem; /* Avoid clipping shadows */
+}
+
+.mod-card {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    overflow: hidden;
+}
+
+.mod-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 0 1.5rem 1.5rem;
+    flex: 1;
+}
+
+.mod-preview {
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+}
+
+.mod-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition);
+}
+
+.mod-card:hover .mod-preview img {
+    transform: scale(1.05);
+}
+
+/* Banners (src/components/ui/Banner.tsx) */
+.glass-card.banner,
+.glass-card.banner:hover {
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    white-space: pre-wrap;
+    transform: none;
+}
+
+.glass-card.banner-success,
+.glass-card.banner-success:hover {
+    background: rgba(52, 211, 153, 0.1);
+    color: var(--tone-success);
+}
+
+.glass-card.banner-error,
+.glass-card.banner-error:hover {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--tone-error-text);
+}
+
+.glass-card.banner-info,
+.glass-card.banner-info:hover {
+    background: rgba(125, 211, 252, 0.08);
+    color: var(--text-main);
+}
+
+.glass-card.banner-warning,
+.glass-card.banner-warning:hover {
+    background: rgba(250, 204, 21, 0.08);
+    color: #facc15;
+}
+
+.banner-dismiss {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* Search input (src/components/ui/SearchInput.tsx) */
+.search-input {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    pointer-events: none;
+}
+
+.input.search-input-field {
+    padding: 0.75rem 2.5rem;
+    border-radius: var(--radius-md);
+}
+
+.search-input-clear {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+    line-height: 1;
+}
+
+/* Search match highlight (src/components/ui/HighlightText.tsx) */
+.search-highlight {
+    background: #facc15;
+    color: #111827;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* Download progress (src/components/ui/DownloadProgress.tsx) */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent-gradient);
+    transition: width 0.3s ease;
+}
+
+.download-progress-text {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}

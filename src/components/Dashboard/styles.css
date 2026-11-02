@@ -1,0 +1,172 @@
+/* Dashboard (src/components/Dashboard/) */
+.dashboard-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dashboard-section + .dashboard-section {
+    margin-top: 2.5rem;
+}
+
+.dashboard-section-title {
+    margin-bottom: 1rem;
+}
+
+.dashboard-section-empty {
+    color: var(--text-dim);
+}
+
+.dashboard-section-error {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--tone-error-text);
+}
+
+/* Loading placeholders for mod grids (ModGridSkeleton) */
+.mod-card-skeleton {
+    pointer-events: none;
+}
+
+.skeleton-block {
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.04) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.mod-preview.skeleton-block {
+    border-radius: 0;
+}
+
+@keyframes skeleton-shimmer {
+    from {
+        background-position: 200% 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-block {
+        animation: none;
+    }
+}
+
+/* Cards without a preview image get top padding */
+.mod-card:not(:has(.mod-preview)) .mod-card-content {
+    padding-top: 1.5rem;
+}
+
+.mod-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.mod-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.mod-info h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.mod-info .author {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.id-badge {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    color: var(--accent-primary);
+}
+
+.progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.progress-bar-bg {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.mod-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.stat-label {
+    color: var(--text-dim);
+}
+
+.mod-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Pin the action row to the bottom of the card body so cards in the same grid row align consistently regardless of header / note length. */
+.mod-card-content > .mod-actions:last-child {
+    margin-top: auto;
+    margin-bottom: 0;
+}
+
+/* ModCard footer: progress, stats, and actions pinned to the bottom of the card body */
+.mod-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: auto;
+}
+
+.mod-card-footer > .mod-actions {
+    margin-bottom: 0;
+}
+
+.mod-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mod-actions-group + .mod-actions-group {
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--glass-border);
+}

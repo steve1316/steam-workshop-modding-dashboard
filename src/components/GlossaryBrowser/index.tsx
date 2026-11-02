@@ -8,6 +8,7 @@ import PageHeader from "@/components/ui/PageHeader"
 import Panel from "@/components/ui/Panel"
 import SearchInput from "@/components/ui/SearchInput"
 import { extractCategories, filterGlossaryTerms } from "@/lib/search"
+import "@/components/GlossaryBrowser/styles.css"
 
 /** One game-specific column of the glossary table. */
 export interface GlossaryColumn {

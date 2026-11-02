@@ -4,6 +4,7 @@ import type { TermSuggestion } from "@/lib/types"
 import { gameApi } from "@/lib/api"
 import Banner from "@/components/ui/Banner"
 import Modal from "@/components/ui/Modal"
+import "@/components/GlossarySuggestionModal/styles.css"
 
 /** Props for {@link GlossarySuggestionModal}. */
 interface GlossarySuggestionModalProps {

@@ -1,0 +1,288 @@
+/* Title adornments (src/components/TranslationPage/TitleAdornments.tsx) */
+.icon-action {
+    display: flex;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 1.3rem;
+    transition: color 0.2s;
+}
+
+.icon-action:hover {
+    color: var(--accent-primary);
+}
+
+.icon-action-steam:hover {
+    color: #66c0f4;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-md);
+}
+
+.pill-warning {
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+/* Language controls (src/components/TranslationPage/LanguageControls.tsx) */
+.language-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.language-controls-label {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+}
+
+.language-controls-arrow {
+    margin: 0 0.3rem;
+    color: var(--text-dim);
+}
+
+.lang-select {
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    font-size: 0.85rem;
+}
+
+/* Translation toolbar (src/components/TranslationPage/TranslationToolbar.tsx) */
+.btn:has(> .btn-badge),
+.btn:has(> .btn-dot) {
+    position: relative;
+}
+
+.btn-outline.btn-suggestions,
+.btn-outline.btn-suggestions:hover {
+    color: var(--accent-secondary);
+    border-color: rgba(187, 154, 247, 0.3);
+}
+
+/* Count bubble on a button's top-right corner. */
+.btn-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-secondary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* Small "has content" indicator on a button's top-right corner. */
+.btn-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tone-teal);
+}
+
+/* Batch review banner (src/components/TranslationPage/BatchReviewBanner.tsx) */
+.glass-card.batch-review-banner,
+.glass-card.batch-review-banner:hover {
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(250, 204, 21, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.25);
+    color: var(--text-main);
+}
+
+.batch-review-banner-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.batch-review-banner-actions .btn {
+    padding: 0.25rem 0.75rem;
+}
+
+/* Context panel (src/components/TranslationPage/ContextPanel.tsx) */
+.context-panel-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.context-panel-field {
+    flex: 1;
+}
+
+.context-panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+/* Game-specific footer controls sit on the left, with the save status and button on the right. */
+.context-panel-extra {
+    margin-right: auto;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+}
+
+.context-panel-saved {
+    color: var(--tone-success);
+    font-size: 0.85rem;
+}
+
+.context-panel-error {
+    color: var(--tone-error-text);
+    font-size: 0.85rem;
+}
+
+/* Chrono Ark's soft teal Save Context button keeps the primary button's shape and glow. */
+.btn-primary.btn-soft-teal {
+    background: rgba(129, 230, 217, 0.15);
+    color: var(--tone-teal);
+}
+
+/* Strings table (src/components/TranslationPage/StringsTable.tsx) */
+.string-table-container {
+    margin-top: 2rem;
+    overflow: hidden;
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+    contain: none;
+}
+
+.resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+    z-index: 10;
+    transition: background var(--transition);
+}
+
+.resizer:hover,
+.resizer.resizing {
+    background: var(--accent-primary);
+}
+
+.sort-icon {
+    display: inline-flex;
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    vertical-align: middle;
+    color: var(--text-dim);
+    transition: color var(--transition);
+}
+
+.sortable-th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable-th:hover .sort-icon {
+    color: var(--text-main);
+}
+
+.sortable-th .sort-icon.active {
+    color: var(--accent-primary);
+}
+
+.key-cell {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--accent-secondary);
+    word-break: break-all;
+    white-space: normal;
+}
+
+.key-cell a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+.key-cell a:hover {
+    text-decoration: underline;
+}
+
+.source-cell,
+.english-cell {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    min-width: 150px;
+}
+
+.prev-translation {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    text-decoration: line-through;
+    margin-bottom: 0.25rem;
+    opacity: 0.7;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.status-translated {
+    background: rgba(234, 179, 8, 0.1);
+    color: #eab308;
+}
+.status-missing {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+.status-synced {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+.status-untouched {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+.status-changed {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+.status-untranslatable {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    cursor: help;
+}
+.untranslatable-hint {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    font-style: italic;
+    cursor: help;
+}

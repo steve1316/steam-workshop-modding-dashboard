@@ -5,6 +5,7 @@ import { TranslatingBanner } from "@/components/TranslationPage/TranslatingBanne
 import type { ColumnDef } from "@/components/TranslationPage/types"
 import PageHeader from "@/components/ui/PageHeader"
 import SearchInput from "@/components/ui/SearchInput"
+import "@/components/TranslationPage/styles.css"
 
 /** One status filter pill. */
 interface StatusFilter {

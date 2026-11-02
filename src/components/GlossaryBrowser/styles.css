@@ -1,0 +1,78 @@
+/* Filter bar and data table (src/components/GlossaryBrowser) */
+.panel.filter-bar {
+    margin-bottom: 2rem;
+}
+
+.filter-bar-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-bar-row .search-input {
+    min-width: 200px;
+}
+
+.filter-pills {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.pill-capitalize {
+    text-transform: capitalize;
+}
+
+.data-table-card {
+    overflow: hidden;
+}
+
+/* The global th/td rules size the translation table. The data table keeps the tighter glossary spacing. */
+.data-table th {
+    padding: 0.75rem 1rem;
+}
+
+.data-table thead tr {
+    background: var(--bg-color);
+}
+
+.data-table td {
+    padding: 0.5rem 1rem;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.data-table td.data-table-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-dim);
+}
+
+.term-english {
+    font-weight: 500;
+}
+
+.term-category {
+    text-transform: capitalize;
+    color: var(--text-dim);
+}
+
+.term-mapping {
+    margin-right: 1rem;
+}
+
+.cell-dim {
+    color: var(--text-dim);
+}
+
+.cell-small {
+    font-size: 0.9rem;
+}
+
+.cell-mono {
+    font-size: 0.85rem;
+    font-family: monospace;
+}

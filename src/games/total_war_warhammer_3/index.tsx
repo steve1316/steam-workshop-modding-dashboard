@@ -4,6 +4,7 @@ import SettingsPanels from "@/games/total_war_warhammer_3/components/SettingsPan
 import { SETTINGS_KEYS } from "@/games/total_war_warhammer_3/components/SettingsPanels/helpers"
 import { tw3Nav } from "@/games/total_war_warhammer_3/nav"
 import { TotalWarWarhammer3Routes } from "@/games/total_war_warhammer_3/routes"
+import "@/games/total_war_warhammer_3/styles.css"
 
 registerGame({
     id: "total_war_warhammer_3",

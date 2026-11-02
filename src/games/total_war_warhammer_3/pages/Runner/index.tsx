@@ -5,6 +5,7 @@ import { appendLine } from "@/games/total_war_warhammer_3/hooks/useRunnerLog"
 import ScriptCard, { type ScriptEntry } from "@/games/total_war_warhammer_3/components/ScriptCard"
 import RunnerLogTerminal from "@/games/total_war_warhammer_3/components/RunnerLogTerminal"
 import PageHeader from "@/components/ui/PageHeader"
+import "@/games/total_war_warhammer_3/pages/Runner/styles.css"
 
 /** Registered helper scripts shown on the Runner page. */
 const SCRIPTS: ScriptEntry[] = [

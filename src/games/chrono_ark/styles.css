@@ -1,0 +1,94 @@
+/* Stat tiles (src/games/chrono_ark/pages/Statistics) */
+.stat-tile {
+    padding: 2rem;
+    text-align: center;
+}
+
+.stat-tile-value {
+    font-size: 3rem;
+}
+
+.stat-tile-primary {
+    color: var(--accent-primary);
+}
+
+.stat-tile-secondary {
+    color: var(--accent-secondary);
+}
+
+.stat-tile-success {
+    color: var(--success);
+}
+
+.stat-tile-label {
+    color: var(--text-dim);
+}
+
+/* Manual translation dialog (src/games/chrono_ark/components/ManualTranslateModal) */
+.manual-progress {
+    margin-bottom: 1.25rem;
+}
+
+.manual-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.manual-key {
+    display: flex;
+    gap: 1rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: var(--accent-secondary);
+}
+
+.manual-file {
+    color: var(--accent-primary);
+}
+
+.manual-original {
+    font-size: 1.25rem;
+    white-space: pre-wrap;
+}
+
+.manual-box {
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    background: var(--glass-bg);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.manual-term {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.2rem 0;
+}
+
+.manual-arrow,
+.manual-category,
+.manual-paired-english,
+.manual-hint,
+.manual-done {
+    color: var(--text-dim);
+}
+
+.manual-category {
+    margin-left: auto;
+    font-size: 0.75rem;
+}
+
+.textarea.manual-input {
+    min-height: 4.5rem;
+    font-size: 0.95rem;
+    resize: vertical;
+}
+
+.manual-hint {
+    margin: 0;
+    font-size: 0.8rem;
+}

@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom"
 import { FaCog } from "react-icons/fa"
 import GameSwitcher from "@/components/GameSwitcher"
 import { useActiveGame } from "@/context/ActiveGameContext"
+import "@/components/Sidebar/styles.css"
 
 /**
  * Persistent sidebar: the `GameSwitcher`, an active-game header, the active game's manifest nav entries, and the cross-game Settings link.

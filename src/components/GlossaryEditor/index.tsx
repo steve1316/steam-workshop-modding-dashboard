@@ -3,6 +3,7 @@ import { Fragment, useMemo, useState, type ReactNode } from "react"
 import HighlightText from "@/components/ui/HighlightText"
 import SearchInput from "@/components/ui/SearchInput"
 import { matchesSearch } from "@/lib/search"
+import "@/components/GlossaryEditor/styles.css"
 
 /** One glossary term in the shared editor's normalized shape. */
 export interface GlossaryEditorTerm {

@@ -1,0 +1,62 @@
+/* API responses modal (src/components/ApiResponsesModal) */
+.api-response-sidebar {
+    width: 280px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.api-response-tab {
+    text-align: left;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    color: var(--text-main);
+}
+/* The bright outline is Chrono Ark's look (the old undefined --border fell back to the text color). */
+.api-response-tab.active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--text-main);
+}
+.api-response-kind {
+    font-weight: 500;
+}
+.api-response-time {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+.api-response-detail {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+}
+.api-response-meta {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 0.25rem 1rem;
+    margin: 0 0 1rem 0;
+}
+.api-response-meta dt {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+.api-response-meta dd {
+    margin: 0;
+    color: var(--text-main);
+    word-break: break-all;
+}
+.api-response-raw {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 50vh;
+}

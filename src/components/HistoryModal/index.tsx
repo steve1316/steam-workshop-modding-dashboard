@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
 import Modal from "@/components/ui/Modal"
+import "@/components/HistoryModal/styles.css"
 
 /** One history entry as the shared modal renders it. */
 export interface HistoryModalEntry {

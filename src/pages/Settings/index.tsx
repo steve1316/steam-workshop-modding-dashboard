@@ -16,6 +16,7 @@ import { PROVIDERS } from "@/pages/Settings/constants"
 import { useLlamacpp } from "@/pages/Settings/useLlamacpp"
 import { useOllama } from "@/pages/Settings/useOllama"
 import { useSettingsForm } from "@/pages/Settings/useSettingsForm"
+import "@/pages/Settings/styles.css"
 
 /** One entry of the `/api/models/<provider>` list, with prices in dollars per million tokens. */
 interface ModelOption {
