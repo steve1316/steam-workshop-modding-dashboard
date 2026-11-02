@@ -20,7 +20,7 @@ backend/
   core/                settings, .env writer, errors, atomic JSON writes, storage paths, "open in OS"
   models/              shared pydantic schemas: api.py (requests/responses), loc.py (LocString)
   providers/           Claude, OpenAI, DeepL, Ollama, llama.cpp, Manual, plus factory.py (get_provider)
-  translation/         game-agnostic engine: pipeline, planning, prompt, status, suggestions, rename, orchestrator
+  translation/         game-agnostic engine: pipeline, streaming, planning, prompt, status, suggestions, rename, orchestrator
   persistence/         per-game stores: translations, glossary, suggestions, history, API log, settings, context, TM, progress
   routes/              game-agnostic HTTP only: settings, ollama, llamacpp, steamcmd, plus shared web-provider helpers
   games/
@@ -62,7 +62,7 @@ sequenceDiagram
     R-->>UI: translations + suggestions to review
 ```
 
-If the provider call fails, the pipeline logs the error and raises `BatchError`, which the error handler turns into a 502. Local models use `/translate/batch/stream` instead. That route streams tokens over SSE, then hands the finished result to `record_batch`, which does the same fill, log and persist steps.
+If the provider call fails, the pipeline logs the error and raises `BatchError`, which the error handler turns into a 502. Local models use `/translate/batch/stream` instead. Both games hand that route to `translation/streaming.py`, which streams tokens over SSE, then passes the finished result to `record_batch` for the same fill, log and persist steps. `/translate/cancel` stops a streaming batch through the same module.
 
 ## Adding a game
 

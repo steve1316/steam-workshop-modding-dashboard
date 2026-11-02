@@ -304,7 +304,7 @@ Each mod has its own glossary layered over the base one. Per-mod terms are sent 
 | **Manual** | By hand | N/A | N/A | Free |
 
 > [!IMPORTANT]
-> Not every game supports every provider the same way yet. Chrono Ark can use any of them. Warhammer III uses the provider picked in Settings, but it does not stream batches and has no Manual mode.
+> Manual mode is Chrono Ark only. Warhammer III can use every other provider.
 
 - **Cloud providers**: API keys are set on the Settings page and saved to `backend/.env`. Only the last 4 characters are shown in the UI. Claude and OpenAI models are chosen from a catalog that includes per-model pricing.
 - **Local providers**: Settings can install Ollama or llama-server and start or stop them. It can pull or download models (GGUF from Hugging Face) with a progress display, and offers VRAM tier presets (4-6GB to 24GB+). For llama.cpp you can also set GPU layers and context size. After a run, llama.cpp is stopped to free VRAM.
