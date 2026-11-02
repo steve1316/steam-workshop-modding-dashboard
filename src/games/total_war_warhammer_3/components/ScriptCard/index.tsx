@@ -1,4 +1,4 @@
-import type { StepStatus } from "@/games/total_war_warhammer_3/lib/registryApi"
+import type { StepStatus } from "@/games/total_war_warhammer_3/lib/types"
 import StepIndicator from "@/games/total_war_warhammer_3/components/StepIndicator"
 
 /** One helper-script entry rendered as a `ScriptCard`. */

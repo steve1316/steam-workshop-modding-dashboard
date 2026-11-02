@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { gameApi } from "@/lib/api"
-import type { GlossaryTerm, LocString } from "@/lib/types"
+import type { GlossaryTerm } from "@/lib/types"
+import type { LocString } from "@/games/chrono_ark/lib/types"
 import { GlossaryEditor, type GlossaryEditorTerm } from "@/components/GlossaryEditor"
 import { renameNotice } from "@/components/GlossaryEditor/helpers"
 import Modal from "@/components/ui/Modal"

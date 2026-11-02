@@ -1,53 +1,7 @@
 import { gameApi } from "@/lib/api"
+import type { SupportedMod, RunState, ValidationIssue, PublishHandle, ChangeNotesResponse, BatchPublishItem, BatchPublishHandle } from "@/games/total_war_warhammer_3/lib/types"
 
 const api = gameApi("total_war_warhammer_3")
-
-export interface SupportedMod {
-    name: string
-    package_name: string
-    path: string
-    modified_attributes?: string[]
-    /** Derived from `path`. Null when the path does not follow the TW3 workshop convention. */
-    workshop_id?: string | null
-    /** Glob pattern to faction code, overriding default faction detection. */
-    pattern_overrides?: Record<string, string>
-    /** Lord/hero `key` to allowed lists, overriding the default character set. */
-    character_overrides?: Record<string, { allowed_lords?: unknown[]; allowed_heroes?: unknown[] }>
-    /** Excludes the mod from auto-generation. */
-    ignore_generation?: boolean
-    [key: string]: unknown
-}
-
-/** Progress of one script inside an `update` pipeline run. */
-export type StepStatus = "queued" | "running" | "done" | "skipped" | "failed"
-
-/** A run that is currently active. */
-export interface RunStateRunning {
-    status: "running"
-    run_id: string
-    script_id: string
-    started_at: string
-    lines_emitted: number
-    /** Per-script progress of an `update` pipeline run, keyed by script id. Empty for every other run. */
-    steps: Record<string, StepStatus>
-}
-
-/** State when no run is active. */
-export interface RunStateIdle {
-    status: "idle"
-}
-
-export type RunState = RunStateRunning | RunStateIdle
-
-export interface ValidationIssue {
-    kind: "missing_effect_category" | "missing_mod_path"
-    severity: "error"
-    mod_package_name: string
-    mod_name: string
-    /** The orphaned reference: a missing category name or path string. */
-    target: string
-    message: string
-}
 
 /**
  * Fetch the validation report from the TW3 backend.
@@ -115,13 +69,6 @@ export function runStreamUrl(): string {
     return api.url("/run/stream")
 }
 
-/** Handle returned by `publishPack` for the spawned SteamCMD subprocess. */
-export interface PublishHandle {
-    publish_id: string
-    workshop_id: string
-    started_at: string
-}
-
 /**
  * Spawn SteamCMD to push the local workshop folder as an update to an existing Workshop item.
  *
@@ -145,23 +92,6 @@ export function publishStreamUrl(workshopId: string): string {
     return api.url(`/packs/${encodeURIComponent(workshopId)}/publish/stream`)
 }
 
-/** One generated Workshop changenote returned by `fetchChangeNotes`. */
-export interface ChangeNote {
-    /** Steam BBCode. */
-    note: string
-    /** False means nothing changed since the last recorded upload. */
-    pending: boolean
-    kind: "compat" | "translation"
-}
-
-/** Response of `fetchChangeNotes`. */
-export interface ChangeNotesResponse {
-    /** Null when no note could be generated. */
-    notes: Record<string, ChangeNote | null>
-    /** Messages from failed generators. */
-    errors: string[]
-}
-
 /**
  * Generate a changenote per Workshop item from what changed since its last upload.
  *
@@ -173,34 +103,6 @@ export async function fetchChangeNotes(ids: string[]): Promise<ChangeNotesRespon
     if (!res.ok) throw await registryError(res)
     const body = (await res.json()) as Partial<ChangeNotesResponse>
     return { notes: body.notes ?? {}, errors: body.errors ?? [] }
-}
-
-/** One mod entry sent in a batch publish request. */
-export interface BatchPublishItem {
-    /** Empty or non-numeric values are filtered server-side into the skipped list. */
-    workshop_id: string
-    /** Carried through the SSE stream for display. */
-    title: string
-    /** Must be non-empty. */
-    changenote: string
-}
-
-/** A mod the backend filtered out up front. */
-export interface BatchPublishSkipped {
-    /** As submitted, possibly empty or invalid. */
-    workshop_id: string
-    title: string
-    /** E.g. `"no workshopId"` or `"invalid workshopId"`. */
-    reason: string
-}
-
-/** Handle returned by `publishAllPacks` for the queued batch. */
-export interface BatchPublishHandle {
-    batch_id: string
-    started_at: string
-    /** Mods that passed the workshop_id filter. */
-    queued: number
-    skipped: BatchPublishSkipped[]
 }
 
 /**

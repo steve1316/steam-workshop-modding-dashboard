@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { gameApi } from "@/lib/api"
-import type { LocString } from "@/lib/types"
+import type { LocString } from "@/games/chrono_ark/lib/types"
 import Modal from "@/components/ui/Modal"
 
 /** A single row affected by a glossary replacement. */

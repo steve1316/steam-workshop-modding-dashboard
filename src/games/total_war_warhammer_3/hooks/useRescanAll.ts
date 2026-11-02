@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { TaskProgress } from "@/lib/format"
-import type { WH3RescanSummary } from "@/lib/types"
+import type { WH3RescanSummary } from "@/games/total_war_warhammer_3/lib/types"
 import { rescanMod } from "@/games/total_war_warhammer_3/lib/translationApi"
 
 /** State and actions returned by `useRescanAll`. */

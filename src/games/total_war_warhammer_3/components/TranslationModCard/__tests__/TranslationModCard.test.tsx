@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { publishPack } from "@/games/total_war_warhammer_3/lib/registryApi"
 import TranslationModCard from "@/games/total_war_warhammer_3/components/TranslationModCard"
 import { syncChanges } from "@/games/total_war_warhammer_3/lib/translationApi"
-import type { WH3RescanSummary, WH3TranslationModSummary } from "@/lib/types"
+import type { WH3RescanSummary, WH3TranslationModSummary } from "@/games/total_war_warhammer_3/lib/types"
 
 vi.mock("@/games/total_war_warhammer_3/lib/registryApi", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/games/total_war_warhammer_3/lib/registryApi")>()),

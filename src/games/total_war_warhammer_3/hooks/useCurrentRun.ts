@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { getCurrentRun, type RunState } from "@/games/total_war_warhammer_3/lib/registryApi"
+import { getCurrentRun } from "@/games/total_war_warhammer_3/lib/registryApi"
+import { type RunState } from "@/games/total_war_warhammer_3/lib/types"
 
 const INTERVAL_MS = 2000
 

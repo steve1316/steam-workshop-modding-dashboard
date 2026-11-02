@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 
-import { fetchChangeNotes, publishAllPacks, publishAllStreamUrl, RegistryError, type BatchPublishHandle, type BatchPublishItem, type ChangeNote } from "@/games/total_war_warhammer_3/lib/registryApi"
+import { fetchChangeNotes, publishAllPacks, publishAllStreamUrl, RegistryError } from "@/games/total_war_warhammer_3/lib/registryApi"
+import { type BatchPublishHandle, type BatchPublishItem, type ChangeNote } from "@/games/total_war_warhammer_3/lib/types"
 import Modal from "@/components/ui/Modal"
 
 /** One pack entry from the Dashboard. */

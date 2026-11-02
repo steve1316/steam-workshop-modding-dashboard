@@ -1,4 +1,5 @@
-import type { GlossaryTerm, LocString } from "@/lib/types"
+import type { GlossaryTerm } from "@/lib/types"
+import type { LocString } from "@/games/chrono_ark/lib/types"
 
 /** A glossary term whose source text appears in the current row. */
 export interface GlossaryMatch {

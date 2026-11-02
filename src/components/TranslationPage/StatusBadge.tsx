@@ -1,4 +1,4 @@
-import type { RowStatus } from "@/lib/search"
+import type { RowStatus } from "@/lib/types"
 import { statusToChip } from "@/components/TranslationPage/helpers"
 
 /** Props for StatusBadge. */

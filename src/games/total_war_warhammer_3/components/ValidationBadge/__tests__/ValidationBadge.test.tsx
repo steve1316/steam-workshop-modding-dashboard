@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import ValidationBadge from "@/games/total_war_warhammer_3/components/ValidationBadge"
-import type { ValidationIssue } from "@/games/total_war_warhammer_3/lib/registryApi"
+import type { ValidationIssue } from "@/games/total_war_warhammer_3/lib/types"
 
 function makeIssue(overrides: Partial<ValidationIssue> = {}): ValidationIssue {
     return {

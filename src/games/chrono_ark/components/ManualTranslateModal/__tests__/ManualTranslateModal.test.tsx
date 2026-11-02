@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import ManualTranslateModal from "@/games/chrono_ark/components/ManualTranslateModal"
 import { findGlossaryMatches, findPairedRow } from "@/games/chrono_ark/components/ManualTranslateModal/matching"
-import type { LocString } from "@/lib/types"
+import type { LocString } from "@/games/chrono_ark/lib/types"
 
 /**
  * Build a row with sensible defaults.

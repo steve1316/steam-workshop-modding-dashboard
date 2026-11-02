@@ -1,16 +1,5 @@
-import type {
-    Glossary,
-    TermSuggestion,
-    ApiLogEntry,
-    HistoryEntry,
-    WH3DriftRow,
-    WH3DriftStatus,
-    WH3GlossaryEntry,
-    WH3ModContext,
-    WH3RescanSummary,
-    WH3SyncResult,
-    WH3TranslationModSummary,
-} from "@/lib/types"
+import type { Glossary, TermSuggestion, ApiLogEntry, HistoryEntry } from "@/lib/types"
+import type { WH3DriftRow, WH3DriftStatus, WH3GlossaryEntry, WH3ModContext, WH3RescanSummary, WH3SyncResult, WH3TranslationModSummary } from "@/games/total_war_warhammer_3/lib/types"
 import { gameApi } from "@/lib/api"
 import type { TranslationPreview } from "@/components/TranslationConfirmModal"
 import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"

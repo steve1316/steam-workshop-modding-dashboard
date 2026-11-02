@@ -1,6 +1,6 @@
 import type { ReactNode, CSSProperties } from "react"
 import type { ColumnDef } from "@/components/TranslationPage/types"
-import type { RowStatus } from "@/lib/search"
+import type { RowStatus } from "@/lib/types"
 
 /** One translation-table cell: the row field it sorts by and how it renders. */
 export interface TranslationCellSpec<Row> {

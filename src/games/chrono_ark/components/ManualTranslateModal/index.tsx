@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import type { KeyboardEvent } from "react"
-import type { GlossaryTerm, LocString } from "@/lib/types"
+import type { GlossaryTerm } from "@/lib/types"
+import type { LocString } from "@/games/chrono_ark/lib/types"
 import Modal from "@/components/ui/Modal"
 import { findGlossaryMatches, findPairedRow } from "@/games/chrono_ark/components/ManualTranslateModal/matching"
 

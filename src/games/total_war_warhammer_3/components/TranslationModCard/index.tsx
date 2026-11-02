@@ -6,7 +6,7 @@ import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat 
 import { API_BASE } from "@/lib/api"
 import { rememberScrollTarget } from "@/hooks/useScrollRestore"
 import HighlightText from "@/components/ui/HighlightText"
-import type { WH3RescanSummary, WH3TranslationModSummary } from "@/lib/types"
+import type { WH3RescanSummary, WH3TranslationModSummary } from "@/games/total_war_warhammer_3/lib/types"
 import { syncChanges } from "@/games/total_war_warhammer_3/lib/translationApi"
 import PublishWorkshopDialog, { type PublishPrepareStep } from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 

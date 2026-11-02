@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { fetchValidation, RegistryError, type ValidationIssue } from "@/games/total_war_warhammer_3/lib/registryApi"
+import { fetchValidation, RegistryError } from "@/games/total_war_warhammer_3/lib/registryApi"
+import { type ValidationIssue } from "@/games/total_war_warhammer_3/lib/types"
 
 const INTERVAL_MS = 5000
 

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import SupportedModCard from "@/games/total_war_warhammer_3/components/SupportedModCard"
-import type { SupportedMod, ValidationIssue } from "@/games/total_war_warhammer_3/lib/registryApi"
+import type { SupportedMod, ValidationIssue } from "@/games/total_war_warhammer_3/lib/types"
 
 const BASE_MOD: SupportedMod = {
     name: "Nanu's Cool Mod",

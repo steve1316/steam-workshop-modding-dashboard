@@ -2,7 +2,7 @@ import React from "react"
 import ModCard, { NeedsSyncBadge, type ModCardProgressSegment } from "@/components/Dashboard/ModCard"
 import { API_BASE } from "@/lib/api"
 import HighlightText from "@/components/ui/HighlightText"
-import type { ModStatus } from "@/lib/types"
+import type { ModStatus } from "@/games/chrono_ark/lib/types"
 
 /** Props for {@link ModGrid}. */
 interface ModGridProps {
