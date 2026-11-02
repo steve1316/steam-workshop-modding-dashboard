@@ -2,7 +2,7 @@
 
 from backend.core.paths import glossary_path
 from backend.games.chrono_ark import GAME_ID
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.persistence.character_context import load_character_context
 from backend.persistence.glossary_manager import extract_name_key_suggestions, get_combined_glossary_prompt, load_glossary, load_mod_glossary
 from backend.persistence.mod_settings import load_target_language_override

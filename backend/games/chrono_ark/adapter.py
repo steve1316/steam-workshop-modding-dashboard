@@ -10,7 +10,7 @@ from backend.core.settings import settings
 from backend.games.base import GameAdapter, ModInfo
 from backend.games.capabilities.translation import TranslationCapability
 from backend.games.chrono_ark import GAME_ID, csv_extractor, dll_extractor, gdata_extractor, mod_scanner
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.persistence import glossary_manager as gm
 
 # (short_suffix, long_suffix) pairs that may coexist across CSV and gdata sources.

@@ -9,7 +9,7 @@ from backend.core.errors import DomainError
 from backend.core.json_store import write_json
 from backend.core.paths import GameStorage
 from backend.games.chrono_ark import GAME_ID
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.persistence.history_manager import create_backup
 from backend.persistence.mod_settings import load_source_language_override, load_target_language_override
 from backend.persistence.progress_tracker import ProgressDiff, ProgressTracker

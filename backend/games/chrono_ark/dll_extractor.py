@@ -5,7 +5,7 @@ import re
 import struct
 from pathlib import Path
 
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.text_utils import has_cjk as _has_cjk
 
 

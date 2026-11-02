@@ -10,7 +10,7 @@ from backend.games.base import ModInfo
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.chrono_ark.routes import translation as ca_translation
 from backend.games.chrono_ark.services import translation as ca_services
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.routes import web_provider as web_provider_module
 
 FAKE_MOD = ModInfo(mod_id="900000002", name="Fake Mod", author="Tester", path=Path("fake"))

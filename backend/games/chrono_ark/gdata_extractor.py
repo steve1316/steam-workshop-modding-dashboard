@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from backend.core.json_store import write_json
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.text_utils import has_cjk as _has_cjk
 
 # Maps a JSON field name to its localization key suffix (e.g. "Name" -> "_Name").

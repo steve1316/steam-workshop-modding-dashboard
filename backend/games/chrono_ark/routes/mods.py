@@ -11,6 +11,7 @@ from backend.core.paths import GameStorage, safe_child
 from backend.games.base import ModInfo
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.services import mods as mod_services
+from backend.models.api import CharacterContext, HistorySnapshotRequest, SourceLanguageOverride, TargetLanguageOverride, TranslationUpdate
 from backend.persistence import api_response_log
 from backend.persistence.character_context import load_character_context, save_character_context
 from backend.persistence.history_manager import create_backup, delete_backup, list_backups, restore_backup
@@ -36,7 +37,6 @@ from backend.routes.helpers import (
     chrono_ark_adapter,
     resolve_source_language,
 )
-from backend.routes.models import CharacterContext, HistorySnapshotRequest, SourceLanguageOverride, TargetLanguageOverride, TranslationUpdate
 
 router = APIRouter()
 

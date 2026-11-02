@@ -7,7 +7,7 @@ from backend.games.chrono_ark.csv_extractor import (
     find_all_csv_files,
     get_untranslated_strings,
 )
-from backend.models import LocString
+from backend.models.loc import LocString
 
 CSV_HEADER = "Key,Type,Desc,Korean,English,Japanese,Chinese,Chinese-TW [zh-tw]\n"
 

@@ -12,6 +12,7 @@ from backend.core.settings import settings
 from backend.games.base import ModInfo
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.services.translation import batch_entries, load_mod_strings, persist_batch, prompt_context
+from backend.models.api import BatchTranslationRequest, TranslationRequest
 from backend.persistence.glossary_manager import (
     load_glossary,
 )
@@ -23,7 +24,6 @@ from backend.routes.helpers import (
     chrono_ark_adapter,
     resolve_source_language,
 )
-from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries
 from backend.translation.pipeline import BatchJob, record_batch, run_translation_batch

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from backend.games.base import ModInfo
-    from backend.models import LocString
+    from backend.models.loc import LocString
 
 
 class TranslationCapability(ABC):

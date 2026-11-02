@@ -14,9 +14,9 @@ from fastapi.responses import StreamingResponse
 
 from backend.core.env_file import update_env_file
 from backend.core.settings import settings
+from backend.models.api import GGUFDownloadRequest, LlamaCppInstallRequest
 from backend.process_manager import is_managed, start_process, stop_process
 from backend.routes.helpers import _gguf_download_cancels
-from backend.routes.models import GGUFDownloadRequest, LlamaCppInstallRequest
 
 router = APIRouter(prefix="/api/llamacpp")
 

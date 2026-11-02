@@ -1,6 +1,6 @@
 """Tests for resolving which glossary suggestions an accept request covers."""
 
-from backend.routes.models import SuggestionAction
+from backend.models.api import SuggestionAction
 from backend.translation.suggestions import accepted_suggestions
 
 PENDING = [

@@ -12,8 +12,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from backend.core.settings import settings
+from backend.models.api import OllamaPullRequest
 from backend.process_manager import is_managed, start_process, stop_process
-from backend.routes.models import OllamaPullRequest
 
 router = APIRouter(prefix="/api/ollama")
 

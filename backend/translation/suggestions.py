@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from backend.routes.models import SuggestionAction
+from backend.models.api import SuggestionAction
 
 
 @dataclass(frozen=True)

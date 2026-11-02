@@ -4,6 +4,11 @@ from fastapi import APIRouter
 
 from backend.core.paths import glossary_path
 from backend.games.chrono_ark import GAME_ID
+from backend.models.api import (
+    GlossaryTerm,
+    ModGlossaryTerm,
+    SuggestionAction,
+)
 from backend.persistence.glossary_manager import (
     add_glossary_term,
     extract_name_key_suggestions,
@@ -24,11 +29,6 @@ from backend.persistence.suggestion_manager import (
 )
 from backend.persistence.translation_store import load_translations, save_translations_bulk
 from backend.routes.helpers import _find_mod_path, _merge_gdata_originals, chrono_ark_adapter, resolve_source_language
-from backend.routes.models import (
-    GlossaryTerm,
-    ModGlossaryTerm,
-    SuggestionAction,
-)
 from backend.translation.rename import rename_term
 from backend.translation.suggestions import accepted_suggestions
 

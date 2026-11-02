@@ -4,7 +4,7 @@ import csv
 import re
 from pathlib import Path
 
-from backend.models import LocString
+from backend.models.loc import LocString
 
 _CANONICAL_NAMES = {"LangDataDB.csv", "LangSystemDB.csv", "LangDialogueDB.csv", "LangRecordsDB.csv"}
 

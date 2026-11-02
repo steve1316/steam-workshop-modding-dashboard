@@ -1,4 +1,4 @@
-"""Shared domain models used across extractors, translators, and the web UI."""
+"""Shared domain models used across extractors, providers and the web UI."""
 
 from dataclasses import dataclass, field
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from backend.core.json_store import write_json
 from backend.core.paths import mods_path
 from backend.core.settings import settings
-from backend.models import LocString
+from backend.models.loc import LocString
 
 _NAME_KEY_SUFFIXES = ("_Name", "_name", "_PassiveName", "_SkinName")
 

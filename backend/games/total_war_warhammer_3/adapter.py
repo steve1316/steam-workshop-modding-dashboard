@@ -22,7 +22,7 @@ from backend.games.total_war_warhammer_3.translation.mods import (
     WH3_TRANSLATION_MODS,
     get_translation_mod,
 )
-from backend.models import LocString
+from backend.models.loc import LocString
 from backend.persistence import glossary_manager as gm
 
 

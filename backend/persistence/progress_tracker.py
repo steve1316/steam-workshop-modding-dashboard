@@ -8,8 +8,7 @@ from pathlib import Path
 
 from backend.core.json_store import write_json
 from backend.core.paths import mods_path
-
-from ..models import LocString
+from backend.models.loc import LocString
 
 
 @dataclass

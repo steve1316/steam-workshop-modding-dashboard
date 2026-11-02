@@ -6,7 +6,7 @@ from backend.core import env_file
 from backend.core.paths import game_storage_path
 from backend.core.settings import settings
 from backend.games.chrono_ark import GAME_ID as CHRONO_ARK
-from backend.models import LocString
+from backend.models.loc import LocString
 
 
 @pytest.fixture(autouse=True)

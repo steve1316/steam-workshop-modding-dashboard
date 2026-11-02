@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from backend.models import LocString
+    from backend.models.loc import LocString
 
 
 from backend.core.errors import NotFoundError
