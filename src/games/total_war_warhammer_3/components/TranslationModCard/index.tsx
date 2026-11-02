@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useGameSlug } from "@/hooks/useGameSlug"
 
 import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat } from "@/components/Dashboard/ModCard"
-import { API_BASE } from "@/lib/config"
+import { API_BASE } from "@/lib/api"
 import { rememberScrollTarget } from "@/hooks/useScrollRestore"
 import HighlightText from "@/components/ui/HighlightText"
 import type { WH3RescanSummary, WH3TranslationModSummary } from "@/lib/types"

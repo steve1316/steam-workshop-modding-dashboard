@@ -1,6 +1,6 @@
 import React from "react"
 import ModCard, { NeedsSyncBadge, type ModCardProgressSegment } from "@/components/Dashboard/ModCard"
-import { API_BASE } from "@/lib/config"
+import { API_BASE } from "@/lib/api"
 import HighlightText from "@/components/ui/HighlightText"
 import type { ModStatus } from "@/lib/types"
 

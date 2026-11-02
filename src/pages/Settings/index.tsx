@@ -1,7 +1,6 @@
 import React, { useEffect, useId, useState } from "react"
 import { FaEye, FaEyeSlash, FaCheck, FaExclamationTriangle, FaChevronDown, FaChevronRight, FaDownload, FaPlay, FaStop, FaTimes } from "react-icons/fa"
-import { API_BASE } from "@/lib/config"
-import { gameApi } from "@/lib/api"
+import { API_BASE, gameApi } from "@/lib/api"
 import { getGame } from "@/games/registry"
 import ErrorState from "@/components/ui/ErrorState"
 import Banner from "@/components/ui/Banner"

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom"
 
 import GlossarySuggestionModal from "@/components/GlossarySuggestionModal"
 import TranslationConfirmModal from "@/components/TranslationConfirmModal"
-import { API_BASE } from "@/lib/config"
+import { API_BASE } from "@/lib/api"
 import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import { useGameSlug } from "@/hooks/useGameSlug"
 import { StatusBadge } from "@/components/TranslationPage/StatusBadge"

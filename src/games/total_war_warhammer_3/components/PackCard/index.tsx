@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { FaSteam, FaFolderOpen } from "react-icons/fa"
 import WorkshopCard from "@/components/Dashboard/WorkshopCard"
-import { API_BASE } from "@/lib/config"
+import { API_BASE } from "@/lib/api"
 import HighlightText from "@/components/ui/HighlightText"
 import PublishWorkshopDialog from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 import ScriptRunButton from "@/games/total_war_warhammer_3/components/ScriptRunButton"

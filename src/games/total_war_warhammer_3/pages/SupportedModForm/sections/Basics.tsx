@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/config"
+import { API_BASE } from "@/lib/api"
 import Panel from "@/components/ui/Panel"
 import type { BasicsState } from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/basicsState"
 

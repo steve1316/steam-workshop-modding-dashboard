@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 
-import { API_BASE } from "@/lib/config"
+import { API_BASE } from "@/lib/api"
 import type { Stats } from "@/lib/types"
 import ErrorState from "@/components/ui/ErrorState"
 import LoadingState from "@/components/ui/LoadingState"
