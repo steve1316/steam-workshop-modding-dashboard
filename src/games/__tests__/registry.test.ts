@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { registerGame, getGameBySlug, idForSlug, slugForId } from "@/games/registry"
 
 function fakeManifest(id: string, slug: string) {
-    return { id, slug, displayName: id, icon: id, nav: [], routes: () => null as never }
+    return { id, slug, displayName: id, icon: id, branding: { logo: "", accent: "", gradient: "", subtitle: "" }, nav: [], routes: () => null as never }
 }
 
 describe("game registry slugs", () => {

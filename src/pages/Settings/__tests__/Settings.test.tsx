@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import SettingsPage from "@/pages/Settings"
+import "@/games/total_war_warhammer_3"
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 

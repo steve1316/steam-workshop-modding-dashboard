@@ -3,10 +3,9 @@ import { Routes, Route, Navigate, useParams, useMatch, useLocation } from "react
 import Sidebar from "@/components/Sidebar"
 import ErrorBoundary from "@/components/ui/ErrorBoundary"
 import LoadingState from "@/components/ui/LoadingState"
-import { getBranding } from "@/components/GameSwitcher/branding"
 import SettingsPage from "@/pages/Settings"
 import { API_BASE } from "@/lib/api"
-import { getGame, getGameBySlug, slugForId } from "@/games/registry"
+import { getGame, getGameBySlug, listGames, type GameManifest } from "@/games/registry"
 import "@/games/chrono_ark" // side-effect: registers manifest
 import "@/games/total_war_warhammer_3" // side-effect: registers manifest
 
@@ -26,7 +25,8 @@ function GameSubtree() {
  * @returns The application shell.
  */
 function App() {
-    const [defaultGameId, setDefaultGameId] = useState<string>("chrono_ark")
+    // The first registered game until settings name the one the user last used.
+    const [defaultGame, setDefaultGame] = useState<GameManifest>(() => listGames()[0])
     const [loading, setLoading] = useState(true)
     // Keeps /settings in the game the user came from.
     const [lastGameId, setLastGameId] = useState<string | null>(null)
@@ -36,7 +36,10 @@ function App() {
     useEffect(() => {
         fetch(`${API_BASE}/settings`)
             .then((r) => r.json())
-            .then((data) => setDefaultGameId(data.active_game ?? "chrono_ark"))
+            .then((data) => {
+                const saved = getGame(data.active_game ?? "")
+                if (saved) setDefaultGame(saved)
+            })
             .catch((err) => console.error("Failed to load active game:", err))
             .finally(() => setLoading(false))
     }, [])
@@ -44,22 +47,22 @@ function App() {
     // Off-slug routes (e.g. /settings) fall back to the last game visited, then the persisted default.
     const match = useMatch("/:gameSlug/*")
     const activeSlug = match?.params.gameSlug
-    const routeGameId = activeSlug ? getGameBySlug(activeSlug)?.id : undefined
+    const routeGame = activeSlug ? getGameBySlug(activeSlug) : undefined
     // Derived-state pattern, so the first /settings render already uses the route's game.
-    if (routeGameId && routeGameId !== lastGameId) setLastGameId(routeGameId)
-    const activeGameId = routeGameId || lastGameId || defaultGameId
+    if (routeGame && routeGame.id !== lastGameId) setLastGameId(routeGame.id)
+    const activeGame = routeGame ?? (lastGameId ? getGame(lastGameId) : undefined) ?? defaultGame
+    const activeGameId = activeGame.id
     const isDetailPage = !!useMatch("/:gameSlug/translation/*")
-    const defaultSlug = slugForId(defaultGameId) ?? "chrono_ark"
 
     // Set on <html> so portaled dialogs inherit the game's theme variables.
-    const branding = getBranding(activeGameId)
+    const branding = activeGame.branding
     useEffect(() => {
         const root = document.documentElement.style
         root.setProperty("--game-accent", branding.accent)
         root.setProperty("--game-accent-gradient", branding.gradient)
     }, [branding.accent, branding.gradient])
 
-    const gameName = getGame(activeGameId)?.displayName ?? "Chrono Ark"
+    const gameName = activeGame.displayName
     useEffect(() => {
         document.title = `${gameName} Translator`
     }, [gameName])
@@ -78,7 +81,7 @@ function App() {
 
                             <Route path="/:gameSlug/*" element={<GameSubtree />} />
 
-                            <Route path="*" element={<Navigate to={`/${defaultSlug}/dashboard`} replace />} />
+                            <Route path="*" element={<Navigate to={`/${defaultGame.slug}/dashboard`} replace />} />
                         </Routes>
                     </ErrorBoundary>
                 )}

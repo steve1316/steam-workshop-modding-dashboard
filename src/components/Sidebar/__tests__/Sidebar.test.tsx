@@ -53,13 +53,13 @@ describe("Sidebar active-game header", () => {
         expect(divider).toBeInTheDocument()
     })
 
-    it("omits the subtitle for a game with no branding entry", async () => {
+    it("falls back to the raw id and omits the subtitle for an unregistered game", async () => {
         vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
             Promise.resolve(new Response(JSON.stringify([{ game_id: "future_game", display_name: "Future Game", icon: "", capabilities: [] }]), { status: 200 }))
         )
         render(wrap(<Sidebar activeGameId="future_game" />))
         const title = await screen.findByTestId("sidebar-game-title")
-        expect(title).toHaveTextContent("Future Game")
+        expect(title).toHaveTextContent("future_game")
         expect(screen.queryByTestId("sidebar-game-subtitle")).toBeNull()
     })
 })

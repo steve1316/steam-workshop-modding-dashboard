@@ -2,8 +2,7 @@ import React from "react"
 import { NavLink } from "react-router-dom"
 import { FaCog } from "react-icons/fa"
 import GameSwitcher from "@/components/GameSwitcher"
-import { getBranding } from "@/components/GameSwitcher/branding"
-import { getGame, slugForId } from "@/games/registry"
+import { getBranding, getGame, slugForId } from "@/games/registry"
 
 interface SidebarProps {
     activeGameId: string
@@ -29,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeGameId }) => {
               color: "transparent",
           }
         : {}
-    const displayName = game?.displayName ?? humanizeGameId(activeGameId)
+    const displayName = game?.displayName ?? activeGameId
 
     return (
         <div className="sidebar">
@@ -68,20 +67,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeGameId }) => {
             </nav>
         </div>
     )
-}
-
-/**
- * Convert a snake_case game id to a Title Case label, e.g. `"future_game"` to `"Future Game"`. Fallback for ids with no manifest entry.
- *
- * @param gameId Raw `game_id`.
- * @returns The display name.
- */
-function humanizeGameId(gameId: string): string {
-    return gameId
-        .split("_")
-        .filter((part) => part.length > 0)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ")
 }
 
 export default Sidebar

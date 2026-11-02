@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { API_BASE, fetchGames, type GameMetadata } from "@/lib/api"
-import { slugForId } from "@/games/registry"
-import { getBranding } from "@/components/GameSwitcher/branding"
+import { getBranding, slugForId } from "@/games/registry"
 
 interface GameSwitcherProps {
     /** Marks the matching pill `aria-checked` and skips the POST when re-clicked. */
