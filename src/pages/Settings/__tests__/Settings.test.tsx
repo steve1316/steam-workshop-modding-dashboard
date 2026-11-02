@@ -1,4 +1,4 @@
-import { render, screen, withActiveGame } from "@/testUtils"
+import { fireEvent, render, screen, withActiveGame } from "@/testUtils"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -155,6 +155,23 @@ describe("SettingsPage", () => {
         render(withActiveGame("chrono_ark", <SettingsPage />))
         await userEvent.click(await screen.findByRole("button", { name: "Retry" }))
         expect(await screen.findByRole("option", { name: /Sonnet 5/ })).toBeInTheDocument()
+    })
+
+    it("saves only the changed field, then shows the saved values with Save disabled", async () => {
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+            const url = String(input)
+            if (url.endsWith("/settings") && init?.method === "POST") return Promise.resolve(json({ ...SETTINGS, batch_size: 60 }))
+            if (url.endsWith("/settings")) return Promise.resolve(json(SETTINGS))
+            return Promise.resolve(json({ models: [] }))
+        })
+        render(withActiveGame("chrono_ark", <SettingsPage />))
+        fireEvent.change(await screen.findByLabelText("Batch size"), { target: { value: "60" } })
+        await userEvent.click(screen.getByRole("button", { name: "Save Settings" }))
+        expect(await screen.findByText("Settings saved successfully")).toBeInTheDocument()
+        const post = fetchSpy.mock.calls.find(([, init]) => init?.method === "POST")
+        expect(JSON.parse(String(post?.[1]?.body))).toEqual({ batch_size: 60 })
+        expect(screen.getByLabelText("Batch size")).toHaveValue(60)
+        expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled()
     })
 
     it("shows a failed save in an error banner", async () => {
