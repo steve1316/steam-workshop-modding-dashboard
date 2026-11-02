@@ -362,7 +362,7 @@ Settings are environment variables with a `SWMT_` prefix, stored in `backend/.en
 | `SWMT_LLAMACPP_GPU_LAYERS` | `-1` | GPU layers to offload (`-1` = all) |
 | `SWMT_LLAMACPP_CTX_SIZE` | `8192` | Context window size |
 | `SWMT_GLOSSARY_CATEGORIES` | `characters,mechanics` | Chrono Ark base-glossary categories sent in prompts |
-| `SWMT_IGNORED_MODS` | | Comma-separated mod IDs to hide from the dashboard |
+| `SWMT_IGNORED_MODS` | | Comma-separated mod IDs to hide from the dashboard. Each card's hide button adds to it, and Settings lists the hidden mods by name. |
 
 </details>
 
