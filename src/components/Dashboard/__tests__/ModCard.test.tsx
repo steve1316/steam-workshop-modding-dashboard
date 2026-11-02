@@ -140,4 +140,14 @@ describe("ModCard", () => {
         await user.click(screen.getByTitle("Rescan workshop folder"))
         expect(onSync).toHaveBeenCalled()
     })
+
+    it("renders the hide button only with onHide and fires it when clicked", async () => {
+        const user = userEvent.setup()
+        const onHide = vi.fn()
+        const { rerender } = render(wrap(<ModCard {...baseProps()} />))
+        expect(screen.queryByRole("button", { name: "Hide from dashboard" })).not.toBeInTheDocument()
+        rerender(wrap(<ModCard {...baseProps({ onHide })} />))
+        await user.click(screen.getByRole("button", { name: "Hide from dashboard" }))
+        expect(onHide).toHaveBeenCalled()
+    })
 })

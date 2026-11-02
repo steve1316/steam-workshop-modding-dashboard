@@ -1,6 +1,6 @@
 import React, { type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { FaExclamationCircle, FaSteam, FaSync } from "react-icons/fa"
+import { FaExclamationCircle, FaEyeSlash, FaSteam, FaSync } from "react-icons/fa"
 import WorkshopCard from "@/components/Dashboard/WorkshopCard"
 
 /** One stat box rendered in the `mod-stats` row. */
@@ -65,6 +65,8 @@ interface ModCardProps {
     steamUrl?: string | null
     /** When undefined, the sync icon button is hidden. */
     onSync?: () => void
+    /** Adds the mod to the ignore list. When undefined, the hide icon button is hidden. */
+    onHide?: () => void
 }
 
 /**
@@ -74,7 +76,7 @@ interface ModCardProps {
  * @returns The mod card.
  */
 const ModCard: React.FC<ModCardProps> = React.memo((props) => {
-    const { id, title, idBadge, subtitle, previewImageUrl, progress, stats, badges, primaryAction, secondaryAction, steamUrl, onSync } = props
+    const { id, title, idBadge, subtitle, previewImageUrl, progress, stats, badges, primaryAction, secondaryAction, steamUrl, onSync, onHide } = props
     const variantClass = primaryAction.variant === "warning" ? "btn-warning" : "btn-primary"
     return (
         <WorkshopCard data-mod-id={id} previewImageUrl={previewImageUrl ?? null} previewAlt={typeof title === "string" ? title : "Mod"} title={title} idBadge={idBadge} subtitle={subtitle}>
@@ -136,6 +138,11 @@ const ModCard: React.FC<ModCardProps> = React.memo((props) => {
                     {onSync && (
                         <button className="btn btn-outline btn-icon" onClick={onSync} title="Rescan workshop folder">
                             <FaSync />
+                        </button>
+                    )}
+                    {onHide && (
+                        <button className="btn btn-outline btn-icon" onClick={onHide} title="Hide from dashboard" aria-label="Hide from dashboard">
+                            <FaEyeSlash />
                         </button>
                     )}
                 </div>

@@ -122,4 +122,24 @@ describe("Chrono Ark Dashboard page", () => {
         expect(await screen.findByText("Zerooz Cathy")).toBeInTheDocument()
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     })
+
+    it("hides a mod from its card by adding it to the saved ignore list, and Undo brings it back", async () => {
+        let ignored = ["111"]
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+            const url = String(input)
+            if (url.endsWith("/settings") && init?.method === "POST") ignored = JSON.parse(String(init.body)).ignored_mods
+            if (url.endsWith("/settings")) return Promise.resolve(new Response(JSON.stringify({ ignored_mods: ignored }), { status: 200 }))
+            return Promise.resolve(new Response(JSON.stringify([MOD]), { status: 200 }))
+        })
+        render(wrap(<DashboardPage />))
+        await userEvent.click(await screen.findByRole("button", { name: "Hide from dashboard" }))
+        expect(await screen.findByText(/Hid Zerooz Cathy/)).toBeInTheDocument()
+        expect(ignored).toEqual(["111", MOD.id])
+        expect(screen.queryByRole("button", { name: "Hide from dashboard" })).not.toBeInTheDocument()
+        await userEvent.click(screen.getByRole("button", { name: "Undo" }))
+        expect(await screen.findByRole("button", { name: "Hide from dashboard" })).toBeInTheDocument()
+        expect(ignored).toEqual(["111"])
+        expect(screen.queryByText(/Hid Zerooz Cathy/)).not.toBeInTheDocument()
+        expect(fetchSpy.mock.calls.filter(([, init]) => init?.method === "POST").length).toBe(2)
+    })
 })

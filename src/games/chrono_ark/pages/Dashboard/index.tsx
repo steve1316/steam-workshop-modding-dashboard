@@ -12,6 +12,7 @@ import DashboardSection from "@/components/Dashboard/DashboardSection"
 import { progressLabel } from "@/lib/format"
 import { useCardWidth } from "@/hooks/useCardWidth"
 import { rememberScrollTarget, useScrollRestore } from "@/hooks/useScrollRestore"
+import { useIgnoreMod } from "@/hooks/useIgnoreMod"
 import Banner from "@/components/ui/Banner"
 
 /** Which mod a streamed scan or estimate is on. */
@@ -57,6 +58,9 @@ const DashboardPage: React.FC = () => {
     const [estimateResults, setEstimateResults] = useState<ModEstimate[]>([])
     const [showEstimateModal, setShowEstimateModal] = useState(false)
     const estimateAbortRef = useRef<AbortController | null>(null)
+    const { setIgnored } = useIgnoreMod()
+    // The last mod hidden from its card, kept so the banner can offer Undo.
+    const [hiddenMod, setHiddenMod] = useState<ModStatus | null>(null)
 
     /** Load the mod list. A failed first load shows an error with Retry, while later failures keep the cards and show a banner. */
     const fetchMods = async () => {
@@ -96,6 +100,37 @@ const DashboardPage: React.FC = () => {
             fetchMods()
         } catch (err) {
             console.error("Failed to sync mod:", err)
+        }
+    }
+
+    /**
+     * Add a mod to the ignore list and take its card off the grid.
+     *
+     * @param modId - Mod's Workshop id.
+     */
+    const handleModHide = async (modId: string) => {
+        const mod = mods?.find((m) => m.id === modId)
+        if (!mod) return
+        try {
+            await setIgnored(modId, true)
+            setMods((prev) => prev?.filter((m) => m.id !== modId) ?? prev)
+            setHiddenMod(mod)
+        } catch (err) {
+            console.error("Failed to hide mod:", err)
+            setRefreshError(`Could not hide ${mod.name}: ${(err as Error).message}`)
+        }
+    }
+
+    /** Take the last hidden mod off the ignore list and reload the grid so its card comes back. */
+    const undoHide = async () => {
+        if (!hiddenMod) return
+        try {
+            await setIgnored(hiddenMod.id, false)
+            setHiddenMod(null)
+            fetchMods()
+        } catch (err) {
+            console.error("Failed to unhide mod:", err)
+            setRefreshError(`Could not unhide ${hiddenMod.name}: ${(err as Error).message}`)
         }
     }
 
@@ -227,6 +262,15 @@ const DashboardPage: React.FC = () => {
                 </Banner>
             )}
 
+            {hiddenMod && (
+                <Banner tone="info" onDismiss={() => setHiddenMod(null)}>
+                    Hid {hiddenMod.name}. It is listed under Ignored Mods in Settings.{" "}
+                    <button type="button" className="btn btn-outline btn-xs" onClick={undoHide}>
+                        Undo
+                    </button>
+                </Banner>
+            )}
+
             <div ref={gridWrapperRef}>
                 <DashboardSection
                     loading={mods === null}
@@ -235,7 +279,7 @@ const DashboardPage: React.FC = () => {
                     empty={filteredMods.length === 0}
                     emptyMessage={search.trim() ? `No mods match "${search.trim()}".` : "No mods found."}
                 >
-                    <ModGrid mods={filteredMods} onModSelect={handleModSelect} onModSync={handleModSync} searchQuery={search.trim()} />
+                    <ModGrid mods={filteredMods} onModSelect={handleModSelect} onModSync={handleModSync} onModHide={handleModHide} searchQuery={search.trim()} />
                 </DashboardSection>
             </div>
             {showEstimateModal && <EstimateTotalCostModal results={estimateResults} onClose={() => setShowEstimateModal(false)} />}

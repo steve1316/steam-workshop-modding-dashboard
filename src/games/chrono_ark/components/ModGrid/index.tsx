@@ -11,6 +11,8 @@ interface ModGridProps {
     onModSelect: (modId: string) => void
     /** Receives the mod id. */
     onModSync: (modId: string) => void
+    /** Receives the mod id. */
+    onModHide?: (modId: string) => void
     searchQuery?: string
 }
 
@@ -20,10 +22,11 @@ interface ModGridProps {
  * @param mods Mods to display
  * @param onModSelect Called when a card is clicked
  * @param onModSync Called when a card's sync button is clicked
+ * @param onModHide Called when a card's hide button is clicked
  * @param searchQuery Text to highlight
  * @returns The grid of mod cards.
  */
-const ModGrid: React.FC<ModGridProps> = ({ mods, onModSelect, onModSync, searchQuery = "" }) => {
+const ModGrid: React.FC<ModGridProps> = ({ mods, onModSelect, onModSync, onModHide, searchQuery = "" }) => {
     return (
         <div className="mod-grid">
             {mods.map((mod) => {
@@ -71,6 +74,7 @@ const ModGrid: React.FC<ModGridProps> = ({ mods, onModSelect, onModSync, searchQ
                         }}
                         steamUrl={mod.url}
                         onSync={() => onModSync(mod.id)}
+                        onHide={onModHide && (() => onModHide(mod.id))}
                     />
                 )
             })}
