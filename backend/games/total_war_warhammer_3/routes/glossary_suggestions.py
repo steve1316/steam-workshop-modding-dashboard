@@ -17,8 +17,9 @@ from backend.data import api_response_log, suggestion_manager
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _tr
-from backend.games.total_war_warhammer_3.routes.translation import _backup, _extract_all_parent_strings, _require_mod
+from backend.games.total_war_warhammer_3.routes.translation import _backup, _require_mod
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.providers.base import TranslationProvider
 from backend.routes.models import SuggestionAction
@@ -96,7 +97,7 @@ def _sample_parent_entries(mod, limit: int) -> list[tuple[str, str]]:
         `(key, source_text)` pairs.
     """
     entries: list[tuple[str, str]] = []
-    for rows in _extract_all_parent_strings(mod).values():
+    for rows in workspace.extract_parent_strings(mod).values():
         for key, row in rows.items():
             if len(entries) >= limit:
                 return entries

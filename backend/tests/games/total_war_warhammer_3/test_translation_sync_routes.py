@@ -14,6 +14,7 @@ from backend.data.history_manager import list_backups
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
@@ -43,8 +44,8 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     def fake_translation(mod):
         return {"units.loc.tsv": {"k1": LocRow("k1", "Existing", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", fake_parent)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", fake_translation)
+    monkeypatch.setattr(workspace, "extract_parent_strings", fake_parent)
+    monkeypatch.setattr(workspace, "extract_translation_strings", fake_translation)
 
     app = FastAPI()
     register_error_handler(app)
@@ -192,7 +193,7 @@ def test_strings_hides_orphan_rows(client: TestClient, monkeypatch):
     def trans_with_orphan(mod):
         return {"units.loc.tsv": {"k1": LocRow("k1", "Existing", True), "gone": LocRow("gone", "Stale", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", trans_with_orphan)
+    monkeypatch.setattr(workspace, "extract_translation_strings", trans_with_orphan)
     resp = client.get("/api/games/total_war_warhammer_3/translation/mods/3315737452/strings")
     assert resp.status_code == 200
     keys = {r["key"] for r in resp.json()}
@@ -207,7 +208,7 @@ def test_strings_include_previous_text_from_on_disk_loc(client: TestClient, monk
     def trans_on_disk(mod):
         return {"units.loc.tsv": {"k1": LocRow("k1", "On Disk EN", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", trans_on_disk)
+    monkeypatch.setattr(workspace, "extract_translation_strings", trans_on_disk)
     mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / mod_id
     mod_dir.mkdir(parents=True, exist_ok=True)
     (mod_dir / "translations.json").write_text(json.dumps({"k1": {"text": "New Override", "provider": "claude"}}), encoding="utf-8")
@@ -235,7 +236,7 @@ def test_sync_prunes_orphans_from_disk_and_overlay(client: TestClient, monkeypat
     def trans_with_orphan(mod):
         return {"units.loc.tsv": {"k1": LocRow("k1", "Existing", True), "gone": LocRow("gone", "Stale", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", trans_with_orphan)
+    monkeypatch.setattr(workspace, "extract_translation_strings", trans_with_orphan)
 
     resp = client.post(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/sync")
     assert resp.status_code == 200
@@ -353,8 +354,8 @@ def _seed_edit_rows(monkeypatch, tmp_path: Path, parent: dict[str, str], saved: 
     Returns:
         The path to translations.json.
     """
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in parent.items()}})
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in (pack or {}).items()}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in parent.items()}})
+    monkeypatch.setattr(workspace, "extract_translation_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in (pack or {}).items()}})
     mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / "3315737452"
     mod_dir.mkdir(parents=True, exist_ok=True)
     path = mod_dir / "translations.json"
@@ -634,7 +635,7 @@ def test_manual_edit_survives_a_failing_source_extraction(client: TestClient, tm
     def boom(mod):
         raise RuntimeError("no rpfm")
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", boom)
+    monkeypatch.setattr(workspace, "extract_parent_strings", boom)
     resp = client.put(f"/api/games/total_war_warhammer_3/translation/mods/{mod_id}/strings/k1", json={"text": "Edited"})
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}

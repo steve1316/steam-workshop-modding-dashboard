@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
-from backend.games.total_war_warhammer_3.routes.translation import current_shipped_strings
+from backend.core.errors import NotFoundError
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import get_translation_mod
 from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
 from backend.games.total_war_warhammer_3.workshop import compat_change_notes as ccn
@@ -17,6 +18,23 @@ from backend.games.total_war_warhammer_3.workshop import compat_change_notes as 
 logger = logging.getLogger(__name__)
 
 OnExit = Callable[[int | None], str | None]
+
+
+def current_shipped_strings(mod_id: str) -> dict[str, dict[str, str]]:
+    """Return what the next publish of a translation mod will ship, hashed for changenote diffing.
+
+    Uses the table rows, which are what Sync writes, so it is already right before the sync-first step runs.
+
+    Args:
+        mod_id: Workshop id of the translation mod.
+
+    Returns:
+        `{source_filename: {key: hash}}` from `change_notes.shipped_strings`.
+    """
+    mod = get_translation_mod(mod_id)
+    if mod is None:
+        raise NotFoundError(f"WH3 translation mod {mod_id} not registered")
+    return tcn.shipped_strings(workspace.load_workspace(mod).rows)
 
 
 def change_notes_for(ids: list[str]) -> dict:

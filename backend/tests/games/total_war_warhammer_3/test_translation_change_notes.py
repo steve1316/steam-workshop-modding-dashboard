@@ -9,10 +9,11 @@ from pathlib import Path
 import pytest
 
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
-from backend.games.total_war_warhammer_3.routes import translation as routes_module
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.drift import DriftRow, DriftStatus, hash_text
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
+from backend.games.total_war_warhammer_3.workshop import publish_notes as pn
 
 MOD_ID = "3315737452"
 
@@ -33,9 +34,9 @@ def storage(monkeypatch, tmp_path: Path) -> Path:
 def fake_mod(monkeypatch, storage: Path, tmp_path: Path) -> WH3TranslationMod:
     """Register a synthetic mod whose parent has k1 and k2 and whose .loc.tsv translates only k1."""
     mod = WH3TranslationMod(workshop_id=MOD_ID, display_name="Test Mod", parent_workshop_ids=("p",), local_source_dir=tmp_path / "src")
-    monkeypatch.setattr(routes_module, "get_translation_mod", lambda mid: mod if mid == MOD_ID else None)
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda m: {"units.loc.tsv": {"k1": LocRow("k1", "原", True), "k2": LocRow("k2", "新", True)}})
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", lambda m: {"units.loc.tsv": {"k1": LocRow("k1", "Existing", True)}})
+    monkeypatch.setattr(pn, "get_translation_mod", lambda mid: mod if mid == MOD_ID else None)
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda m: {"units.loc.tsv": {"k1": LocRow("k1", "原", True), "k2": LocRow("k2", "新", True)}})
+    monkeypatch.setattr(workspace, "extract_translation_strings", lambda m: {"units.loc.tsv": {"k1": LocRow("k1", "Existing", True)}})
     return mod
 
 
@@ -60,14 +61,14 @@ def test_current_shipped_strings_applies_translations_json(fake_mod, storage: Pa
     storage.mkdir(parents=True)
     (storage / "translations.json").write_text(json.dumps({"k2": {"text": "New", "provider": "claude"}}), encoding="utf-8")
 
-    assert routes_module.current_shipped_strings(MOD_ID) == {"units.loc.tsv": {"k1": hash_text("Existing"), "k2": hash_text("New")}}
+    assert pn.current_shipped_strings(MOD_ID) == {"units.loc.tsv": {"k1": hash_text("Existing"), "k2": hash_text("New")}}
 
 
 def test_current_shipped_strings_leaves_out_cleared_overrides(fake_mod, storage: Path):
     storage.mkdir(parents=True)
     (storage / "translations.json").write_text(json.dumps({"k1": {"text": "", "provider": "manual"}}), encoding="utf-8")
 
-    assert routes_module.current_shipped_strings(MOD_ID) == {}
+    assert pn.current_shipped_strings(MOD_ID) == {}
 
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////

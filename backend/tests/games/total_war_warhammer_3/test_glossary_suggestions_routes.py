@@ -17,6 +17,7 @@ from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
 from backend.games.total_war_warhammer_3.routes import translation as translation_routes
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 MOD_ID = "3315737452"
@@ -128,7 +129,7 @@ def fake_claude(monkeypatch):
         return FakeClaude()
 
     monkeypatch.setattr(gs_module, "ready_web_provider", fake_provider)
-    monkeypatch.setattr(gs_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"k1": SimpleNamespace(text="震旦凤")}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {"k1": SimpleNamespace(text="震旦凤")}})
     return FakeClaude
 
 
@@ -223,10 +224,9 @@ def _seed_rows(monkeypatch, tmp_path: Path, parent: dict[str, str], saved: dict[
     import json
 
     from backend.games.total_war_warhammer_3.loc.extractor import LocRow
-    from backend.games.total_war_warhammer_3.routes import translation as tr
 
-    monkeypatch.setattr(tr, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in parent.items()}})
-    monkeypatch.setattr(tr, "_extract_translation_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in (pack or {}).items()}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in parent.items()}})
+    monkeypatch.setattr(workspace, "extract_translation_strings", lambda mod: {"units.loc.tsv": {k: LocRow(k, v, True) for k, v in (pack or {}).items()}})
     mod_dir = tmp_path / "games" / GAME_ID / "mods" / MOD_ID
     mod_dir.mkdir(parents=True, exist_ok=True)
     (mod_dir / "translations.json").write_text(json.dumps({k: {"text": v, "provider": "claude"} for k, v in saved.items()}), encoding="utf-8")

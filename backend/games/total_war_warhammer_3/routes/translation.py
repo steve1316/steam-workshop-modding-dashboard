@@ -1,7 +1,4 @@
-"""REST endpoints for the WH3 translation pipeline, mounted under `/api/games/total_war_warhammer_3/translation`.
-
-Heavy I/O (RPFM extract, TSV scan) sits behind module-level helpers so tests can monkeypatch them.
-"""
+"""REST endpoints for the WH3 translation pipeline, mounted under `/api/games/total_war_warhammer_3/translation`."""
 
 from __future__ import annotations
 
@@ -16,7 +13,6 @@ from pydantic import BaseModel
 
 from backend.core.errors import NotFoundError
 from backend.core.os_open import open_path
-from backend.core.settings import settings
 from backend.data import api_response_log, character_context, history_manager, mod_settings, translation_store
 from backend.data.mod_settings import (
     load_source_language_override,
@@ -25,32 +21,23 @@ from backend.data.mod_settings import (
     save_target_language_override,
 )
 from backend.games.total_war_warhammer_3 import GAME_ID
-from backend.games.total_war_warhammer_3.loc.extractor import (
-    LocRow,
-    extract_parent_pack_strings,
-    normalize_loc_filename,
-    read_translation_loc_tsv,
-)
 from backend.games.total_war_warhammer_3.loc.packer import (
     PackBuildError,
     RpfmNotConfiguredError,
     build_translation_pack,
 )
 from backend.games.total_war_warhammer_3.loc.writeback import _find_existing_user_file, remove_keys_from_loc_tsv, sync_translations_to_loc_tsv, user_loc_tsv_files
-from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, resolve_rpfm_cli_path, rpfm_cli_candidate, tw3_workshop_content_dir
+from backend.games.total_war_warhammer_3.paths import resolve_rpfm_cli_path, tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
-from backend.games.total_war_warhammer_3.translation.drift import (
-    DriftRow,
-    compute_drift,
-)
+from backend.games.total_war_warhammer_3.translation.drift import DriftRow
 from backend.games.total_war_warhammer_3.translation.mods import (
     WH3_TRANSLATION_MODS,
     WH3TranslationMod,
     get_translation_mod,
 )
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
-from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
 from backend.translation.rename import rename_term
 
 logger = logging.getLogger(__name__)
@@ -60,58 +47,7 @@ router = APIRouter(prefix="/translation", tags=["translation"])
 
 # //////////////////////////////////////////////////////////////////////////////////////////////////
 # //////////////////////////////////////////////////////////////////////////////////////////////////
-# Helpers (extracted as module-level functions so tests can monkeypatch them)
-
-
-def _extract_translation_strings(mod: WH3TranslationMod) -> dict[str, dict[str, LocRow]]:
-    """Read all `.loc.tsv` files under `mod.local_source_dir/text/**`.
-
-    Args:
-        mod: Translation mod whose local source dir to scan.
-
-    Returns:
-        Normalized filename to `{key: LocRow}`.
-    """
-    out: dict[str, dict[str, LocRow]] = {}
-    text_dir = mod.local_source_dir / "text"
-    if not text_dir.exists():
-        return out
-    for tsv in text_dir.rglob("*.loc.tsv"):
-        norm = normalize_loc_filename(tsv.name)
-        out[norm] = read_translation_loc_tsv(tsv)
-    return out
-
-
-def _extract_all_parent_strings(mod: WH3TranslationMod) -> dict[str, dict[str, LocRow]]:
-    """Extract `.loc` strings from every parent `.pack` declared on `mod`.
-
-    Args:
-        mod: Translation mod whose parent packs to extract.
-
-    Returns:
-        Normalized filename to `{key: LocRow}`, merged across all parents.
-    """
-    rpfm = resolve_rpfm_cli_path()
-    if rpfm is None:
-        tried = rpfm_cli_candidate(settings.tw3.rpfm_cli_path or "", settings.tw3.helper_path or "") or "SWMT_TW3_RPFM_CLI_PATH"
-        raise HTTPException(500, f"rpfm_cli not found (tried {tried}); set SWMT_TW3_RPFM_CLI_PATH or place rpfm_cli.exe in SWMT_TW3_HELPER_PATH")
-
-    merged: dict[str, dict[str, LocRow]] = {}
-    for parent_id in mod.parent_workshop_ids:
-        parent_dir = tw3_workshop_content_dir(parent_id)
-        if parent_dir is None:
-            raise HTTPException(500, "TW3 Steam library drive is not configured")
-        if not parent_dir.exists():
-            continue
-        packs = sorted(parent_dir.glob("*.pack"))
-        if not packs:
-            continue
-        cache_dir = parent_pack_cache_dir(parent_id)
-        for pack in packs:
-            extracted = extract_parent_pack_strings(pack, rpfm, cache_dir)
-            for filename, rows in extracted.items():
-                merged.setdefault(filename, {}).update(rows)
-    return merged
+# Helpers
 
 
 def _require_mod(mod_id: str) -> WH3TranslationMod:
@@ -162,68 +98,6 @@ def _serialize_drift_row(row: DriftRow) -> dict:
     }
 
 
-def _overlay_translations(drift: list[DriftRow], raw_translations: dict) -> list[DriftRow]:
-    """Overlay `translations.json` onto computed drift rows so in-flight edits and clears show immediately.
-
-    A non-empty override supplies its text/provider and promotes an untranslated row to `translated`. An empty-string override is an explicit clear,
-    so the row shows empty text and is `untranslated` (when it has parent text) rather than the `.loc.tsv` content. Rows with no override keep their
-    `.loc.tsv` status, with `provider` `manual` when text is present and `None` otherwise.
-    `get_strings` and `rescan` both use this so the table and counts agree.
-
-    Args:
-        drift: Rows from `compute_drift`.
-        raw_translations: The mod's `translations.json` (`key -> {text, provider}`).
-
-    Returns:
-        New `DriftRow` list with overrides applied, in input order.
-    """
-    overlaid: list[DriftRow] = []
-    for row in drift:
-        entry = raw_translations.get(row.key) or {}
-        has_override = isinstance(entry, dict) and "text" in entry
-        if has_override and entry["text"]:
-            override_provider = entry.get("provider") or "manual"
-            # Present in translations.json but untranslated on disk, so promote it.
-            new_status = "translated" if row.status == "untranslated" else row.status
-            overlaid.append(
-                DriftRow(
-                    source_filename=row.source_filename,
-                    key=row.key,
-                    parent_text=row.parent_text,
-                    translation_text=entry["text"],
-                    status=new_status,
-                    provider=override_provider,
-                )
-            )
-        elif has_override:
-            # Explicit clear: show empty and mark untranslated so the .loc.tsv content does not show through.
-            cleared_status = "untranslated" if row.parent_text is not None else row.status
-            overlaid.append(
-                DriftRow(
-                    source_filename=row.source_filename,
-                    key=row.key,
-                    parent_text=row.parent_text,
-                    translation_text="",
-                    status=cleared_status,
-                    provider=None,
-                )
-            )
-        else:
-            # Existing .loc.tsv translation or untranslated, with provider "manual" when text is present.
-            provider = "manual" if row.translation_text else None
-            overlaid.append(
-                DriftRow(
-                    source_filename=row.source_filename,
-                    key=row.key,
-                    parent_text=row.parent_text,
-                    translation_text=row.translation_text,
-                    status=row.status,
-                    provider=provider,
-                )
-            )
-    return overlaid
-
-
 def _find_parent_preview_image(mod: WH3TranslationMod) -> Path | None:
     """Resolve a preview `.png` for the translation mod from its parent workshop folder.
 
@@ -261,7 +135,7 @@ def _preview_url_for(mod: WH3TranslationMod) -> str | None:
     return f"/games/total_war_warhammer_3/translation/mods/{mod.workshop_id}/preview"
 
 
-def _has_unsynced_changes(mod_id: str, translation: dict[str, dict[str, LocRow]]) -> bool:
+def _has_unsynced_changes(raw: dict, translation: workspace.Strings) -> bool:
     """Return `True` when translations.json holds entries whose text differs from the user's `.loc.tsv`.
 
     A key whose text does not match, or has no `.loc.tsv` row, counts as unsynced.
@@ -269,13 +143,12 @@ def _has_unsynced_changes(mod_id: str, translation: dict[str, dict[str, LocRow]]
     Mirrors Chrono Ark's `has_changes`.
 
     Args:
-        mod_id: Workshop id of the translation mod.
-        translation: Already-extracted map from `_extract_translation_strings(mod)`, passed in to avoid a second scan on the rescan hot path.
+        raw: The mod's translations.json.
+        translation: The mod's `.loc.tsv` strings.
 
     Returns:
         `True` when any entry differs from the on-disk text.
     """
-    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
     if not raw:
         return False
     loc_by_key: dict[str, str] = {}
@@ -397,22 +270,15 @@ def rescan(mod_id: str) -> RescanSummary:
     Returns:
         `RescanSummary` with per-status counts, scan timestamp, `has_unsynced_changes` and `has_mod_context`.
     """
-    mod = _require_mod(mod_id)
-    parent = _extract_all_parent_strings(mod)
-    translation = _extract_translation_strings(mod)
-    snapshot = load_parent_snapshot(mod_id)
-
-    drift = compute_drift(parent=parent, translation=translation, snapshot=snapshot)
+    ws = workspace.load_workspace(_require_mod(mod_id))
 
     # Adds never-seen keys and backfills text on matching ones. Drifted keys keep their old entry so they stay changed.
-    save_parent_snapshot(mod_id, refresh_unchanged(snapshot, parent))
+    save_parent_snapshot(mod_id, refresh_unchanged(ws.snapshot, ws.parent))
 
     # Count from the overlaid rows, not raw drift, so empty-string clears and in-flight overrides match the strings view.
-    raw_translations = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
-    overlaid = _overlay_translations(drift, raw_translations)
     # Blank parent source has nothing to translate, so it is left out of the progress counts like Chrono Ark.
     counts: dict[str, int] = {"translated": 0, "untranslated": 0, "stale": 0, "orphan": 0}
-    for row in overlaid:
+    for row in ws.overlaid:
         if row.parent_text is not None and not row.parent_text.strip():
             continue
         counts[row.status] += 1
@@ -420,7 +286,7 @@ def rescan(mod_id: str) -> RescanSummary:
     # Canonical six-state tally for the shared status pills, zero-filled so every state is present.
     # Orphan rows are excluded to match the strings table.
     canonical_counts: dict[str, int] = {"synced": 0, "untouched": 0, "pending": 0, "changed": 0, "missing": 0, "untranslatable": 0}
-    for srow in to_status_rows([d for d in drift if d.status != "orphan"], raw_translations):
+    for srow in to_status_rows([d for d in ws.drift if d.status != "orphan"], ws.raw_translations):
         canonical_counts[srow.status] += 1
 
     ctx = character_context.load_character_context(mod_id, game_id=GAME_ID)
@@ -431,28 +297,9 @@ def rescan(mod_id: str) -> RescanSummary:
         counts=counts,
         canonical_counts=canonical_counts,
         scanned_at=datetime.now(UTC).isoformat(),
-        has_unsynced_changes=_has_unsynced_changes(mod_id, translation),
+        has_unsynced_changes=_has_unsynced_changes(ws.raw_translations, ws.translation),
         has_mod_context=has_mod_context,
     )
-
-
-def _drift_and_overlay(mod_id: str, mod: WH3TranslationMod) -> tuple[list[DriftRow], dict, list[DriftRow]]:
-    """Compute a mod's drift rows and overlay `translations.json` onto them.
-
-    Args:
-        mod_id: Workshop id of the translation mod.
-        mod: Registered translation mod.
-
-    Returns:
-        `(drift, raw_translations, overlaid)`, where `overlaid` has `translations.json` applied and orphan rows removed.
-    """
-    parent = _extract_all_parent_strings(mod)
-    translation = _extract_translation_strings(mod)
-    drift = compute_drift(parent=parent, translation=translation, snapshot=load_parent_snapshot(mod_id))
-    raw_translations = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
-    # Orphans (translated keys whose parent source is gone) are hidden from the table and pruned from disk on the next sync.
-    overlaid = [r for r in _overlay_translations(drift, raw_translations) if r.status != "orphan"]
-    return drift, raw_translations, overlaid
 
 
 @router.get("/mods/{mod_id}/strings")
@@ -470,32 +317,12 @@ def get_strings(mod_id: str, status: Literal["translated", "untranslated", "stal
     Returns:
         Serialized `DriftRow` dicts.
     """
-    mod = _require_mod(mod_id)
-    drift, raw_translations, overlaid = _drift_and_overlay(mod_id, mod)
+    ws = workspace.load_workspace(_require_mod(mod_id))
     # Pre-overlay translation_text is the on-disk .loc.tsv value, i.e. the "previous" translation (like Chrono Ark's original_english).
-    previous_by_key = {r.key: r.translation_text for r in drift}
-    canonical = {(r.source_file, r.key): r.status for r in to_status_rows(drift, raw_translations)}
-
-    if status:
-        overlaid = [r for r in overlaid if r.status == status]
-
-    return [{**_serialize_drift_row(r), "canonical_status": canonical.get((r.source_filename, r.key)), "previous_text": previous_by_key.get(r.key)} for r in overlaid]
-
-
-def current_shipped_strings(mod_id: str) -> dict[str, dict[str, str]]:
-    """Return what the next publish of a mod will ship, hashed for changenote diffing.
-
-    Uses the same overlaid rows as `get_strings`, which are what Sync writes, so it is already right before the sync-first step runs.
-
-    Args:
-        mod_id: Workshop id of the translation mod.
-
-    Returns:
-        `{source_filename: {key: hash}}` from `workshop.change_notes.shipped_strings`.
-    """
-    mod = _require_mod(mod_id)
-    _, _, overlaid = _drift_and_overlay(mod_id, mod)
-    return tcn.shipped_strings(overlaid)
+    previous_by_key = {r.key: r.translation_text for r in ws.drift}
+    canonical = {(r.source_file, r.key): r.status for r in to_status_rows(ws.drift, ws.raw_translations)}
+    rows = [r for r in ws.rows if status is None or r.status == status]
+    return [{**_serialize_drift_row(r), "canonical_status": canonical.get((r.source_filename, r.key)), "previous_text": previous_by_key.get(r.key)} for r in rows]
 
 
 @router.put("/mods/{mod_id}/strings/{key}")
@@ -523,7 +350,7 @@ def put_string(mod_id: str, key: str, edit: TranslationEdit) -> dict:
     translation_store.save_translations_raw(mod_id, raw, game_id=GAME_ID)
     # A manual edit settles a changed row, so accept the current source as its baseline. Best effort since extraction may need RPFM.
     try:
-        save_parent_snapshot(mod_id, accept_keys(load_parent_snapshot(mod_id), _extract_all_parent_strings(mod), {key}))
+        save_parent_snapshot(mod_id, accept_keys(load_parent_snapshot(mod_id), workspace.extract_parent_strings(mod), {key}))
     except Exception as e:
         logger.warning("Could not accept the current source for %s in mod %s: %s", key, mod_id, e)
     return {"status": "ok"}
@@ -610,7 +437,7 @@ def clear_translations(mod_id: str) -> dict:
     _backup(mod, "pre-clear-translations")
 
     raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
-    translation = _extract_translation_strings(mod)
+    translation = workspace.extract_translation_strings(mod)
 
     # Every key that currently shows English, from translations.json or the .loc.tsv files.
     keys_with_english: set[str] = set()
@@ -654,10 +481,8 @@ def sync_changes(mod_id: str) -> dict:
 
     # Prune orphans (translated keys whose parent source is gone) from the .loc.tsv files and translations.json.
     # The pre-sync snapshot keeps them recoverable.
-    parent = _extract_all_parent_strings(mod)
-    translation = _extract_translation_strings(mod)
-    snapshot = load_parent_snapshot(mod_id)
-    orphans = [d for d in compute_drift(parent=parent, translation=translation, snapshot=snapshot) if d.status == "orphan"]
+    ws = workspace.load_workspace(mod)
+    orphans = [d for d in ws.drift if d.status == "orphan"]
     removed_orphans = 0
     if orphans:
         keys_by_file: dict[str, set[str]] = {}
@@ -670,11 +495,11 @@ def sync_changes(mod_id: str) -> dict:
         if len(pruned) != len(raw):
             translation_store.save_translations_raw(mod_id, pruned, game_id=GAME_ID)
 
-    drift = get_strings(mod_id)
-    per_file = sync_translations_to_loc_tsv(mod, drift)
+    # Pruning only removed orphans, so the remaining rows are unchanged and need no second extraction.
+    per_file = sync_translations_to_loc_tsv(mod, [_serialize_drift_row(r) for r in ws.rows])
 
     # Drifted keys keep their old snapshot entry so they stay changed. Update Changed and Accept re-baseline those explicitly.
-    save_parent_snapshot(mod_id, refresh_unchanged(load_parent_snapshot(mod_id), parent))
+    save_parent_snapshot(mod_id, refresh_unchanged(ws.snapshot, ws.parent))
 
     # Rebuild the published .pack from the freshly written files.
     # Non-fatal since the writeback already succeeded, so problems are a warning. Skipped when nothing was written.
@@ -714,14 +539,11 @@ def accept_changed(mod_id: str, req: AcceptChangedRequest) -> dict:
     Returns:
         `{"accepted": N}`, the rows re-baselined.
     """
-    mod = _require_mod(mod_id)
-    parent = _extract_all_parent_strings(mod)
-    snapshot = load_parent_snapshot(mod_id)
-    drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=snapshot)
-    changed = {r.key for r in drift if r.status == "stale"}
+    ws = workspace.load_workspace(_require_mod(mod_id))
+    changed = {r.key for r in ws.drift if r.status == "stale"}
     keys = changed if req.keys is None else changed & set(req.keys)
     if keys:
-        save_parent_snapshot(mod_id, accept_keys(snapshot, parent, keys))
+        save_parent_snapshot(mod_id, accept_keys(ws.snapshot, ws.parent, keys))
     return {"accepted": len(keys)}
 
 
@@ -848,11 +670,9 @@ def _rename_in_translations(mod, mod_id: str, source: str | None, old_english: s
     """
     if source == "" or old_english == new_english:
         return 0
-    parent = _extract_all_parent_strings(mod)
-    drift = compute_drift(parent=parent, translation=_extract_translation_strings(mod), snapshot=load_parent_snapshot(mod_id))
-    raw = translation_store.load_translations_raw(mod_id, game_id=GAME_ID)
-
-    rows = list(_overlay_translations(drift, raw))
+    ws = workspace.load_workspace(mod)
+    raw = ws.raw_translations
+    rows = ws.overlaid
     changes = rename_term(((row.key, row.parent_text or "", row.translation_text or "") for row in rows), old_english, new_english, source)
     now = datetime.now(UTC).isoformat()
     for row in rows:

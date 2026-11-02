@@ -1,7 +1,7 @@
 """CA-parity translate endpoints for WH3: `/translate/preview`, `/translate/batch`, `/translate/cancel`.
 
 Mirrors Chrono Ark's `/translate` contract so the shared `useIterativeTranslation` hook and modals drive WH3 identically.
-Parent extraction, drift/overlay, glossary prompt and persistence are reused from the sibling `translation` module so test fakes and changes stay in one place.
+Drift and the translations.json overlay come from `translation.workspace`, shared with the sibling `translation` routes.
 Batches run through the shared translate pipeline with a WH3 persistence hook.
 """
 
@@ -22,7 +22,8 @@ from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapte
 from backend.games.total_war_warhammer_3.routes import translation as _t
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation import context as tc
-from backend.games.total_war_warhammer_3.translation.drift import compute_drift, entry_text
+from backend.games.total_war_warhammer_3.translation import workspace
+from backend.games.total_war_warhammer_3.translation.drift import entry_text
 from backend.games.total_war_warhammer_3.translation.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
@@ -65,7 +66,7 @@ def _glossary_prompt(mod_id: str, source_lang: str, target_lang: str, mod=None) 
     base_glossary = glossary_store.load_base_glossary()
     mod_terms = glossary_store.mod_glossary_as_terms(mod_id, source_lang)
     if mod is not None and mod_settings.load_include_translated_names(mod_id, game_id=GAME_ID):
-        for term in _translated_name_terms(mod, mod_id):
+        for term in _translated_name_terms(workspace.load_workspace(mod), mod_id):
             mod_terms["terms"][term["english"]] = {"english": term["english"], "category": term["category"], "key": "", "source_mappings": {source_lang: term["source"]}}
     prompt = get_combined_glossary_prompt(
         base_glossary,
@@ -92,51 +93,28 @@ def _prompt_context(mod, mod_id: str, source_lang: str, target_lang: str) -> Pro
     return PromptContext.for_adapter(TotalWarWarhammer3Adapter(), source_lang, target_lang, _glossary_prompt(mod_id, source_lang, target_lang, mod=mod))
 
 
-def _overlaid_rows(mod, mod_id: str) -> tuple[list, dict[str, str]]:
-    """Return the mod's drift rows with translations.json overlaid, plus each key's parent source text.
-
-    Args:
-        mod: Resolved `WH3TranslationMod`.
-        mod_id: Workshop id of the translation mod.
-
-    Returns:
-        Overlaid `DriftRow` list and a key -> parent source text map.
-    """
-    parent = _t._extract_all_parent_strings(mod)
-    translation = _t._extract_translation_strings(mod)
-    snapshot = load_parent_snapshot(mod_id)
-    drift = compute_drift(parent=parent, translation=translation, snapshot=snapshot)
-    overlaid = _t._overlay_translations(drift, translation_store.load_translations_raw(mod_id, game_id=GAME_ID))
-
-    src_by_key: dict[str, str] = {}
-    for rows in parent.values():
-        for key, row in rows.items():
-            src_by_key[key] = row.text
-    return overlaid, src_by_key
-
-
-def _translated_name_terms(mod, mod_id: str, categories: list[str] | None = None) -> list[dict]:
+def _translated_name_terms(ws: workspace.Workspace, mod_id: str, categories: list[str] | None = None) -> list[dict]:
     """Return one term per translated name row that the mod glossary does not already cover.
 
     A name is covered when its English is a glossary term or its source is already a term's source. Rows come from the translation pack with
     translations.json overlaid, so hand-translated names count too. Colour and icon tags are stripped and each English name is returned once.
 
     Args:
-        mod: Resolved `WH3TranslationMod`.
+        ws: The mod's loaded workspace.
         mod_id: Workshop id of the translation mod.
         categories: Only these name categories, None for every category.
 
     Returns:
         `{english, source, category}` dicts in parent order.
     """
-    overlaid, src_by_key = _overlaid_rows(mod, mod_id)
+    src_by_key = ws.source_by_key()
     glossary = glossary_store.load_glossary(mod_id)
     known_sources = {info.get("source") for info in glossary.values() if info.get("source")}
     keep = glossary_words(glossary)
 
     terms: list[dict] = []
     seen: set[str] = set()
-    for row in overlaid:
+    for row in ws.overlaid:
         category = classify_name_key(row.key)
         source = _MARKUP_RE.sub("", src_by_key.get(row.key, "")).strip()
         english = space_pinyin_names(source, _MARKUP_RE.sub("", row.translation_text or "").strip(), keep)
@@ -149,43 +127,38 @@ def _translated_name_terms(mod, mod_id: str, categories: list[str] | None = None
     return terms
 
 
-def _untranslated_entries(mod, mod_id: str, key_filter=None) -> list[tuple[str, str]]:
+def _untranslated_entries(ws: workspace.Workspace, key_filter=None) -> list[tuple[str, str]]:
     """Return (key, source_text) tuples for every untranslated row, honoring the translations.json overlay.
 
     Args:
-        mod: Resolved `WH3TranslationMod`.
-        mod_id: Workshop id of the translation mod.
+        ws: The mod's loaded workspace.
         key_filter: Optional `(key) -> bool` predicate limiting which keys are included.
 
     Returns:
         Rows whose overlaid status is `untranslated` and that still have parent source text.
     """
-    overlaid, src_by_key = _overlaid_rows(mod, mod_id)
-    return [(r.key, src_by_key.get(r.key, "")) for r in overlaid if r.status == "untranslated" and src_by_key.get(r.key) and (key_filter is None or key_filter(r.key))]
+    src_by_key = ws.source_by_key()
+    return [(r.key, src_by_key.get(r.key, "")) for r in ws.overlaid if r.status == "untranslated" and src_by_key.get(r.key) and (key_filter is None or key_filter(r.key))]
 
 
-def _changed_entries(mod, mod_id: str) -> tuple[list[tuple[str, str]], dict[str, Revision]]:
+def _changed_entries(ws: workspace.Workspace) -> tuple[list[tuple[str, str]], dict[str, Revision]]:
     """Return (key, new_source) tuples and update baselines for every changed row.
 
     A row is changed when its source drifted from the snapshot and it still has a translation. Rows whose new source is blank are left out.
 
     Args:
-        mod: Resolved `WH3TranslationMod`.
-        mod_id: Workshop id of the translation mod.
+        ws: The mod's loaded workspace.
 
     Returns:
         Entries in drift order, and a key -> `Revision` map of the recorded old source and the translation shown in the table.
     """
-    parent = _t._extract_all_parent_strings(mod)
-    snapshot = load_parent_snapshot(mod_id)
-    drift = compute_drift(parent=parent, translation=_t._extract_translation_strings(mod), snapshot=snapshot)
     entries: list[tuple[str, str]] = []
     revisions: dict[str, Revision] = {}
-    for row in _t._overlay_translations(drift, translation_store.load_translations_raw(mod_id, game_id=GAME_ID)):
+    for row in ws.overlaid:
         if row.status != "stale" or not row.parent_text or not row.parent_text.strip() or not row.translation_text:
             continue
         entries.append((row.key, row.parent_text))
-        revisions[row.key] = Revision(old_source=entry_text(snapshot.get(row.source_filename, {}).get(row.key)), previous_translation=row.translation_text)
+        revisions[row.key] = Revision(old_source=entry_text(ws.snapshot.get(row.source_filename, {}).get(row.key)), previous_translation=row.translation_text)
     return entries, revisions
 
 
@@ -230,10 +203,11 @@ def preview(req: TranslationRequest) -> dict:
     names_only = req.scope == "names"
     changed_only = req.scope == "changed"
     revisions: dict[str, Revision] = {}
+    ws = workspace.load_workspace(mod)
     if changed_only:
-        entries, revisions = _changed_entries(mod, req.mod_id)
+        entries, revisions = _changed_entries(ws)
     else:
-        entries = _untranslated_entries(mod, req.mod_id, key_filter=is_name_key if names_only else None)
+        entries = _untranslated_entries(ws, key_filter=is_name_key if names_only else None)
     if not entries:
         message = "No changed strings to update" if changed_only else ("All names already translated" if names_only else "All strings already translated")
         return {"total_strings": 0, "message": message, "previews": {}}
@@ -283,15 +257,17 @@ def _load_batch(req: BatchTranslationRequest) -> tuple:
         (mod, parent strings by table, (key, source_text) tuples, revisions by key).
     """
     mod = _t._require_mod(req.mod_id)
-    parent = _t._extract_all_parent_strings(mod)
     wanted = set(req.keys)
     revisions: dict[str, Revision] = {}
     entries: list[tuple[str, str]] = []
     if req.mode == "update":
-        changed_entries, changed_revisions = _changed_entries(mod, req.mod_id)
+        ws = workspace.load_workspace(mod)
+        parent = ws.parent
+        changed_entries, changed_revisions = _changed_entries(ws)
         entries = [e for e in changed_entries if e[0] in wanted]
         revisions = {k: v for k, v in changed_revisions.items() if k in wanted}
     else:
+        parent = workspace.extract_parent_strings(mod)
         for rows in parent.values():
             for key, row in rows.items():
                 if key in wanted and row.text:
@@ -381,7 +357,7 @@ def name_suggestions(req: NameSuggestionsRequest) -> dict:
     """
     mod = _t._require_mod(req.mod_id)
     source_lang = mod.source_language
-    suggestions = [{**term, "source_lang": source_lang, "reason": f"Translated {term['category']} name"} for term in _translated_name_terms(mod, req.mod_id, req.categories)]
+    suggestions = [{**term, "source_lang": source_lang, "reason": f"Translated {term['category']} name"} for term in _translated_name_terms(workspace.load_workspace(mod), req.mod_id, req.categories)]
     if suggestions:
         suggestion_manager.add_suggestions(req.mod_id, suggestions, game_id=GAME_ID)
     return {"suggestions": suggestions}

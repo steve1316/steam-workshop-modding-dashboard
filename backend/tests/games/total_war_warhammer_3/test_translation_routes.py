@@ -17,6 +17,7 @@ from backend.data import translation_store
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 
 
@@ -32,8 +33,8 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     def fake_translation(mod) -> dict[str, dict[str, LocRow]]:
         return {"a.loc.tsv": {"k1": LocRow("k1", "Old translation", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", fake_parent)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", fake_translation)
+    monkeypatch.setattr(workspace, "extract_parent_strings", fake_parent)
+    monkeypatch.setattr(workspace, "extract_translation_strings", fake_translation)
 
     # Default to "no workshop folder on disk" so preview-image tests are deterministic and don't
     # depend on whatever Steam content the dev machine happens to have installed.
@@ -78,8 +79,8 @@ def test_rescan_counts_skip_blank_source_rows(client: TestClient, monkeypatch):
     def fake_translation(mod) -> dict[str, dict[str, LocRow]]:
         return {"a.loc.tsv": {"k1": LocRow("k1", "Old translation", True), "k3": LocRow("k3", "", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", fake_parent)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", fake_translation)
+    monkeypatch.setattr(workspace, "extract_parent_strings", fake_parent)
+    monkeypatch.setattr(workspace, "extract_translation_strings", fake_translation)
 
     summary = client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/rescan").json()
     assert summary["counts"]["translated"] == 1
@@ -141,7 +142,7 @@ def test_put_string_persists_translation(client: TestClient):
     # Translated set should now include k2 after a fresh rescan.
     client.post("/api/games/total_war_warhammer_3/translation/mods/3315737452/rescan").json()
     # k2 still untranslated because we save into translations.json which is read by
-    # _extract_translation_strings, but the stub ignores that. So just check persistence:
+    # extract_translation_strings, but the stub ignores that. So just check persistence:
     assert translation_store.load_translations("3315737452", game_id=GAME_ID)["k2"] == "New translation"
     raw = translation_store.load_translations_raw("3315737452", game_id=GAME_ID)
     assert raw["k2"]["provider"] == "manual"

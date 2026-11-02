@@ -16,6 +16,7 @@ from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translate as translate_module
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
+from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from backend.providers.claude_provider import ClaudeProvider
 
@@ -44,8 +45,8 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
     def fake_translation(mod):
         return {"units.loc.tsv": {"k1": LocRow("k1", "Existing", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", fake_parent)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", fake_translation)
+    monkeypatch.setattr(workspace, "extract_parent_strings", fake_parent)
+    monkeypatch.setattr(workspace, "extract_translation_strings", fake_translation)
 
     app = FastAPI()
     register_error_handler(app)
@@ -78,7 +79,7 @@ def test_preview_returns_zero_when_all_translated(client: TestClient, monkeypatc
     def all_translated(mod):
         return {"units.loc.tsv": {"k1": LocRow("k1", "Existing 1", True), "k2": LocRow("k2", "Existing 2", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", all_translated)
+    monkeypatch.setattr(workspace, "extract_translation_strings", all_translated)
     resp = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452"})
     assert resp.status_code == 200
     assert resp.json()["total_strings"] == 0
@@ -179,7 +180,7 @@ def test_preview_splits_batches_by_source_character_budget(client: TestClient, m
     def long_parent(mod):
         return {"units.loc.tsv": {k: LocRow(k, "长" * 60, True) for k in ("k2", "k3", "k4")}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", long_parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", long_parent)
     monkeypatch.setattr("backend.core.settings.settings.batch_max_chars", 100)
     body = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452"}).json()
     assert [b["keys"] for b in body["batch_plan"]] == [["k2"], ["k3"], ["k4"]]
@@ -264,8 +265,8 @@ def test_preview_scope_names_includes_only_name_keys(client: TestClient, monkeyp
             }
         }
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", parent_with_names)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", lambda mod: {})
+    monkeypatch.setattr(workspace, "extract_parent_strings", parent_with_names)
+    monkeypatch.setattr(workspace, "extract_translation_strings", lambda mod: {})
 
     resp = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452", "scope": "names"})
     assert resp.status_code == 200
@@ -280,8 +281,8 @@ def test_preview_scope_names_zero_state(client: TestClient, monkeypatch):
     def parent_no_names(mod):
         return {"units.loc.tsv": {"unit_description_short_texts_text_dragon": LocRow("unit_description_short_texts_text_dragon", "描述", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", parent_no_names)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", lambda mod: {})
+    monkeypatch.setattr(workspace, "extract_parent_strings", parent_no_names)
+    monkeypatch.setattr(workspace, "extract_translation_strings", lambda mod: {})
 
     resp = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452", "scope": "names"})
     assert resp.status_code == 200
@@ -303,7 +304,7 @@ def test_name_suggestions_builds_categorized_suggestions(client: TestClient, mon
             }
         }
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", parent_with_names)
+    monkeypatch.setattr(workspace, "extract_parent_strings", parent_with_names)
     mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / mod_id
     mod_dir.mkdir(parents=True, exist_ok=True)
     (mod_dir / "translations.json").write_text(
@@ -338,7 +339,7 @@ def test_name_suggestions_skips_terms_already_in_glossary(client: TestClient, mo
     def parent_with_names(mod):
         return {"units.loc.tsv": {"land_units_onscreen_name_dragon": LocRow("land_units_onscreen_name_dragon", "龙卫", True)}}
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", parent_with_names)
+    monkeypatch.setattr(workspace, "extract_parent_strings", parent_with_names)
     mod_dir = tmp_path / "games" / "total_war_warhammer_3" / "mods" / mod_id
     mod_dir.mkdir(parents=True, exist_ok=True)
     (mod_dir / "translations.json").write_text(
@@ -380,8 +381,8 @@ def _write_translations(tmp_path: Path, mod_id: str, entries: dict[str, str]) ->
 
 def test_preview_scope_names_orders_batches_by_stage(client: TestClient, monkeypatch):
     """A names preview groups the batches into stages: units, then skills, then buildings and locations, then everything else."""
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", _names_parent)
-    monkeypatch.setattr(routes_module, "_extract_translation_strings", lambda mod: {})
+    monkeypatch.setattr(workspace, "extract_parent_strings", _names_parent)
+    monkeypatch.setattr(workspace, "extract_translation_strings", lambda mod: {})
 
     body = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452", "scope": "names"}).json()
     stages = body["stages"]
@@ -399,10 +400,10 @@ def test_preview_scope_names_orders_batches_by_stage(client: TestClient, monkeyp
 
 def test_preview_scope_names_leaves_out_empty_stages(client: TestClient, monkeypatch):
     """Stages with no untranslated names are not returned."""
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", _names_parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", _names_parent)
     monkeypatch.setattr(
-        routes_module,
-        "_extract_translation_strings",
+        workspace,
+        "extract_translation_strings",
         lambda mod: {"units.loc.tsv": {"unit_abilities_onscreen_name_roar": LocRow("unit_abilities_onscreen_name_roar", "Dragon Roar", True)}},
     )
 
@@ -418,7 +419,7 @@ def test_preview_scope_all_has_no_stages(client: TestClient):
 
 def test_name_suggestions_filters_by_categories(client: TestClient, monkeypatch, tmp_path: Path):
     """Passing `categories` limits the suggestions to those name categories, for the per-stage review."""
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", _names_parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", _names_parent)
     _write_translations(tmp_path, "3315737452", {"land_units_onscreen_name_dragon": "Dragon Guard", "unit_abilities_onscreen_name_roar": "Dragon Roar"})
 
     resp = client.post(f"{PREFIX}/name-suggestions", json={"mod_id": "3315737452", "categories": ["skill"]})
@@ -428,10 +429,10 @@ def test_name_suggestions_filters_by_categories(client: TestClient, monkeypatch,
 
 def test_name_suggestions_include_names_translated_in_the_pack(client: TestClient, monkeypatch):
     """A name translated in the translation pack's `.loc.tsv` counts even when translations.json has no entry for it."""
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", _names_parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", _names_parent)
     monkeypatch.setattr(
-        routes_module,
-        "_extract_translation_strings",
+        workspace,
+        "extract_translation_strings",
         lambda mod: {"units.loc.tsv": {"land_units_onscreen_name_dragon": LocRow("land_units_onscreen_name_dragon", "Dragon Guard", True)}},
     )
 
@@ -444,7 +445,7 @@ def test_name_suggestions_skip_names_whose_source_is_in_the_glossary(client: Tes
     from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 
     glossary_store.add_term("3315737452", {"english": "Dragon Sentinel", "source": "龙卫", "category": "unit"})
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", _names_parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", _names_parent)
     _write_translations(tmp_path, "3315737452", {"land_units_onscreen_name_dragon": "Dragon Guard"})
 
     assert client.post(f"{PREFIX}/name-suggestions", json={"mod_id": "3315737452"}).json()["suggestions"] == []
@@ -460,7 +461,7 @@ def test_name_suggestions_strip_game_markup(client: TestClient, monkeypatch, tmp
             icon_only: LocRow(icon_only, "[[img:ui/icon.png]][[/img]]", True),
         }
     }
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: parent)
     _write_translations(tmp_path, "3315737452", {tagged: "[[col:red]][[img:ui/smoke.png]][[/img]]Dense Smoke[[/col]]", icon_only: "[[img:ui/icon.png]][[/img]]"})
 
     sugg = client.post(f"{PREFIX}/name-suggestions", json={"mod_id": "3315737452"}).json()["suggestions"]
@@ -495,7 +496,7 @@ def _capture_batch_prompt(client: TestClient, monkeypatch) -> str:
     monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
     parent = _names_parent(None)
     parent["units.loc.tsv"]["k2"] = LocRow("k2", "新", True)
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: parent)
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["k2"], "source_lang": "Chinese", "is_first_batch": True})
     assert resp.status_code == 200
     return seen["prompt"]
@@ -543,7 +544,7 @@ def test_preview_prompt_includes_translated_names_when_enabled(client: TestClien
     """The preview's system prompt matches what the batches send, so the cost estimate includes the extra names."""
     parent = _names_parent(None)
     parent["units.loc.tsv"]["k2"] = LocRow("k2", "新", True)
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: parent)
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: parent)
     _write_translations(tmp_path, "3315737452", {"land_units_onscreen_name_dragon": "Dragon Guard"})
     _set_include_translated_names(client, True)
     body = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452"}).json()
@@ -580,7 +581,7 @@ def test_batch_splits_joined_names_in_translations_and_suggested_terms(client: T
     """A joined pinyin name from Claude is saved and returned with spaced syllables, in the translation and in its suggested glossary term."""
     from backend.data import suggestion_manager
 
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"lord": LocRow("lord", "『狂飙烈风之主』妙影与烛龙", True)}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {"lord": LocRow("lord", "『狂飙烈风之主』妙影与烛龙", True)}})
 
     def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
         return (
@@ -603,7 +604,7 @@ def test_batch_splits_joined_names_in_translations_and_suggested_terms(client: T
 def test_name_suggestions_split_joined_names(client: TestClient, monkeypatch, tmp_path: Path):
     """A name saved earlier with joined syllables is suggested with spaced syllables, and the saved row is left as it was."""
     key = "land_units_onscreen_name_zhulong"
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {key: LocRow(key, "烛龙", True)}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {key: LocRow(key, "烛龙", True)}})
     _write_translations(tmp_path, "3315737452", {key: "Zhulong"})
 
     sugg = client.post(f"{PREFIX}/name-suggestions", json={"mod_id": "3315737452"}).json()["suggestions"]
@@ -655,7 +656,7 @@ def test_preview_scope_changed_falls_back_when_old_text_is_unknown(client: TestC
 
 def test_preview_scope_changed_skips_rows_with_blank_new_source(client: TestClient, tmp_path: Path, monkeypatch):
     _seed_changed(tmp_path)
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"k1": LocRow("k1", "  ", True)}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {"k1": LocRow("k1", "  ", True)}})
     body = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452", "scope": "changed"}).json()
     assert body["total_strings"] == 0
 
@@ -769,7 +770,7 @@ def test_batch_prompt_includes_base_glossary_stats_but_not_regions(client: TestC
 
 def test_batch_splits_joined_pinyin_names(client: TestClient, monkeypatch, tmp_path: Path):
     """Joined pinyin names in a batch reply are saved with spaced syllables."""
-    monkeypatch.setattr(routes_module, "_extract_all_parent_strings", lambda mod: {"units.loc.tsv": {"k2": LocRow("k2", "新文本", True)}})
+    monkeypatch.setattr(workspace, "extract_parent_strings", lambda mod: {"units.loc.tsv": {"k2": LocRow("k2", "新文本", True)}})
     monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", lambda self, entries, *a, **k: ({"k2": "Xinwen"}, []))
     resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "provider": "claude", "keys": ["k2"], "source_lang": "Chinese", "is_first_batch": True})
     assert resp.status_code == 200
