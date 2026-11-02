@@ -380,3 +380,88 @@ p.note {
 .key-status.missing {
     color: var(--warning);
 }
+
+/* Ignored mods (src/pages/Settings/IgnoredModsPanel.tsx) */
+.ignored-mod-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ignored-mod {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+}
+
+.ignored-mod-cover {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-dim);
+}
+
+.ignored-mod-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ignored-mod-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.ignored-mod-name {
+    color: var(--text-main);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ignored-mod-author {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+.ignored-mod-missing {
+    align-self: flex-start;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-sm);
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--warning);
+    font-size: 0.75rem;
+}
+
+.ignored-mod-id {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-sm);
+    color: var(--accent-primary);
+}
+
+/* Smaller than the 42px card buttons so a row stays compact. */
+.ignored-mod .btn-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+}

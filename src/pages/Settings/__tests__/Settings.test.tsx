@@ -33,6 +33,7 @@ function mockSettingsFetch(settings: () => Promise<Response> = () => Promise.res
         const url = String(input)
         for (const [suffix, respond] of Object.entries(overrides)) if (url.endsWith(suffix)) return respond()
         if (url.endsWith("/settings")) return settings()
+        if (url.includes("/settings/ignored-mods")) return Promise.resolve(json([]))
         if (url.endsWith("/models/claude")) return Promise.resolve(json({ models: [{ id: "claude-sonnet-5", label: "Sonnet 5", input_per_mtok: 3, output_per_mtok: 15 }] }))
         if (url.endsWith("/models/openai")) return Promise.resolve(json({ models: [] }))
         if (url.endsWith("/ollama/status")) return Promise.resolve(json({ status: "not_installed", models: [], managed: false }))
@@ -124,11 +125,11 @@ describe("SettingsPage", () => {
         expect(toggle).toHaveAttribute("aria-expanded", "true")
     })
 
-    it("removes an ignored mod from its chip, which enables Save", async () => {
+    it("removes an ignored mod from its row, which enables Save", async () => {
         mockSettingsFetch()
         render(withActiveGame("chrono_ark", <SettingsPage />))
         const remove = await screen.findByRole("button", { name: "Remove 2945863327" })
-        expect(remove.closest(".chip")).not.toBeNull()
+        expect(remove.closest(".ignored-mod")).not.toBeNull()
         expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled()
         await userEvent.click(remove)
         expect(screen.queryByText("2945863327")).not.toBeInTheDocument()
