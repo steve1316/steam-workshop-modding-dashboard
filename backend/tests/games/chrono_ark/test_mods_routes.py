@@ -13,7 +13,7 @@ FAKE_MOD = ModInfo(mod_id="900000003", name="Fake Mod", author="Tester", path=Pa
 
 
 def test_refresh_streams_progress_then_every_mods_row(monkeypatch):
-    from backend.web_server import app
+    from backend.app import app
 
     strings = {"Buff/B_Test_Name": LocString(key="Buff/B_Test_Name", type="Text", desc="", translations={"Korean": "테스트"})}
     monkeypatch.setattr(ChronoArkAdapter, "scan_mods", lambda self, search_path=None: [FAKE_MOD])

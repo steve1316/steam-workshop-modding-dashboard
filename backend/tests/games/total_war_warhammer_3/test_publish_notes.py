@@ -6,10 +6,10 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
+from backend.app import app
 from backend.games.total_war_warhammer_3.workshop import change_notes as tcn
 from backend.games.total_war_warhammer_3.workshop import compat_change_notes as ccn
 from backend.games.total_war_warhammer_3.workshop import publish_notes as pn
-from backend.web_server import app
 
 TRANSLATION_ID = "10"
 SHIPPED = {"units.loc.tsv": {"k1": "h1"}}

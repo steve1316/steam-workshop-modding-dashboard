@@ -8,13 +8,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.app import app
 from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.paths import tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.routes import packs as packs_routes
 from backend.games.total_war_warhammer_3.workshop import batch_publisher as wbp
 from backend.games.total_war_warhammer_3.workshop import publish_notes
 from backend.games.total_war_warhammer_3.workshop import publisher as wp
-from backend.web_server import app
 
 
 @pytest.fixture(autouse=True)

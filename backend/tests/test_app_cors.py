@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.web_server import app
+from backend.app import app
 
 
 def _preflight(origin: str):

@@ -1,4 +1,4 @@
-/** Shared types mirroring the backend API response shapes. Keep in sync with the Pydantic models in `backend/web_server.py`. */
+/** Shared types mirroring the backend API response shapes. Keep in sync with the Pydantic models in `backend/app.py`. */
 
 import type { RowStatus } from "./utils/stringFilters"
 

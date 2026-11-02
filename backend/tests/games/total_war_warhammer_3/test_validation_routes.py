@@ -6,11 +6,11 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.app import app
 from backend.core.settings import settings
 from backend.games.total_war_warhammer_3.registry.loader import (
     RegistryFileMissingError,
 )
-from backend.web_server import app
 
 FIXTURES = Path(__file__).parent / "fixtures" / "helper_scripts"
 

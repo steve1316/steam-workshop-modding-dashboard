@@ -36,7 +36,7 @@ def test_find_mod_uses_chrono_ark_adapter_when_wh3_is_active(wh3_active):
 
 
 def test_chrono_ark_mod_list_ignores_the_active_game(wh3_active):
-    from backend.web_server import app
+    from backend.app import app
 
     res = TestClient(app).get("/api/games/chrono_ark/mods")
     assert res.status_code == 200

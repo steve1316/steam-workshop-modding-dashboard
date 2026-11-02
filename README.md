@@ -138,7 +138,7 @@ The frontend talks to the backend only through REST calls and Server-Sent Events
 | `backend/games/base.py` | `GameAdapter` is the base every game implements: `game_id`, `display_name`, `icon`, `capabilities`, a FastAPI `router`, an optional `settings_schema` and an `on_register()` hook. |
 | `backend/games/capabilities/translation.py` | `TranslationCapability` is a mixin for games that translate strings: mod scanning, string extraction, source-language detection, base-game glossary prompt, format-preservation rules, style examples, game context and export. |
 | `backend/games/registry.py` | Maps game ids to adapter classes. `list_games_metadata()` feeds the frontend game switcher through `GET /api/games`. |
-| `backend/web_server.py` | Includes the shared routers, then mounts every registered adapter's router under `/api/games/<game_id>`. |
+| `backend/app.py` | Includes the shared routers, then mounts every registered adapter's router under `/api/games/<game_id>`. |
 | `backend/translation/` | The game-agnostic core. `run_batch()` calls a provider and fills duplicate-source translations. `classify_status()` / `StatusRow` define the shared row status. `GameStorage` resolves per-game and per-mod storage paths. |
 
 > [!NOTE]

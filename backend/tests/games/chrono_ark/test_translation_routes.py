@@ -102,7 +102,7 @@ def fake_ca(monkeypatch):
 
 
 def test_estimate_all_streams_an_estimate_per_mod(fake_ca):
-    from backend.web_server import app
+    from backend.app import app
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/estimate-all")
 
@@ -115,7 +115,7 @@ def test_estimate_all_streams_an_estimate_per_mod(fake_ca):
 
 
 def test_preview_plans_batches_for_the_untranslated_strings(fake_ca):
-    from backend.web_server import app
+    from backend.app import app
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/preview", json={"mod_id": FAKE_MOD.mod_id})
 
@@ -131,7 +131,7 @@ def test_preview_plans_batches_for_the_untranslated_strings(fake_ca):
 
 
 def test_preview_reports_nothing_to_do_when_every_string_is_translated(fake_ca, monkeypatch):
-    from backend.web_server import app
+    from backend.app import app
 
     monkeypatch.setattr(ca_services, "load_translations", lambda mod_id, game_id: {"Buff/B_Test_Name": "Prueba"})
     res = TestClient(app).post("/api/games/chrono_ark/translate/preview", json={"mod_id": FAKE_MOD.mod_id})
@@ -141,7 +141,7 @@ def test_preview_reports_nothing_to_do_when_every_string_is_translated(fake_ca, 
 
 
 def test_system_prompt_uses_the_requested_languages(fake_ca):
-    from backend.web_server import app
+    from backend.app import app
 
     res = TestClient(app).get("/api/games/chrono_ark/translate/system-prompt", params={"source_lang": "Chinese", "target_lang": "French"})
 
@@ -150,8 +150,8 @@ def test_system_prompt_uses_the_requested_languages(fake_ca):
 
 
 def test_batch_saves_the_translations(fake_ca):
+    from backend.app import app
     from backend.data.translation_store import load_translations
-    from backend.web_server import app
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/batch", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
 
@@ -164,7 +164,7 @@ def test_batch_saves_the_translations(fake_ca):
 
 
 def test_batch_rejects_keys_with_no_source_text(fake_ca):
-    from backend.web_server import app
+    from backend.app import app
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/batch", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Missing/Key"], "source_lang": "Korean"})
 
@@ -172,8 +172,8 @@ def test_batch_rejects_keys_with_no_source_text(fake_ca):
 
 
 def test_batch_stream_saves_and_returns_the_complete_event(fake_ca):
+    from backend.app import app
     from backend.data.translation_store import load_translations
-    from backend.web_server import app
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/batch/stream", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
 
@@ -186,7 +186,7 @@ def test_batch_stream_saves_and_returns_the_complete_event(fake_ca):
 
 
 def test_preview_answers_404_for_an_unknown_mod(fake_ca):
-    from backend.web_server import app
+    from backend.app import app
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/preview", json={"mod_id": "123"})
 
@@ -195,7 +195,7 @@ def test_preview_answers_404_for_an_unknown_mod(fake_ca):
 
 
 def test_batch_answers_502_with_the_provider_error(fake_ca, monkeypatch):
-    from backend.web_server import app
+    from backend.app import app
 
     def fail(entries, **kwargs):
         raise RuntimeError("rate limited")

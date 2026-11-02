@@ -31,7 +31,7 @@ def test_list_games_metadata_returns_chrono_ark():
 def test_api_games_endpoint_lists_chrono_ark():
     from fastapi.testclient import TestClient
 
-    from backend.web_server import app
+    from backend.app import app
 
     client = TestClient(app)
     res = client.get("/api/games")
@@ -97,7 +97,7 @@ def test_migration_idempotent(tmp_path, monkeypatch):
 def test_chrono_ark_mods_endpoint_under_game_prefix():
     from fastapi.testclient import TestClient
 
-    from backend.web_server import app
+    from backend.app import app
 
     client = TestClient(app)
     res = client.get("/api/games/chrono_ark/mods")
@@ -107,8 +107,8 @@ def test_chrono_ark_mods_endpoint_under_game_prefix():
 def test_post_settings_active_game_rotates_adapter():
     from fastapi.testclient import TestClient
 
+    from backend.app import app
     from backend.routes import helpers
-    from backend.web_server import app
 
     client = TestClient(app)
 

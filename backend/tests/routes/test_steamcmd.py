@@ -6,9 +6,9 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from backend.app import app
 from backend.core.settings import settings
 from backend.routes import steamcmd as steamcmd_routes
-from backend.web_server import app
 
 
 def test_install_returns_path_on_success(monkeypatch, tmp_path):
