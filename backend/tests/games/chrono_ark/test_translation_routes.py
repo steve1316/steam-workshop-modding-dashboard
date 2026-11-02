@@ -94,7 +94,7 @@ def fake_ca(monkeypatch):
     monkeypatch.setattr(web_provider_module, "get_provider", lambda name: provider)
     monkeypatch.setattr(ca_translation, "load_glossary", lambda path: {})
     monkeypatch.setattr(ca_services, "load_mod_glossary", lambda mod_id, game_id: {})
-    monkeypatch.setattr(ca_services, "load_character_context", lambda mod_id, game_id: {})
+    monkeypatch.setattr(ca_services, "prompt_character_context", lambda mod_id, game_id: None)
     monkeypatch.setattr(ca_translation, "load_source_language_override", lambda mod_id, game_id: None)
     monkeypatch.setattr(ca_translation, "load_target_language_override", lambda mod_id, game_id: "Spanish")
     monkeypatch.setattr(ca_services, "load_target_language_override", lambda mod_id, game_id: "Spanish")

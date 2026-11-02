@@ -540,6 +540,62 @@ def test_batch_prompt_prefers_the_glossary_over_a_translated_name(client: TestCl
     assert "Dragon Guard" not in prompt
 
 
+def _save_mod_context(client: TestClient, **fields) -> None:
+    """Save the mod's Mod Context panel fields.
+
+    Args:
+        client: The test client.
+        **fields: Fields to set over a blank context.
+    """
+    ctx = {"source_game": "", "character_name": "", "background": "", **fields}
+    assert client.put("/api/games/total_war_warhammer_3/translation/mods/3315737452/mod-context", json=ctx).status_code == 200
+
+
+def _capture_batch_kwargs(client: TestClient, monkeypatch) -> dict:
+    """Run one batch for `k2` with a fake provider and return the prompt keyword arguments it was given.
+
+    Args:
+        client: The test client.
+        monkeypatch: Pytest monkeypatch fixture.
+
+    Returns:
+        The keyword arguments passed to the provider.
+    """
+    seen: dict = {}
+
+    def fake_translate_batch(self, entries, source_lang, glossary_prompt, **kwargs):
+        seen.update(kwargs)
+        return ({"k2": "New"}, [])
+
+    monkeypatch.setattr("backend.providers.claude_provider.ClaudeProvider.translate_batch", fake_translate_batch)
+    resp = client.post(f"{PREFIX}/batch", json={"mod_id": "3315737452", "keys": ["k2"], "source_lang": "Chinese"})
+    assert resp.status_code == 200
+    return seen
+
+
+def test_batch_sends_the_mod_context_background(client: TestClient, monkeypatch):
+    """The Mod Context panel's background reaches the provider."""
+    _save_mod_context(client, source_game="Three Kingdoms", character_name="Fu Yuanshan", background="A dragon general.")
+    ctx = _capture_batch_kwargs(client, monkeypatch)["character_context"]
+    assert ctx["character_name"] == "Fu Yuanshan"
+    assert ctx["background"] == "A dragon general."
+
+
+def test_batch_sends_no_background_for_a_blank_mod_context(client: TestClient, monkeypatch):
+    """A saved but blank Mod Context sends no background, even though saving set its timestamps."""
+    _save_mod_context(client)
+    assert _capture_batch_kwargs(client, monkeypatch)["character_context"] is None
+
+
+def test_batch_and_preview_use_the_language_overrides(client: TestClient, monkeypatch):
+    """The Mod Context language overrides replace the registry languages in the preview plan and the batch prompt."""
+    _save_mod_context(client, source_language_override="Korean", target_language_override="Japanese")
+    body = client.post(f"{PREFIX}/preview", json={"mod_id": "3315737452"}).json()
+    assert body["batch_plan"][0]["source_lang"] == "Korean"
+    assert "Korean" in body["previews"]
+    assert _capture_batch_kwargs(client, monkeypatch)["target_lang"] == "Japanese"
+
+
 def test_preview_prompt_includes_translated_names_when_enabled(client: TestClient, monkeypatch, tmp_path: Path):
     """The preview's system prompt matches what the batches send, so the cost estimate includes the extra names."""
     parent = _names_parent(None)

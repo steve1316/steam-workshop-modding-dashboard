@@ -7,6 +7,7 @@ from backend.core.json_store import write_json
 from backend.core.paths import mods_path
 
 _DEFAULTS = {"source_game": "", "character_name": "", "background": "", "created_at": "", "updated_at": ""}
+_TEXT_FIELDS = ("source_game", "character_name", "background")
 
 
 def load_character_context(mod_id: str, *, game_id: str) -> dict:
@@ -29,6 +30,23 @@ def load_character_context(mod_id: str, *, game_id: str) -> dict:
         return {k: data.get(k, "") for k in _DEFAULTS}
     except (json.JSONDecodeError, OSError):
         return dict(_DEFAULTS)
+
+
+def prompt_character_context(mod_id: str, *, game_id: str) -> dict | None:
+    """Return a mod's character context for a translation prompt, or None when the user has not filled any of it in.
+
+    Args:
+        mod_id: Mod's Workshop id.
+        game_id: Game the mod belongs to.
+
+    Returns:
+        The saved context, or None when `source_game`, `character_name` and `background` are all blank.
+    """
+    ctx = load_character_context(mod_id, game_id=game_id)
+    # The timestamps alone do not count, since saving an empty form still sets them.
+    if not any((ctx.get(field) or "").strip() for field in _TEXT_FIELDS):
+        return None
+    return ctx
 
 
 def save_character_context(mod_id: str, ctx: dict, *, game_id: str) -> None:

@@ -3,7 +3,7 @@
 from backend.core.paths import glossary_path
 from backend.games.chrono_ark import GAME_ID
 from backend.models.loc import LocString
-from backend.persistence.character_context import load_character_context
+from backend.persistence.character_context import prompt_character_context
 from backend.persistence.glossary_manager import extract_name_key_suggestions, get_combined_glossary_prompt, load_glossary, load_mod_glossary
 from backend.persistence.mod_settings import load_target_language_override
 from backend.persistence.progress_tracker import ProgressTracker
@@ -61,8 +61,8 @@ def prompt_context(mod_id: str, source_lang: str, target_lang: str, *, base_glos
     """
     base = base_glossary if base_glossary is not None else load_glossary(glossary_path(GAME_ID))
     glossary_prompt = get_combined_glossary_prompt(base, load_mod_glossary(mod_id, game_id=GAME_ID), source_lang=source_lang, target_lang=target_lang)
-    char_ctx = load_character_context(mod_id, game_id=GAME_ID)
-    return PromptContext.for_adapter(chrono_ark_adapter(), source_lang, target_lang, glossary_prompt, character_context=char_ctx if any(char_ctx.values()) else None)
+    character_context = prompt_character_context(mod_id, game_id=GAME_ID)
+    return PromptContext.for_adapter(chrono_ark_adapter(), source_lang, target_lang, glossary_prompt, character_context=character_context)
 
 
 def persist_batch(mod_id: str, provider_name: str, strings: dict[str, LocString], entries: list[tuple[str, str]], source_lang: str) -> PersistHook:

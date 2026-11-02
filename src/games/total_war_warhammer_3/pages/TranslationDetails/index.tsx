@@ -458,7 +458,7 @@ const TranslationDetailsPage: React.FC = () => {
 
     const languages = useLanguageOverrides(
         { source: modContext.source_language_override, target: modContext.target_language_override },
-        { source: mod?.source_language ?? "Chinese", target: mod?.target_language ?? "Chinese" },
+        { source: mod?.source_language ?? "Chinese", target: mod?.target_language ?? "English" },
         (next) => saveModContextFields({ source_language_override: next.source, target_language_override: next.target }),
         (message) => setBanner({ type: "error", message })
     )

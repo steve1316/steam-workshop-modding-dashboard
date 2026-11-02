@@ -2,7 +2,7 @@ import json
 import time
 
 from backend.games.chrono_ark import GAME_ID
-from backend.persistence.character_context import load_character_context, save_character_context
+from backend.persistence.character_context import load_character_context, prompt_character_context, save_character_context
 
 
 def test_load_returns_empty_defaults_when_no_file(tmp_storage):
@@ -49,3 +49,16 @@ def test_save_preserves_created_at_on_update(tmp_storage):
     result2 = load_character_context("12345", game_id=GAME_ID)
     assert result2["created_at"] == original_created
     assert result2["updated_at"] > original_created
+
+
+def test_prompt_context_is_none_for_a_blank_saved_form(tmp_storage):
+    """Saving an empty form sets the timestamps, which alone must not count as context."""
+    save_character_context("12345", {"source_game": "", "character_name": " ", "background": ""}, game_id=GAME_ID)
+    assert prompt_character_context("12345", game_id=GAME_ID) is None
+
+
+def test_prompt_context_returns_a_filled_form(tmp_storage):
+    save_character_context("12345", {"source_game": "", "character_name": "Roland", "background": ""}, game_id=GAME_ID)
+    ctx = prompt_character_context("12345", game_id=GAME_ID)
+    assert ctx is not None
+    assert ctx["character_name"] == "Roland"

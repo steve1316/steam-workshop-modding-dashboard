@@ -65,6 +65,20 @@ def _require_mod(mod_id: str) -> WH3TranslationMod:
     return mod
 
 
+def _languages(mod: WH3TranslationMod) -> tuple[str, str]:
+    """Return the mod's source and target languages, with the Mod Context overrides taking precedence over the registry.
+
+    Args:
+        mod: The translation mod.
+
+    Returns:
+        (source language, target language).
+    """
+    source = load_source_language_override(mod.workshop_id, game_id=GAME_ID) or mod.source_language
+    target = load_target_language_override(mod.workshop_id, game_id=GAME_ID) or mod.target_language
+    return source, target
+
+
 def _backup(mod: WH3TranslationMod, label: str, *, kind: str = "auto") -> str | None:
     """Back up a mod's state, including its local `.loc.tsv` files.
 
@@ -289,8 +303,7 @@ def rescan(mod_id: str) -> RescanSummary:
     for srow in to_status_rows([d for d in ws.drift if d.status != "orphan"], ws.raw_translations):
         canonical_counts[srow.status] += 1
 
-    ctx = character_context.load_character_context(mod_id, game_id=GAME_ID)
-    has_mod_context = bool((ctx.get("source_game") or "").strip() or (ctx.get("character_name") or "").strip() or (ctx.get("background") or "").strip())
+    has_mod_context = character_context.prompt_character_context(mod_id, game_id=GAME_ID) is not None
 
     return RescanSummary(
         mod_id=mod_id,

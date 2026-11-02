@@ -22,6 +22,7 @@ from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.models.api import SuggestionAction
 from backend.persistence import api_response_log, suggestion_manager
+from backend.persistence.character_context import prompt_character_context
 from backend.providers.base import TranslationProvider
 from backend.routes.web_provider import ready_web_provider
 from backend.translation.prompt import PromptContext
@@ -117,7 +118,9 @@ def _ask_for_terms(provider: TranslationProvider, mod, entries: list[tuple[str, 
     Returns:
         The provider's suggested terms.
     """
-    context = PromptContext.for_adapter(TotalWarWarhammer3Adapter(), mod.source_language, mod.target_language, glossary_prompt)
+    source_lang, target_lang = _tr._languages(mod)
+    character_context = prompt_character_context(mod.workshop_id, game_id=GAME_ID)
+    context = PromptContext.for_adapter(TotalWarWarhammer3Adapter(), source_lang, target_lang, glossary_prompt, character_context=character_context)
     provider.last_raw_responses = []
     _, suggestions = provider.translate_batch(entries, **context.provider_kwargs())
     return suggestions

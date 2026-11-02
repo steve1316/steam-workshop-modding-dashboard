@@ -27,6 +27,7 @@ from backend.games.total_war_warhammer_3.translation.name_spacing import glossar
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
 from backend.models.api import BatchTranslationRequest, TranslationRequest
 from backend.persistence import mod_settings, suggestion_manager, translation_store
+from backend.persistence.character_context import prompt_character_context
 from backend.persistence.glossary_manager import get_combined_glossary_prompt
 from backend.providers.base import Revision
 from backend.routes.web_provider import ready_web_provider, web_provider
@@ -79,7 +80,7 @@ def _glossary_prompt(mod_id: str, source_lang: str, target_lang: str, mod=None) 
 
 
 def _prompt_context(mod, mod_id: str, source_lang: str, target_lang: str) -> PromptContext:
-    """Build the prompt context for a WH3 mod's batches, which carry no character background.
+    """Build the prompt context for a WH3 mod's batches, with the glossary and the Mod Context panel's background.
 
     Args:
         mod: Resolved `WH3TranslationMod`.
@@ -90,7 +91,9 @@ def _prompt_context(mod, mod_id: str, source_lang: str, target_lang: str) -> Pro
     Returns:
         The context.
     """
-    return PromptContext.for_adapter(TotalWarWarhammer3Adapter(), source_lang, target_lang, _glossary_prompt(mod_id, source_lang, target_lang, mod=mod))
+    glossary_prompt = _glossary_prompt(mod_id, source_lang, target_lang, mod=mod)
+    character_context = prompt_character_context(mod_id, game_id=GAME_ID)
+    return PromptContext.for_adapter(TotalWarWarhammer3Adapter(), source_lang, target_lang, glossary_prompt, character_context=character_context)
 
 
 def _translated_name_terms(ws: workspace.Workspace, mod_id: str, categories: list[str] | None = None) -> list[dict]:
@@ -197,8 +200,7 @@ def preview(req: TranslationRequest) -> dict:
         With nothing untranslated, `total_strings == 0` and `previews` is empty.
     """
     mod = _t._require_mod(req.mod_id)
-    source_lang = mod.source_language
-    target_lang = mod.target_language
+    source_lang, target_lang = _t._languages(mod)
 
     names_only = req.scope == "names"
     changed_only = req.scope == "changed"
@@ -334,7 +336,8 @@ async def translate_batch(req: BatchTranslationRequest) -> dict:
     provider_name = req.provider or settings.translation_provider
     provider = await ready_web_provider(provider_name)
     provider.revisions = revisions or None
-    context = await asyncio.to_thread(_prompt_context, mod, req.mod_id, req.source_lang, mod.target_language)
+    _source_lang, target_lang = _t._languages(mod)
+    context = await asyncio.to_thread(_prompt_context, mod, req.mod_id, req.source_lang, target_lang)
     persist = _persist_batch(req.mod_id, provider_name, parent, entries)
     job = BatchJob(mod_id=req.mod_id, game_id=GAME_ID, provider=provider, provider_name=provider_name, entries=entries, context=context, persist=persist)
     outcome = await asyncio.to_thread(run_translation_batch, job)
@@ -356,7 +359,7 @@ def name_suggestions(req: NameSuggestionsRequest) -> dict:
         `{"suggestions": [...]}` of the newly persisted name suggestions, possibly empty.
     """
     mod = _t._require_mod(req.mod_id)
-    source_lang = mod.source_language
+    source_lang, _target_lang = _t._languages(mod)
     suggestions = [{**term, "source_lang": source_lang, "reason": f"Translated {term['category']} name"} for term in _translated_name_terms(workspace.load_workspace(mod), req.mod_id, req.categories)]
     if suggestions:
         suggestion_manager.add_suggestions(req.mod_id, suggestions, game_id=GAME_ID)
