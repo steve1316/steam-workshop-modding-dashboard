@@ -34,7 +34,7 @@ export interface SettingsForm {
 export const DEFAULT_FORM: SettingsForm = {
     provider: "claude",
     batch_size: 100,
-    claude_model: "claude-sonnet-5",
+    claude_model: "claude-sonnet-5-5",
     openai_model: "gpt-4.1",
     anthropic_api_key: "",
     openai_api_key: "",

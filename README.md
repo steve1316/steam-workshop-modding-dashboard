@@ -351,7 +351,7 @@ Settings are environment variables with a `SWMT_` prefix, stored in `backend/.en
 | `SWMT_ANTHROPIC_API_KEY` | | Claude API key |
 | `SWMT_OPENAI_API_KEY` | | OpenAI API key |
 | `SWMT_DEEPL_API_KEY` | | DeepL API key |
-| `SWMT_CLAUDE_MODEL` | `claude-sonnet-5` | Claude model |
+| `SWMT_CLAUDE_MODEL` | `claude-sonnet-5-5` | Claude model |
 | `SWMT_OPENAI_MODEL` | `gpt-4.1` | OpenAI model |
 | `SWMT_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
 | `SWMT_OLLAMA_MODEL` | `qwen2.5:7b` | Ollama model |

@@ -9,12 +9,13 @@ from backend.translation.orchestrator import chunk_entries
 CLAUDE_MODELS: dict[str, dict] = {
     "claude-opus-5-5": {"label": "Claude Opus 5.5", "input_per_mtok": 4.0, "output_per_mtok": 20.0},
     "claude-opus-5": {"label": "Claude Opus 5", "input_per_mtok": 5.0, "output_per_mtok": 25.0},
+    "claude-sonnet-5-5": {"label": "Claude Sonnet 5.5", "input_per_mtok": 2.0, "output_per_mtok": 10.0},
     "claude-sonnet-5": {"label": "Claude Sonnet 5", "input_per_mtok": 2.0, "output_per_mtok": 10.0},
     "claude-sonnet-4-6": {"label": "Claude Sonnet 4.6", "input_per_mtok": 3.0, "output_per_mtok": 15.0},
     "claude-haiku-5-5": {"label": "Claude Haiku 5.5", "input_per_mtok": 0.1, "output_per_mtok": 0.5},
 }
 
-_DEFAULT_PRICING = CLAUDE_MODELS["claude-sonnet-5"]
+_DEFAULT_PRICING = CLAUDE_MODELS["claude-sonnet-5-5"]
 
 # Output token cap per request. A batch whose reply hits it is split in half and retried.
 MAX_OUTPUT_TOKENS = 16384
@@ -47,8 +48,10 @@ TRANSLATION_SCHEMA = _object_schema(
 )
 
 # Extra request fields per model, sent via `extra_body` so they work on older SDK versions. Thinking is wasted here and bills as output.
-# Sonnet 5 can turn it off. The Opus 5 models think by default (Opus 5.5 cannot disable it) so they run at low effort. Older models need nothing.
+# Sonnet 5 can turn it off. Sonnet 5.5 rejects "disabled" and uses "between_tools" instead. The Opus 5 models think by default (Opus 5.5 cannot
+# disable it) so they run at low effort. Older models need nothing.
 _MODEL_REQUEST_OPTIONS: dict[str, dict] = {
+    "claude-sonnet-5-5": {"thinking": {"type": "between_tools"}},
     "claude-sonnet-5": {"thinking": {"type": "disabled"}},
     "claude-opus-5": {"output_config": {"effort": "low"}},
     "claude-opus-5-5": {"output_config": {"effort": "low"}},

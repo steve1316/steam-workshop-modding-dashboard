@@ -148,16 +148,17 @@ def test_claude_models_lists_current_models_with_pricing():
     assert {k: (v["input_per_mtok"], v["output_per_mtok"]) for k, v in CLAUDE_MODELS.items()} == {
         "claude-opus-5-5": (4.0, 20.0),
         "claude-opus-5": (5.0, 25.0),
+        "claude-sonnet-5-5": (2.0, 10.0),
         "claude-sonnet-5": (2.0, 10.0),
         "claude-sonnet-4-6": (3.0, 15.0),
         "claude-haiku-5-5": (0.1, 0.5),
     }
 
 
-def test_default_pricing_is_sonnet_5():
+def test_default_pricing_is_sonnet_5_5():
     from backend.providers.claude_provider import _DEFAULT_PRICING, CLAUDE_MODELS
 
-    assert _DEFAULT_PRICING is CLAUDE_MODELS["claude-sonnet-5"]
+    assert _DEFAULT_PRICING is CLAUDE_MODELS["claude-sonnet-5-5"]
 
 
 def test_translate_batch_reads_the_text_block_after_a_thinking_block(monkeypatch):
@@ -170,6 +171,13 @@ def test_translate_batch_disables_thinking_for_sonnet_5(monkeypatch):
     text = json.dumps({"translations": {"k1": "Test"}, "suggested_terms": []})
     _run_batch(monkeypatch, "claude-sonnet-5", [_Block("text", text=text)])
     assert _FakeAnthropic.last_kwargs["extra_body"]["thinking"] == {"type": "disabled"}
+
+
+def test_translate_batch_turns_thinking_off_with_between_tools_for_sonnet_5_5(monkeypatch):
+    text = json.dumps({"translations": {"k1": "Test"}, "suggested_terms": []})
+    _run_batch(monkeypatch, "claude-sonnet-5-5", [_Block("text", text=text)])
+    assert _FakeAnthropic.last_kwargs["extra_body"]["thinking"] == {"type": "between_tools"}
+    assert "effort" not in _FakeAnthropic.last_kwargs["extra_body"]["output_config"]
 
 
 def test_translate_batch_uses_low_effort_for_opus_5_models(monkeypatch):

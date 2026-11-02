@@ -19,7 +19,7 @@ interface CostEstimate {
     estimated_output_tokens: number
     /** In USD, summed over all batches. */
     estimated_cost_usd: number
-    /** e.g. `"gpt-4.1"`, `"claude-sonnet-5"`. */
+    /** e.g. `"gpt-4.1"`, `"claude-sonnet-5-5"`. */
     model: string
     /** e.g. `"Prices are approximate"`. */
     note: string

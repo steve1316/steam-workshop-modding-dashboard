@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     deepl_api_key: str = ""
 
-    claude_model: str = "claude-sonnet-5"
+    claude_model: str = "claude-sonnet-5-5"
     openai_model: str = "gpt-4.1"
 
     ollama_base_url: str = "http://localhost:11434"
