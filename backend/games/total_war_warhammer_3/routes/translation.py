@@ -26,9 +26,9 @@ from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.canonical_status import to_status_rows
 from backend.games.total_war_warhammer_3.translation.drift import DriftRow
 from backend.games.total_war_warhammer_3.translation.mods import (
-    WH3_TRANSLATION_MODS,
     WH3TranslationMod,
     get_translation_mod,
+    translation_mods,
 )
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
 from backend.persistence import api_response_log, character_context, history_manager, mod_settings, translation_store
@@ -239,7 +239,7 @@ def list_translation_mods() -> list[TranslationModSummary]:
             target_language=m.target_language,
             preview_image_url=_preview_url_for(m),
         )
-        for m in WH3_TRANSLATION_MODS
+        for m in translation_mods()
     ]
 
 

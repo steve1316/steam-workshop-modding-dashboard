@@ -74,6 +74,7 @@ def get_settings():
         tw3_helper_path=settings.tw3.helper_path,
         tw3_rpfm_cli_path=settings.tw3.rpfm_cli_path,
         tw3_steam_library_drive=settings.tw3.steam_library_drive,
+        tw3_translation_mods_path=settings.tw3.translation_mods_path,
         steamcmd_path=settings.steamcmd_path,
         steam_username=settings.steam_username,
         games={game_id: {} for game_id in registry_list_games()},
@@ -179,6 +180,10 @@ def update_settings(payload: SettingsUpdate):
     if payload.tw3_steam_library_drive is not None:
         settings.tw3.steam_library_drive = payload.tw3_steam_library_drive
         env_updates["SWMT_TW3_STEAM_LIBRARY_DRIVE"] = payload.tw3_steam_library_drive
+
+    if payload.tw3_translation_mods_path is not None:
+        settings.tw3.translation_mods_path = payload.tw3_translation_mods_path
+        env_updates["SWMT_TW3_TRANSLATION_MODS_PATH"] = payload.tw3_translation_mods_path
 
     if payload.steamcmd_path is not None:
         settings.steamcmd_path = payload.steamcmd_path

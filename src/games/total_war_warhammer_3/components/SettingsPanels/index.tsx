@@ -6,7 +6,7 @@ import type { GameSettingsPanelProps } from "@/games/registry"
 import { API_BASE } from "@/lib/api"
 
 /**
- * WH3's section of the Settings page: helper_scripts paths for the Runner, and the SteamCMD account for Workshop publishing.
+ * WH3's section of the Settings page: helper_scripts and translation mod paths, and the SteamCMD account for Workshop publishing.
  *
  * @param props - See `GameSettingsPanelProps`.
  * @returns The two settings panels.
@@ -17,7 +17,11 @@ export default function SettingsPanels({ values, onChange, onSaved, fieldId }: G
 
     return (
         <>
-            <Panel className="settings-panel" title="Total War: Warhammer III" help="Paths used by the helper_scripts script runner. Required before triggering rebuilds from the Runner page.">
+            <Panel
+                className="settings-panel"
+                title="Total War: Warhammer III"
+                help="Paths used by the helper_scripts script runner and the translation mods' loose source files. Required before triggering rebuilds from the Runner page."
+            >
                 <div className="form-stack">
                     <Field label="helper_scripts directory" htmlFor={`${fieldId}-tw3-helper`}>
                         <input
@@ -47,6 +51,16 @@ export default function SettingsPanels({ values, onChange, onSaved, fieldId }: G
                             placeholder="F:"
                             value={values.tw3_steam_library_drive}
                             onChange={(e) => onChange("tw3_steam_library_drive", e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Translation mods folder (one folder per translation mod)" htmlFor={`${fieldId}-tw3-translation-mods`}>
+                        <input
+                            id={`${fieldId}-tw3-translation-mods`}
+                            type="text"
+                            className="input"
+                            placeholder="C:\path\to\totalwar-modding\warhammer3_mods"
+                            value={values.tw3_translation_mods_path}
+                            onChange={(e) => onChange("tw3_translation_mods_path", e.target.value)}
                         />
                     </Field>
                 </div>

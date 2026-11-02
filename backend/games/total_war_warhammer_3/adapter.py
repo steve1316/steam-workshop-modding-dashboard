@@ -19,8 +19,8 @@ from backend.games.total_war_warhammer_3.loc.extractor import (
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation import context as tc
 from backend.games.total_war_warhammer_3.translation.mods import (
-    WH3_TRANSLATION_MODS,
     get_translation_mod,
+    translation_mods,
 )
 from backend.models.loc import LocString
 from backend.persistence import glossary_manager as gm
@@ -70,6 +70,7 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
             "helper_scripts_path": {"type": "str", "default": ""},
             "rpfm_cli_path": {"type": "str", "default": ""},
             "steam_library_drive": {"type": "str", "default": ""},
+            "translation_mods_path": {"type": "str", "default": ""},
         }
 
     # //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,13 +118,13 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
         return {}
 
     def scan_mods(self, search_path: Path | None = None) -> list[ModInfo]:
-        """Return the static list of WH3 translation mods from `translation.mods.WH3_TRANSLATION_MODS`.
+        """Return the WH3 translation mods from `translation.mods.translation_mods()`.
 
         Args:
             search_path: Ignored, kept for interface compatibility.
 
         Returns:
-            `ModInfo` list from the static registry.
+            `ModInfo` list from the registry, empty while the translation mods folder is unset.
         """
         return [
             ModInfo(
@@ -134,7 +135,7 @@ class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):
                 has_loc_files=True,
                 has_dll=False,
             )
-            for m in WH3_TRANSLATION_MODS
+            for m in translation_mods()
         ]
 
     def extract_strings(self, mod_path: Path) -> tuple[dict[str, LocString], list[str]]:

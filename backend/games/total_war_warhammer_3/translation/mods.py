@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from backend.core.settings import settings
+
 
 @dataclass(frozen=True)
 class WH3TranslationMod:
@@ -33,47 +35,54 @@ class WH3TranslationMod:
     prefix: str = "@@"
 
 
-_LOCAL_ROOT = Path(r"C:\Users\steve1316\Documents\GitHub\totalwar-modding\warhammer3_mods")
+def translation_mods() -> tuple[WH3TranslationMod, ...]:
+    """Return the registered translation mods, with source dirs under `settings.tw3.translation_mods_path`.
 
-WH3_TRANSLATION_MODS: tuple[WH3TranslationMod, ...] = (
-    WH3TranslationMod(
-        workshop_id="3315737452",
-        display_name="Zerooz Cathy Alternative English Translation",
-        parent_workshop_ids=("2901237965",),
-        local_source_dir=_LOCAL_ROOT / "Zerooz_English_Translation_corrections",
-    ),
-    WH3TranslationMod(
-        workshop_id="3317696617",
-        display_name="Dragon General Fu Yuanshan Reforged Alternative English Translation",
-        parent_workshop_ids=("3316985957",),
-        local_source_dir=_LOCAL_ROOT / "zzz_cth_fuyuanshan_faction_Alternative_English_Translation",
-        prefix="!!!",
-    ),
-    WH3TranslationMod(
-        workshop_id="3392058226",
-        display_name="Whc's Cathay unit pack - War under Heaven Alternative English Translation",
-        parent_workshop_ids=("3297754796",),
-        local_source_dir=_LOCAL_ROOT / "zzz_@whc_cth_unit_wuh_Alternative_English_Translation",
-    ),
-    WH3TranslationMod(
-        workshop_id="3393724674",
-        display_name="Deer24 Alternative English Translation Collection",
-        parent_workshop_ids=(
-            "2789903784",
-            "2804084630",
-            "2908711955",
-            "2859396310",
-            "2872222879",
+    Returns:
+        The mods, or none while that folder is unset so nothing reads or writes a relative path.
+    """
+    if not settings.tw3.translation_mods_path.strip():
+        return ()
+    root = Path(settings.tw3.translation_mods_path)
+    return (
+        WH3TranslationMod(
+            workshop_id="3315737452",
+            display_name="Zerooz Cathy Alternative English Translation",
+            parent_workshop_ids=("2901237965",),
+            local_source_dir=root / "Zerooz_English_Translation_corrections",
         ),
-        local_source_dir=_LOCAL_ROOT / "zzz_DEER24_Alternative_English_Translation",
-    ),
-    WH3TranslationMod(
-        workshop_id="3393724734",
-        display_name="Great Harmony Sentinel Alternative English Translation",
-        parent_workshop_ids=("3442971928",),
-        local_source_dir=_LOCAL_ROOT / "zzz_Great_Harmony_Sentinel_Alternative_English_Translation",
-    ),
-)
+        WH3TranslationMod(
+            workshop_id="3317696617",
+            display_name="Dragon General Fu Yuanshan Reforged Alternative English Translation",
+            parent_workshop_ids=("3316985957",),
+            local_source_dir=root / "zzz_cth_fuyuanshan_faction_Alternative_English_Translation",
+            prefix="!!!",
+        ),
+        WH3TranslationMod(
+            workshop_id="3392058226",
+            display_name="Whc's Cathay unit pack - War under Heaven Alternative English Translation",
+            parent_workshop_ids=("3297754796",),
+            local_source_dir=root / "zzz_@whc_cth_unit_wuh_Alternative_English_Translation",
+        ),
+        WH3TranslationMod(
+            workshop_id="3393724674",
+            display_name="Deer24 Alternative English Translation Collection",
+            parent_workshop_ids=(
+                "2789903784",
+                "2804084630",
+                "2908711955",
+                "2859396310",
+                "2872222879",
+            ),
+            local_source_dir=root / "zzz_DEER24_Alternative_English_Translation",
+        ),
+        WH3TranslationMod(
+            workshop_id="3393724734",
+            display_name="Great Harmony Sentinel Alternative English Translation",
+            parent_workshop_ids=("3442971928",),
+            local_source_dir=root / "zzz_Great_Harmony_Sentinel_Alternative_English_Translation",
+        ),
+    )
 
 
 def get_translation_mod(workshop_id: str) -> WH3TranslationMod | None:
@@ -85,7 +94,7 @@ def get_translation_mod(workshop_id: str) -> WH3TranslationMod | None:
     Returns:
         The matching mod, or `None` if not registered.
     """
-    for mod in WH3_TRANSLATION_MODS:
+    for mod in translation_mods():
         if mod.workshop_id == workshop_id:
             return mod
     return None

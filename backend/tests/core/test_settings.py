@@ -19,9 +19,11 @@ def test_empty_comma_list_is_empty(monkeypatch):
 def test_tw3_section_keeps_the_tw3_env_names(monkeypatch):
     monkeypatch.setenv("SWMT_TW3_HELPER_PATH", "D:/helper_scripts")
     monkeypatch.setenv("SWMT_TW3_STEAM_LIBRARY_DRIVE", "F:")
+    monkeypatch.setenv("SWMT_TW3_TRANSLATION_MODS_PATH", "D:/warhammer3_mods")
     s = Settings()
     assert s.tw3.helper_path == "D:/helper_scripts"
     assert s.tw3.steam_library_drive == "F:"
+    assert s.tw3.translation_mods_path == "D:/warhammer3_mods"
 
 
 def test_numbers_are_parsed(monkeypatch):

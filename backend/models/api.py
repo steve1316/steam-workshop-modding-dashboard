@@ -149,6 +149,7 @@ class SettingsResponse(BaseModel):
     tw3_helper_path: str = ""
     tw3_rpfm_cli_path: str = ""
     tw3_steam_library_drive: str = ""
+    tw3_translation_mods_path: str = ""
     steamcmd_path: str = ""
     steam_username: str = ""
     games: dict[str, dict] = {}
@@ -182,6 +183,7 @@ class SettingsUpdate(BaseModel):
     tw3_helper_path: str | None = None
     tw3_rpfm_cli_path: str | None = None
     tw3_steam_library_drive: str | None = None
+    tw3_translation_mods_path: str | None = None
     steamcmd_path: str | None = None
     steam_username: str | None = None
 
