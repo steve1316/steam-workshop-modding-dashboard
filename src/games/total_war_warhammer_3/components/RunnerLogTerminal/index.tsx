@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { clearLog, useRunnerLog } from "../../hooks/useRunnerLog"
+import { clearLog, useRunnerLog } from "@/games/total_war_warhammer_3/hooks/useRunnerLog"
 
 /** Props for `RunnerLogTerminal`. */
 interface RunnerLogTerminalProps {

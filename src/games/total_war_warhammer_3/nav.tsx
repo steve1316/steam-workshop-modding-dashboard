@@ -1,6 +1,6 @@
 import { MdDashboard, MdPlayArrow } from "react-icons/md"
 import { FaList, FaBook } from "react-icons/fa"
-import type { GameNavEntry } from "../registry"
+import type { GameNavEntry } from "@/games/registry"
 
 export const tw3Nav: GameNavEntry[] = [
     { to: "/dashboard", label: "Dashboard", icon: <MdDashboard /> },

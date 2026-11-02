@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 
-import ConfirmModal from "../components/ConfirmModal"
+import ConfirmModal from "@/components/ConfirmModal"
 
 /** What one confirmation prompt shows. Mirrors `ConfirmModal`'s props without the callbacks. */
 export interface ConfirmOptions {

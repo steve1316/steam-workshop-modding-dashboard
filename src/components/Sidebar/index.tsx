@@ -1,9 +1,9 @@
 import React from "react"
 import { NavLink } from "react-router-dom"
 import { FaCog } from "react-icons/fa"
-import GameSwitcher from "../GameSwitcher"
-import { getBranding } from "../GameSwitcher/branding"
-import { getGame, slugForId } from "../../games/registry"
+import GameSwitcher from "@/components/GameSwitcher"
+import { getBranding } from "@/components/GameSwitcher/branding"
+import { getGame, slugForId } from "@/games/registry"
 
 interface SidebarProps {
     activeGameId: string

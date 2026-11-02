@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { SyncButton } from "../../translation/SyncButton"
+import { SyncButton } from "@/translation/SyncButton"
 
 const message = (resync: boolean) => (resync ? "Re-sync everything?" : "Overwrite the files?")
 

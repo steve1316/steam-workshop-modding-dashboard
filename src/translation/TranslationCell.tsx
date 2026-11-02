@@ -1,4 +1,4 @@
-import EditableCell from "../components/EditableCell"
+import EditableCell from "@/components/EditableCell"
 
 /** Props for `TranslationCell`. */
 interface TranslationCellProps {

@@ -1,8 +1,8 @@
 import React from "react"
-import ModCard, { NeedsSyncBadge, type ModCardProgressSegment } from "../ModCard"
-import { API_BASE } from "../../config"
-import { highlightMatch } from "../../utils/text"
-import type { ModStatus } from "../../shared_types"
+import ModCard, { NeedsSyncBadge, type ModCardProgressSegment } from "@/components/ModCard"
+import { API_BASE } from "@/config"
+import { highlightMatch } from "@/utils/text"
+import type { ModStatus } from "@/shared_types"
 
 /** Props for {@link ModGrid}. */
 interface ModGridProps {

@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react"
 import { MemoryRouter, Routes, Route } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 
-import { registerGame } from "../../games/registry"
-import { useActiveGame } from "../../games/useActiveGame"
+import { registerGame } from "@/games/registry"
+import { useActiveGame } from "@/games/useActiveGame"
 
 registerGame({ id: "chrono_ark", slug: "chrono_ark", displayName: "Chrono Ark", icon: "chrono_ark", nav: [], routes: () => null as never })
 

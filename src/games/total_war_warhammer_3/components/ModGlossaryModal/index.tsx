@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react"
 
-import { GlossaryEditor, type GlossaryEditorTerm } from "../../../../translation/GlossaryEditor"
-import { renameNotice } from "../../../../translation/renameNotice"
-import { addGlossaryTerm, deleteAllGlossaryTerms, deleteGlossaryTerm, glossaryApplyAll, glossarySuggestEdits, loadGlossary, updateGlossaryTerm } from "../../translationApi"
-import Modal from "../../../../ui/Modal"
-import { useConfirm } from "../../../../ui/useConfirm"
+import { GlossaryEditor, type GlossaryEditorTerm } from "@/translation/GlossaryEditor"
+import { renameNotice } from "@/translation/renameNotice"
+import { addGlossaryTerm, deleteAllGlossaryTerms, deleteGlossaryTerm, glossaryApplyAll, glossarySuggestEdits, loadGlossary, updateGlossaryTerm } from "@/games/total_war_warhammer_3/translationApi"
+import Modal from "@/ui/Modal"
+import { useConfirm } from "@/ui/useConfirm"
 
 /** Props for `ModGlossaryModal`. */
 interface ModGlossaryModalProps {

@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom"
-import DashboardPage from "./pages/Dashboard"
-import GlossaryPage from "./pages/Glossary"
-import RunnerPage from "./pages/Runner"
-import SupportedModFormPage from "./pages/SupportedModForm"
-import SupportedModsPage from "./pages/SupportedMods"
-import TranslationDetailsPage from "./pages/TranslationDetails"
+import DashboardPage from "@/games/total_war_warhammer_3/pages/Dashboard"
+import GlossaryPage from "@/games/total_war_warhammer_3/pages/Glossary"
+import RunnerPage from "@/games/total_war_warhammer_3/pages/Runner"
+import SupportedModFormPage from "@/games/total_war_warhammer_3/pages/SupportedModForm"
+import SupportedModsPage from "@/games/total_war_warhammer_3/pages/SupportedMods"
+import TranslationDetailsPage from "@/games/total_war_warhammer_3/pages/TranslationDetails"
 
 /**
  * Routes contributed by the TW3 game manifest.

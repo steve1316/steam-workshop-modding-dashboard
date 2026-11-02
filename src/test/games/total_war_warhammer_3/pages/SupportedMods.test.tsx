@@ -2,14 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import SupportedModsPage from "../../../../games/total_war_warhammer_3/pages/SupportedMods"
-import type { ValidationIssue } from "../../../../games/total_war_warhammer_3/api"
+import SupportedModsPage from "@/games/total_war_warhammer_3/pages/SupportedMods"
+import type { ValidationIssue } from "@/games/total_war_warhammer_3/api"
 
-vi.mock("../../../../games/total_war_warhammer_3/hooks/useValidation", () => ({
+vi.mock("@/games/total_war_warhammer_3/hooks/useValidation", () => ({
     useValidation: vi.fn(),
 }))
 
-import { useValidation } from "../../../../games/total_war_warhammer_3/hooks/useValidation"
+import { useValidation } from "@/games/total_war_warhammer_3/hooks/useValidation"
 
 afterEach(() => {
     vi.restoreAllMocks()

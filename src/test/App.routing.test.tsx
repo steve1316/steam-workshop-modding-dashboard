@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import App from "../App"
+import App from "@/App"
 
 function jsonResponse(body: unknown) {
     return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })

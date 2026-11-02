@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import type { KeyboardEvent } from "react"
-import type { GlossaryTerm, LocString } from "../../../../shared_types"
-import Modal from "../../../../ui/Modal"
-import { findGlossaryMatches, findPairedRow } from "./matching"
+import type { GlossaryTerm, LocString } from "@/shared_types"
+import Modal from "@/ui/Modal"
+import { findGlossaryMatches, findPairedRow } from "@/games/chrono_ark/components/ManualTranslateModal/matching"
 
 /** Props for ManualTranslateModal. */
 interface ManualTranslateModalProps {

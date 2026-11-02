@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import GlossaryBrowser, { type GlossaryColumn } from "../../glossary/GlossaryBrowser"
-import type { Glossary } from "../../shared_types"
+import GlossaryBrowser, { type GlossaryColumn } from "@/glossary/GlossaryBrowser"
+import type { Glossary } from "@/shared_types"
 
 const GLOSSARY: Glossary = {
     terms: {

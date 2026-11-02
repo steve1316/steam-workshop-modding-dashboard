@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import ValidationPanel from "../../../../games/total_war_warhammer_3/components/ValidationPanel"
-import type { ValidationIssue } from "../../../../games/total_war_warhammer_3/api"
+import ValidationPanel from "@/games/total_war_warhammer_3/components/ValidationPanel"
+import type { ValidationIssue } from "@/games/total_war_warhammer_3/api"
 
 const EFFECT_ISSUE: ValidationIssue = {
     kind: "missing_effect_category",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 
-import { gameApi } from "../api/games"
-import type { TermSuggestion } from "../shared_types"
+import { gameApi } from "@/api/games"
+import type { TermSuggestion } from "@/shared_types"
 
 /** A result message for the page's feedback banner. */
 export interface SuggestionsBanner {

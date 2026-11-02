@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 
-import type { Glossary, GlossaryTerm } from "../shared_types"
-import ErrorState from "../ui/ErrorState"
-import LoadingState from "../ui/LoadingState"
-import PageHeader from "../ui/PageHeader"
-import Panel from "../ui/Panel"
-import SearchInput from "../ui/SearchInput"
-import { extractCategories, filterGlossaryTerms } from "../utils/glossaryFilters"
+import type { Glossary, GlossaryTerm } from "@/shared_types"
+import ErrorState from "@/ui/ErrorState"
+import LoadingState from "@/ui/LoadingState"
+import PageHeader from "@/ui/PageHeader"
+import Panel from "@/ui/Panel"
+import SearchInput from "@/ui/SearchInput"
+import { extractCategories, filterGlossaryTerms } from "@/utils/glossaryFilters"
 
 /** One game-specific column of the glossary table. */
 export interface GlossaryColumn {

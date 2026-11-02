@@ -2,11 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("../../../../games/total_war_warhammer_3/components/ScriptRunButton", () => ({
+vi.mock("@/games/total_war_warhammer_3/components/ScriptRunButton", () => ({
     default: ({ label }: { label: string }) => <button>{label}</button>,
 }))
 
-import PackCard, { formatAgo } from "../../../../games/total_war_warhammer_3/components/PackCard"
+import PackCard, { formatAgo } from "@/games/total_war_warhammer_3/components/PackCard"
 
 const BASE_PACK = {
     title: "Nanu's Dynamic RoR Compat",

@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import SplitButton from "../../ui/SplitButton"
+import SplitButton from "@/ui/SplitButton"
 
 /**
  * Render a split button with one menu item.

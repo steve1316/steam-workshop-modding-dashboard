@@ -1,8 +1,8 @@
 import React from "react"
 
-import { gameApi } from "../../../../api/games"
-import GlossaryBrowser, { type GlossaryColumn } from "../../../../glossary/GlossaryBrowser"
-import type { Glossary } from "../../../../shared_types"
+import { gameApi } from "@/api/games"
+import GlossaryBrowser, { type GlossaryColumn } from "@/glossary/GlossaryBrowser"
+import type { Glossary } from "@/shared_types"
 
 /**
  * Load the base-game glossary.

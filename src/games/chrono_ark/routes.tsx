@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom"
-import DashboardPage from "./pages/Dashboard"
-import ModDetail from "./pages/Details"
-import GlossaryPage from "./pages/Glossary"
-import StatisticsPage from "./pages/Statistics"
+import DashboardPage from "@/games/chrono_ark/pages/Dashboard"
+import ModDetail from "@/games/chrono_ark/pages/Details"
+import GlossaryPage from "@/games/chrono_ark/pages/Glossary"
+import StatisticsPage from "@/games/chrono_ark/pages/Statistics"
 
 /**
  * Chrono Ark routes, mounted under the active-game subtree. Bare `/` redirects to the dashboard.

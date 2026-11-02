@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 
-import PageHeader from "../ui/PageHeader"
-import SearchInput from "../ui/SearchInput"
+import PageHeader from "@/ui/PageHeader"
+import SearchInput from "@/ui/SearchInput"
 
 /** Props for DashboardHeader. */
 interface DashboardHeaderProps {

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import SettingsPage from "../../pages/Settings"
+import SettingsPage from "@/pages/Settings"
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 

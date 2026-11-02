@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { BatchReviewBanner } from "../../translation/BatchReviewBanner"
+import { BatchReviewBanner } from "@/translation/BatchReviewBanner"
 
 describe("BatchReviewBanner", () => {
     it("shows the finished batch and wires its three actions", async () => {

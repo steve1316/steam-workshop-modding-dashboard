@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState, type ReactNode } from "react"
 
-import HighlightText from "../ui/HighlightText"
-import SearchInput from "../ui/SearchInput"
+import HighlightText from "@/ui/HighlightText"
+import SearchInput from "@/ui/SearchInput"
 
 /** One glossary term in the shared editor's normalized shape. */
 export interface GlossaryEditorTerm {

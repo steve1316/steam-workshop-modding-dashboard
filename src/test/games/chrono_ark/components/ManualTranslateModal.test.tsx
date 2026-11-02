@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import ManualTranslateModal from "../../../../games/chrono_ark/components/ManualTranslateModal"
-import { findGlossaryMatches, findPairedRow } from "../../../../games/chrono_ark/components/ManualTranslateModal/matching"
-import type { LocString } from "../../../../shared_types"
+import ManualTranslateModal from "@/games/chrono_ark/components/ManualTranslateModal"
+import { findGlossaryMatches, findPairedRow } from "@/games/chrono_ark/components/ManualTranslateModal/matching"
+import type { LocString } from "@/shared_types"
 
 /**
  * Build a row with sensible defaults.

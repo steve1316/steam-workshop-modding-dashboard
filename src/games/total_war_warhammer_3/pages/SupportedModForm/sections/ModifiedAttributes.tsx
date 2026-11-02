@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { FaTimes } from "react-icons/fa"
 
-import Panel from "../../../../../ui/Panel"
+import Panel from "@/ui/Panel"
 
 /** Props for `ModifiedAttributesSection`. */
 interface Props {

@@ -1,9 +1,9 @@
 import React, { useRef, useState } from "react"
 import { FaCheck, FaTimes, FaCheckDouble, FaTimesCircle, FaPen } from "react-icons/fa"
-import type { TermSuggestion } from "../../shared_types"
-import { gameApi } from "../../api/games"
-import Banner from "../../ui/Banner"
-import Modal from "../../ui/Modal"
+import type { TermSuggestion } from "@/shared_types"
+import { gameApi } from "@/api/games"
+import Banner from "@/ui/Banner"
+import Modal from "@/ui/Modal"
 
 /** Props for {@link GlossarySuggestionModal}. */
 interface GlossarySuggestionModalProps {

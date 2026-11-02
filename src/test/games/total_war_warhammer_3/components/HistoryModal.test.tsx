@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import HistoryModal from "../../../../games/total_war_warhammer_3/components/HistoryModal"
-import type { HistoryEntry } from "../../../../shared_types"
+import HistoryModal from "@/games/total_war_warhammer_3/components/HistoryModal"
+import type { HistoryEntry } from "@/shared_types"
 
 const SNAPS: HistoryEntry[] = [
     { id: "01J", created_at: "2026-05-25T01:00:00Z", reason: "pre-clear-translations", kind: "auto", files: [] },

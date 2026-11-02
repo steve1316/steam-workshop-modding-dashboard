@@ -1,4 +1,4 @@
-import Panel from "../../../../../ui/Panel"
+import Panel from "@/ui/Panel"
 
 /** One pattern -> faction mapping row. */
 export interface PatternOverrideRow {

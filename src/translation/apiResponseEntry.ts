@@ -1,5 +1,5 @@
-import type { ApiLogEntry } from "../shared_types"
-import type { ApiResponseEntry } from "./ApiResponsesModal"
+import type { ApiLogEntry } from "@/shared_types"
+import type { ApiResponseEntry } from "@/translation/ApiResponsesModal"
 
 /**
  * Map one backend log entry onto the modal's record.

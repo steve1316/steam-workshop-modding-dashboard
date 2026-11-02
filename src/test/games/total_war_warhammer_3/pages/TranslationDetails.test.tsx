@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import TranslationDetailsPage from "../../../../games/total_war_warhammer_3/pages/TranslationDetails"
-import type { WH3DriftRow, WH3RescanSummary, WH3TranslationModSummary } from "../../../../shared_types"
+import TranslationDetailsPage from "@/games/total_war_warhammer_3/pages/TranslationDetails"
+import type { WH3DriftRow, WH3RescanSummary, WH3TranslationModSummary } from "@/shared_types"
 
 const MOD: WH3TranslationModSummary = {
     workshop_id: "3315737452",

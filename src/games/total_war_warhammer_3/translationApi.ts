@@ -10,11 +10,11 @@ import type {
     WH3RescanSummary,
     WH3SyncResult,
     WH3TranslationModSummary,
-} from "../../shared_types"
-import { gameApi } from "../../api/games"
-import type { TranslationPreview } from "../../components/TranslationConfirmModal"
-import type { BatchDescriptor } from "../../hooks/useIterativeTranslation"
-import { RegistryError } from "./api"
+} from "@/shared_types"
+import { gameApi } from "@/api/games"
+import type { TranslationPreview } from "@/components/TranslationConfirmModal"
+import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"
+import { RegistryError } from "@/games/total_war_warhammer_3/api"
 
 /** Preview response for a WH3 translation run: the confirm-modal data plus the flat `batch_plan`. */
 export type WH3TranslationPreview = TranslationPreview & {

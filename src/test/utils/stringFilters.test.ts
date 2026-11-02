@@ -1,5 +1,5 @@
-import { getRowStatus, getRowStyle, filterStrings, sortStrings } from "../../utils/stringFilters"
-import type { LocString } from "../../shared_types"
+import { getRowStatus, getRowStyle, filterStrings, sortStrings } from "@/utils/stringFilters"
+import type { LocString } from "@/shared_types"
 
 function makeString(overrides: Partial<LocString> = {}): LocString {
     return {

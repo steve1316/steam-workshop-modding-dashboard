@@ -1,6 +1,6 @@
-import { registerGame } from "../registry"
-import { chronoArkNav } from "./nav"
-import { ChronoArkRoutes } from "./routes"
+import { registerGame } from "@/games/registry"
+import { chronoArkNav } from "@/games/chrono_ark/nav"
+import { ChronoArkRoutes } from "@/games/chrono_ark/routes"
 
 /** Side-effect import that registers Chrono Ark before the router renders. */
 registerGame({

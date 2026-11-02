@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import HighlightText from "../../ui/HighlightText"
+import HighlightText from "@/ui/HighlightText"
 
 describe("HighlightText", () => {
     it("wraps every case-insensitive match in a mark", () => {

@@ -2,18 +2,18 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { publishPack } from "../../../../games/total_war_warhammer_3/api"
-import TranslationModCard from "../../../../games/total_war_warhammer_3/components/TranslationModCard"
-import { syncChanges } from "../../../../games/total_war_warhammer_3/translationApi"
-import type { WH3RescanSummary, WH3TranslationModSummary } from "../../../../shared_types"
+import { publishPack } from "@/games/total_war_warhammer_3/api"
+import TranslationModCard from "@/games/total_war_warhammer_3/components/TranslationModCard"
+import { syncChanges } from "@/games/total_war_warhammer_3/translationApi"
+import type { WH3RescanSummary, WH3TranslationModSummary } from "@/shared_types"
 
-vi.mock("../../../../games/total_war_warhammer_3/api", async (importOriginal) => ({
-    ...(await importOriginal<typeof import("../../../../games/total_war_warhammer_3/api")>()),
+vi.mock("@/games/total_war_warhammer_3/api", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@/games/total_war_warhammer_3/api")>()),
     publishPack: vi.fn(),
 }))
 
-vi.mock("../../../../games/total_war_warhammer_3/translationApi", async (importOriginal) => ({
-    ...(await importOriginal<typeof import("../../../../games/total_war_warhammer_3/translationApi")>()),
+vi.mock("@/games/total_war_warhammer_3/translationApi", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@/games/total_war_warhammer_3/translationApi")>()),
     syncChanges: vi.fn(),
 }))
 

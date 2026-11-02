@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { gameApi } from "../../../../api/games"
-import type { LocString } from "../../../../shared_types"
-import Modal from "../../../../ui/Modal"
+import { gameApi } from "@/api/games"
+import type { LocString } from "@/shared_types"
+import Modal from "@/ui/Modal"
 
 /** A single row affected by a glossary replacement. */
 interface AffectedRow {

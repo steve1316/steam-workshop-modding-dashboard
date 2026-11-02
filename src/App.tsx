@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react"
 import { Routes, Route, Navigate, useParams, useMatch, useLocation } from "react-router-dom"
-import Sidebar from "./components/Sidebar"
-import ErrorBoundary from "./ui/ErrorBoundary"
-import LoadingState from "./ui/LoadingState"
-import { getBranding } from "./components/GameSwitcher/branding"
-import SettingsPage from "./pages/Settings"
-import { API_BASE } from "./config"
-import { getGame, getGameBySlug, slugForId } from "./games/registry"
-import "./games/chrono_ark" // side-effect: registers manifest
-import "./games/total_war_warhammer_3" // side-effect: registers manifest
-import "./index.css"
+import Sidebar from "@/components/Sidebar"
+import ErrorBoundary from "@/ui/ErrorBoundary"
+import LoadingState from "@/ui/LoadingState"
+import { getBranding } from "@/components/GameSwitcher/branding"
+import SettingsPage from "@/pages/Settings"
+import { API_BASE } from "@/config"
+import { getGame, getGameBySlug, slugForId } from "@/games/registry"
+import "@/games/chrono_ark" // side-effect: registers manifest
+import "@/games/total_war_warhammer_3" // side-effect: registers manifest
+import "@/index.css"
 
 /**
  * Renders the resolved game's route subtree, or redirects home when the slug is unknown.

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import GlossaryPage from "../../../../games/chrono_ark/pages/Glossary"
+import GlossaryPage from "@/games/chrono_ark/pages/Glossary"
 
 const GLOSSARY = {
     terms: {

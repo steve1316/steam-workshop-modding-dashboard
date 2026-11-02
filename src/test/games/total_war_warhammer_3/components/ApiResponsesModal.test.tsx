@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import ApiResponsesModal from "../../../../games/total_war_warhammer_3/components/ApiResponsesModal"
-import type { ApiLogEntry } from "../../../../shared_types"
+import ApiResponsesModal from "@/games/total_war_warhammer_3/components/ApiResponsesModal"
+import type { ApiLogEntry } from "@/shared_types"
 
 const ENTRIES: ApiLogEntry[] = [
     {

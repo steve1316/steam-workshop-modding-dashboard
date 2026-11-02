@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import Sidebar from "../../components/Sidebar"
-import "../../games/chrono_ark"
-import "../../games/total_war_warhammer_3"
+import Sidebar from "@/components/Sidebar"
+import "@/games/chrono_ark"
+import "@/games/total_war_warhammer_3"
 
 const GAMES = [
     { game_id: "chrono_ark", display_name: "Chrono Ark", icon: "", capabilities: [] },

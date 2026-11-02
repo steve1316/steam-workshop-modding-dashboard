@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import Banner from "../../ui/Banner"
+import Banner from "@/ui/Banner"
 
 describe("Banner", () => {
     it("renders its content with the tone class", () => {

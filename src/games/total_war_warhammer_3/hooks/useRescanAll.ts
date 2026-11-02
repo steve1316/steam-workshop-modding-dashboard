@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
-import type { TaskProgress } from "../../../dashboard/progressLabel"
-import type { WH3RescanSummary } from "../../../shared_types"
-import { rescanMod } from "../translationApi"
+import type { TaskProgress } from "@/dashboard/progressLabel"
+import type { WH3RescanSummary } from "@/shared_types"
+import { rescanMod } from "@/games/total_war_warhammer_3/translationApi"
 
 /** State and actions returned by `useRescanAll`. */
 export interface RescanAll {

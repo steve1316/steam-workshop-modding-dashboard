@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import SupportedModFormPage from "../../../../games/total_war_warhammer_3/pages/SupportedModForm"
-import { emptyBasicsState } from "../../../../games/total_war_warhammer_3/pages/SupportedModForm/sections/basicsState"
+import SupportedModFormPage from "@/games/total_war_warhammer_3/pages/SupportedModForm"
+import { emptyBasicsState } from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/basicsState"
 
 afterEach(() => {
     vi.restoreAllMocks()

@@ -1,14 +1,14 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useGameSlug } from "../../../useGameSlug"
+import { useGameSlug } from "@/games/useGameSlug"
 
-import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat } from "../../../../components/ModCard"
-import { API_BASE } from "../../../../config"
-import { rememberScrollTarget } from "../../../../dashboard/useScrollRestore"
-import { highlightMatch } from "../../../../utils/text"
-import type { WH3RescanSummary, WH3TranslationModSummary } from "../../../../shared_types"
-import { syncChanges } from "../../translationApi"
-import PublishWorkshopDialog, { type PublishPrepareStep } from "../PublishWorkshopDialog"
+import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat } from "@/components/ModCard"
+import { API_BASE } from "@/config"
+import { rememberScrollTarget } from "@/dashboard/useScrollRestore"
+import { highlightMatch } from "@/utils/text"
+import type { WH3RescanSummary, WH3TranslationModSummary } from "@/shared_types"
+import { syncChanges } from "@/games/total_war_warhammer_3/translationApi"
+import PublishWorkshopDialog, { type PublishPrepareStep } from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 
 /** Props for TranslationModCard. */
 export interface TranslationModCardProps {

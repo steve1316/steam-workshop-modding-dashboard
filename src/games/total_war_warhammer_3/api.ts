@@ -1,4 +1,4 @@
-import { gameApi } from "../../api/games"
+import { gameApi } from "@/api/games"
 
 const api = gameApi("total_war_warhammer_3")
 

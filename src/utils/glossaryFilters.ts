@@ -1,4 +1,4 @@
-import type { GlossaryTerm } from "../shared_types"
+import type { GlossaryTerm } from "@/shared_types"
 
 /**
  * Get the unique categories of glossary terms, sorted.

@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import SupportedModCard from "../../../../games/total_war_warhammer_3/components/SupportedModCard"
-import type { SupportedMod, ValidationIssue } from "../../../../games/total_war_warhammer_3/api"
+import SupportedModCard from "@/games/total_war_warhammer_3/components/SupportedModCard"
+import type { SupportedMod, ValidationIssue } from "@/games/total_war_warhammer_3/api"
 
 const BASE_MOD: SupportedMod = {
     name: "Nanu's Cool Mod",

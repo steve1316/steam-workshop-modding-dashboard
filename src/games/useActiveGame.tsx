@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom"
-import { getGameBySlug, type GameManifest } from "./registry"
+import { getGameBySlug, type GameManifest } from "@/games/registry"
 
 /** The resolved active game derived from the `:gameSlug` URL segment. */
 export interface ActiveGame {

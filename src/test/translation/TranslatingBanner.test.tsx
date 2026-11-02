@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react"
-import { TranslatingBanner } from "../../translation/TranslatingBanner"
+import { TranslatingBanner } from "@/translation/TranslatingBanner"
 
 describe("TranslatingBanner", () => {
     it("renders a 1-based batch progress message", () => {

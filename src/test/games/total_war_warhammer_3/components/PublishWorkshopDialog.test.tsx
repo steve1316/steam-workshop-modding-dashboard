@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import PublishWorkshopDialog from "../../../../games/total_war_warhammer_3/components/PublishWorkshopDialog"
+import PublishWorkshopDialog from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 
 /**
  * Answer the change-notes request with `body` and `status`, and any other request with an empty object.

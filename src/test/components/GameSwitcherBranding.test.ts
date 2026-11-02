@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { GAME_BRANDING, getBranding } from "../../components/GameSwitcher/branding"
+import { GAME_BRANDING, getBranding } from "@/components/GameSwitcher/branding"
 
 describe("GameSwitcher branding map", () => {
     it("defines branding entries for chrono_ark and total_war_warhammer_3", () => {

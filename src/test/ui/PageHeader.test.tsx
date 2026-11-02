@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import PageHeader from "../../ui/PageHeader"
+import PageHeader from "@/ui/PageHeader"
 
 describe("PageHeader", () => {
     it("renders the title as the page heading with the adornments beside it, not inside it", () => {

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import PublishAllDialog from "../../../../games/total_war_warhammer_3/components/PublishAllDialog"
+import PublishAllDialog from "@/games/total_war_warhammer_3/components/PublishAllDialog"
 
 /**
  * Controllable EventSource stand-in. Captures the most recent instance so tests can fire named events into the dialog

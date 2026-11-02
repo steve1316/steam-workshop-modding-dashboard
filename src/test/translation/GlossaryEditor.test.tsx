@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { GlossaryEditor, type GlossaryEditorTerm } from "../../translation/GlossaryEditor"
+import { GlossaryEditor, type GlossaryEditorTerm } from "@/translation/GlossaryEditor"
 
 const TERMS: GlossaryEditorTerm[] = [
     { english: "Dragon", category: "unit", sourceMappings: { Chinese: "龙" } },

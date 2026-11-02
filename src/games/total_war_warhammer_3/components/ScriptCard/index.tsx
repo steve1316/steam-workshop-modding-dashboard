@@ -1,5 +1,5 @@
-import type { StepStatus } from "../../api"
-import StepIndicator from "../StepIndicator"
+import type { StepStatus } from "@/games/total_war_warhammer_3/api"
+import StepIndicator from "@/games/total_war_warhammer_3/components/StepIndicator"
 
 /** One helper-script entry rendered as a `ScriptCard`. */
 export interface ScriptEntry {

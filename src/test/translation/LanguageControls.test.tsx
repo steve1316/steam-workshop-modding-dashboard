@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { LanguageControls } from "../../translation/LanguageControls"
+import { LanguageControls } from "@/translation/LanguageControls"
 
 describe("LanguageControls", () => {
     it("labels the source select and reports changes", async () => {

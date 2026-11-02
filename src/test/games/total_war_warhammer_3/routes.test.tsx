@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { TotalWarWarhammer3Routes } from "../../../games/total_war_warhammer_3/routes"
-import { tw3Nav } from "../../../games/total_war_warhammer_3/nav"
-import { _resetUseValidationForTests } from "../../../games/total_war_warhammer_3/hooks/useValidation"
+import { TotalWarWarhammer3Routes } from "@/games/total_war_warhammer_3/routes"
+import { tw3Nav } from "@/games/total_war_warhammer_3/nav"
+import { _resetUseValidationForTests } from "@/games/total_war_warhammer_3/hooks/useValidation"
 
 afterEach(() => {
     _resetUseValidationForTests()

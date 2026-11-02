@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
-import ScriptCard from "../../../../games/total_war_warhammer_3/components/ScriptCard"
+import ScriptCard from "@/games/total_war_warhammer_3/components/ScriptCard"
 
 const SCRIPT = { id: "update_dynamic_rors", label: "Dynamic RoR (default)", description: "Regenerate the Dynamic RoR pack from the current set of installed mods." }
 

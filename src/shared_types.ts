@@ -1,6 +1,6 @@
 /** Shared types mirroring the backend API response shapes. Keep in sync with the Pydantic models in `backend/models/api.py`. */
 
-import type { RowStatus } from "./utils/stringFilters"
+import type { RowStatus } from "@/utils/stringFilters"
 
 /** Summary status for a single mod in the dashboard listing. */
 export type ModStatus = {

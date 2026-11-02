@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import ModDetail from "../../../../games/chrono_ark/pages/Details"
+import ModDetail from "@/games/chrono_ark/pages/Details"
 
 const MOD_ID = "2945863327"
 

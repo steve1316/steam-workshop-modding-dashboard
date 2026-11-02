@@ -1,4 +1,4 @@
-import Panel from "../../../../../ui/Panel"
+import Panel from "@/ui/Panel"
 
 /** One character entry inside `allowed_lords` or `allowed_heroes`. */
 export interface CharacterRow {

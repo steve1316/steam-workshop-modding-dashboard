@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react"
 import type { ChangeEvent, ReactNode } from "react"
 
-import Field from "../ui/Field"
-import Panel from "../ui/Panel"
+import Field from "@/ui/Field"
+import Panel from "@/ui/Panel"
 
 /** The three free-text context fields sent with every translation prompt. */
 export interface ContextFields {

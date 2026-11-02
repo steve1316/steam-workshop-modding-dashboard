@@ -1,4 +1,4 @@
-import type { GlossaryTerm, LocString } from "../../../../shared_types"
+import type { GlossaryTerm, LocString } from "@/shared_types"
 
 /** A glossary term whose source text appears in the current row. */
 export interface GlossaryMatch {

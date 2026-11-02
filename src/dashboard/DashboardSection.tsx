@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import ModGridSkeleton from "../components/ModGridSkeleton"
+import ModGridSkeleton from "@/components/ModGridSkeleton"
 
 /** Props for DashboardSection. */
 interface DashboardSectionProps {

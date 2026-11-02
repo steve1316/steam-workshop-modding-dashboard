@@ -1,5 +1,5 @@
-import { filterMods, matchesSearch } from "../../utils/modFilters"
-import type { ModStatus } from "../../shared_types"
+import { filterMods, matchesSearch } from "@/utils/modFilters"
+import type { ModStatus } from "@/shared_types"
 
 function makeMod(overrides: Partial<ModStatus> = {}): ModStatus {
     return {

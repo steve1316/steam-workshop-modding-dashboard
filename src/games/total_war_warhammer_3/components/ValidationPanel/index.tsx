@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { ValidationIssue } from "../../api"
+import type { ValidationIssue } from "@/games/total_war_warhammer_3/api"
 
 /** Props for ValidationPanel. */
 interface Props {

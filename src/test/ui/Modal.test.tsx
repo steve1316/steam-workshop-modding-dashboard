@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import Modal from "../../ui/Modal"
+import Modal from "@/ui/Modal"
 
 describe("Modal", () => {
     it("renders a labelled dialog into document.body", () => {

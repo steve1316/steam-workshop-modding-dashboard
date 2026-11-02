@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
 import { FaSteam, FaFolderOpen } from "react-icons/fa"
-import WorkshopCard from "../../../../components/WorkshopCard"
-import { API_BASE } from "../../../../config"
-import { highlightMatch } from "../../../../utils/text"
-import PublishWorkshopDialog from "../PublishWorkshopDialog"
-import ScriptRunButton from "../ScriptRunButton"
+import WorkshopCard from "@/components/WorkshopCard"
+import { API_BASE } from "@/config"
+import { highlightMatch } from "@/utils/text"
+import PublishWorkshopDialog from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
+import ScriptRunButton from "@/games/total_war_warhammer_3/components/ScriptRunButton"
 
 /**
  * Format a unix timestamp as a relative "<label> ... ago" string. Sub-hour deltas read `"<1h ago"`, under a day is whole hours, and beyond that is days with one decimal.

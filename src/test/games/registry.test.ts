@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { registerGame, getGameBySlug, idForSlug, slugForId } from "../../games/registry"
+import { registerGame, getGameBySlug, idForSlug, slugForId } from "@/games/registry"
 
 function fakeManifest(id: string, slug: string) {
     return { id, slug, displayName: id, icon: id, nav: [], routes: () => null as never }

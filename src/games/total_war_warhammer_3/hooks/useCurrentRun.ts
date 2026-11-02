@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { getCurrentRun, type RunState } from "../api"
+import { getCurrentRun, type RunState } from "@/games/total_war_warhammer_3/api"
 
 const INTERVAL_MS = 2000
 

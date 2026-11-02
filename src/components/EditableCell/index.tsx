@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
 
-import HighlightText from "../../ui/HighlightText"
+import HighlightText from "@/ui/HighlightText"
 
 /** Props for EditableCell. */
 interface EditableCellProps {

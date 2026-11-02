@@ -1,7 +1,7 @@
 import React, { type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { FaExclamationCircle, FaSteam, FaSync } from "react-icons/fa"
-import WorkshopCard from "../WorkshopCard"
+import WorkshopCard from "@/components/WorkshopCard"
 
 /** One stat box rendered in the `mod-stats` row. */
 export interface ModCardStat {

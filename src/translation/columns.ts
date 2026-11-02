@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import type { ColumnDef } from "./types"
+import type { ColumnDef } from "@/translation/types"
 
 /** One translation-table cell: the row field it sorts by and how it renders. */
 export interface TranslationCellSpec<Row> {

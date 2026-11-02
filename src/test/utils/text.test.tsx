@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react"
-import { highlightMatch } from "../../utils/text"
+import { highlightMatch } from "@/utils/text"
 
 describe("highlightMatch", () => {
     it("returns plain text when query is empty", () => {

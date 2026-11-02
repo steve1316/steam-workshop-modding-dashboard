@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import GameSwitcher from "../../components/GameSwitcher"
-import "../../games/chrono_ark" // side-effect: registers manifest (so slugForId resolves)
-import "../../games/total_war_warhammer_3" // side-effect: registers manifest
+import GameSwitcher from "@/components/GameSwitcher"
+import "@/games/chrono_ark" // side-effect: registers manifest (so slugForId resolves)
+import "@/games/total_war_warhammer_3" // side-effect: registers manifest
 
 const GAMES = [
     { game_id: "chrono_ark", display_name: "Chrono Ark", icon: "", capabilities: [] },

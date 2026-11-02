@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import userEvent from "@testing-library/user-event"
-import ModCard, { NeedsSyncBadge } from "../../components/ModCard"
+import ModCard, { NeedsSyncBadge } from "@/components/ModCard"
 
 /**
  * Build a baseline ModCard props object representing a Chrono-Ark-style mod.

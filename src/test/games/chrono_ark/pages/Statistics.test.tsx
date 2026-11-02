@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import StatisticsPage from "../../../../games/chrono_ark/pages/Statistics"
+import StatisticsPage from "@/games/chrono_ark/pages/Statistics"
 
 const STATS = { tm_entries: 11279, tm_hits: 3, total_mods: 97, global_progress: 100.0, total_strings: 15583 }
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })

@@ -1,6 +1,6 @@
-import { registerGame } from "../registry"
-import { tw3Nav } from "./nav"
-import { TotalWarWarhammer3Routes } from "./routes"
+import { registerGame } from "@/games/registry"
+import { tw3Nav } from "@/games/total_war_warhammer_3/nav"
+import { TotalWarWarhammer3Routes } from "@/games/total_war_warhammer_3/routes"
 
 registerGame({
     id: "total_war_warhammer_3",

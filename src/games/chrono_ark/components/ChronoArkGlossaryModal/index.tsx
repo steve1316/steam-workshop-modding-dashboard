@@ -1,10 +1,10 @@
 import { useState } from "react"
-import { gameApi } from "../../../../api/games"
-import type { GlossaryTerm, LocString } from "../../../../shared_types"
-import { GlossaryEditor, type GlossaryEditorTerm } from "../../../../translation/GlossaryEditor"
-import { renameNotice } from "../../../../translation/renameNotice"
-import Modal from "../../../../ui/Modal"
-import GlossaryReplacePreviewModal, { type ReplacePreview } from "../GlossaryReplacePreviewModal"
+import { gameApi } from "@/api/games"
+import type { GlossaryTerm, LocString } from "@/shared_types"
+import { GlossaryEditor, type GlossaryEditorTerm } from "@/translation/GlossaryEditor"
+import { renameNotice } from "@/translation/renameNotice"
+import Modal from "@/ui/Modal"
+import GlossaryReplacePreviewModal, { type ReplacePreview } from "@/games/chrono_ark/components/GlossaryReplacePreviewModal"
 
 const CATEGORY_OPTIONS = ["custom", "characters", "skills", "buffs/debuffs", "items", "mechanics"]
 const LANGUAGES = ["Chinese", "Korean", "Japanese"]

@@ -1,6 +1,6 @@
 import React from "react"
 
-import Modal from "../../ui/Modal"
+import Modal from "@/ui/Modal"
 
 /** Props for ConfirmModal. */
 interface ConfirmModalProps {

@@ -2,9 +2,9 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import RunnerPage from "../../../../games/total_war_warhammer_3/pages/Runner"
-import { _resetUseRunnerLogForTests } from "../../../../games/total_war_warhammer_3/hooks/useRunnerLog"
-import { _resetUseCurrentRunForTests } from "../../../../games/total_war_warhammer_3/hooks/useCurrentRun"
+import RunnerPage from "@/games/total_war_warhammer_3/pages/Runner"
+import { _resetUseRunnerLogForTests } from "@/games/total_war_warhammer_3/hooks/useRunnerLog"
+import { _resetUseCurrentRunForTests } from "@/games/total_war_warhammer_3/hooks/useCurrentRun"
 
 class FakeEventSource {
     static instances: FakeEventSource[] = []

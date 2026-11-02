@@ -1,5 +1,5 @@
 import React from "react"
-import Modal from "../../ui/Modal"
+import Modal from "@/ui/Modal"
 
 /** Per-mod cost estimate from the backend's bulk estimate endpoint, with one entry per target language. */
 interface ModEstimate {

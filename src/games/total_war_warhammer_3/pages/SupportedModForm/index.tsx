@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { useGameSlug } from "../../../useGameSlug"
+import { useGameSlug } from "@/games/useGameSlug"
 
-import ConfirmModal from "../../../../components/ConfirmModal"
-import { createSupportedMod, deleteSupportedMod, fetchSupportedEffectsCategories, fetchSupportedMods, updateSupportedMod } from "../../api"
-import Banner from "../../../../ui/Banner"
-import PageHeader from "../../../../ui/PageHeader"
-import BasicsSection from "./sections/Basics"
-import { emptyBasicsState, type BasicsState } from "./sections/basicsState"
-import CharacterOverridesSection, { type CharacterRow, type FactionEntry } from "./sections/CharacterOverrides"
-import ModifiedAttributesSection from "./sections/ModifiedAttributes"
-import PatternOverridesSection, { type PatternOverrideRow } from "./sections/PatternOverrides"
-import MiscSection from "./sections/Misc"
+import ConfirmModal from "@/components/ConfirmModal"
+import { createSupportedMod, deleteSupportedMod, fetchSupportedEffectsCategories, fetchSupportedMods, updateSupportedMod } from "@/games/total_war_warhammer_3/api"
+import Banner from "@/ui/Banner"
+import PageHeader from "@/ui/PageHeader"
+import BasicsSection from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/Basics"
+import { emptyBasicsState, type BasicsState } from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/basicsState"
+import CharacterOverridesSection, { type CharacterRow, type FactionEntry } from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/CharacterOverrides"
+import ModifiedAttributesSection from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/ModifiedAttributes"
+import PatternOverridesSection, { type PatternOverrideRow } from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/PatternOverrides"
+import MiscSection from "@/games/total_war_warhammer_3/pages/SupportedModForm/sections/Misc"
 
 /**
  * Add/edit page for one `SUPPORTED_MODS` entry. Mode comes from the route (`new` vs `edit/:packageName`).

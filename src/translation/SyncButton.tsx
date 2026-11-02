@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { FaFileExport } from "react-icons/fa"
 
-import { useConfirm } from "../ui/useConfirm"
+import { useConfirm } from "@/ui/useConfirm"
 
 /** Which of the three sync states the button shows. */
 export type SyncState = "sync" | "resync" | "disabled"

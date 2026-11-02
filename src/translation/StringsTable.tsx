@@ -1,7 +1,7 @@
 import { useRef } from "react"
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react"
 import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa"
-import type { ColumnDef } from "./types"
+import type { ColumnDef } from "@/translation/types"
 
 /** Props for StringsTable. */
 interface StringsTableProps<Row> {

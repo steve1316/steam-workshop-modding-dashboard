@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it } from "vitest"
 
-import { useConfirm } from "../../ui/useConfirm"
+import { useConfirm } from "@/ui/useConfirm"
 
 /**
  * Test harness: a button that asks for confirmation and prints the answer.

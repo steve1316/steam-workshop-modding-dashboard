@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import GlossarySuggestionModal from "../components/GlossarySuggestionModal"
-import type { TermSuggestion } from "../shared_types"
+import GlossarySuggestionModal from "@/components/GlossarySuggestionModal"
+import type { TermSuggestion } from "@/shared_types"
 
 const LONG = "A".repeat(400)
 const SUGGESTIONS: TermSuggestion[] = [{ english: LONG, source: "原".repeat(200), source_lang: "Chinese", category: "unit", reason: "long term" }]

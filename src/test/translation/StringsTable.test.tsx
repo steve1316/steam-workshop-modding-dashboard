@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react"
-import { StringsTable } from "../../translation/StringsTable"
-import type { ColumnDef } from "../../translation/types"
+import { StringsTable } from "@/translation/StringsTable"
+import type { ColumnDef } from "@/translation/types"
 
 interface Row {
     id: string

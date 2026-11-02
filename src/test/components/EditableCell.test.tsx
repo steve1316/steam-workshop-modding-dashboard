@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import EditableCell from "../../components/EditableCell"
+import EditableCell from "@/components/EditableCell"
 
 describe("EditableCell", () => {
     it("renders value text in display mode", () => {

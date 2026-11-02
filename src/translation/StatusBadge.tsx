@@ -1,5 +1,5 @@
-import type { RowStatus } from "../utils/stringFilters"
-import { statusToChip } from "./statusChip"
+import type { RowStatus } from "@/utils/stringFilters"
+import { statusToChip } from "@/translation/statusChip"
 
 /** Props for StatusBadge. */
 interface StatusBadgeProps {

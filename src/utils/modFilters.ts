@@ -1,4 +1,4 @@
-import type { ModStatus } from "../shared_types"
+import type { ModStatus } from "@/shared_types"
 
 /**
  * Check case-insensitively that any field contains the search text. Blank search matches everything.

@@ -1,4 +1,4 @@
-import type { LocString } from "../shared_types"
+import type { LocString } from "@/shared_types"
 
 export type RowStatus = "synced" | "untouched" | "pending" | "changed" | "missing" | "untranslatable"
 

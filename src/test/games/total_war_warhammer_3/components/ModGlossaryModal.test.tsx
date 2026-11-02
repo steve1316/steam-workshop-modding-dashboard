@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import ModGlossaryModal from "../../../../games/total_war_warhammer_3/components/ModGlossaryModal"
+import ModGlossaryModal from "@/games/total_war_warhammer_3/components/ModGlossaryModal"
 
 const GLOSSARY = {
     Phoenix: { source: "凤", category: "factions" },

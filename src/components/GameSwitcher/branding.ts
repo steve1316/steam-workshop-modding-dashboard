@@ -1,5 +1,5 @@
-import chronoArkLogo from "../../assets/games/chrono_ark.png"
-import wh3Logo from "../../assets/games/wh3.png"
+import chronoArkLogo from "@/assets/games/chrono_ark.png"
+import wh3Logo from "@/assets/games/wh3.png"
 
 /** Per-game visual identity used by the GameSwitcher pills and the sidebar's active-game header. */
 export interface GameBranding {

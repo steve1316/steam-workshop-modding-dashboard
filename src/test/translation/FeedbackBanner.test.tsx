@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react"
-import { FeedbackBanner } from "../../translation/FeedbackBanner"
+import { FeedbackBanner } from "@/translation/FeedbackBanner"
 
 describe("FeedbackBanner", () => {
     it("renders the message", () => {

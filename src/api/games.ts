@@ -1,4 +1,4 @@
-import { API_BASE } from "../config"
+import { API_BASE } from "@/config"
 
 export interface GameMetadata {
     game_id: string

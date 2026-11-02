@@ -1,4 +1,4 @@
-import type { StepStatus } from "../../api"
+import type { StepStatus } from "@/games/total_war_warhammer_3/api"
 
 const LABELS: Record<StepStatus, string> = {
     queued: "Waiting...",

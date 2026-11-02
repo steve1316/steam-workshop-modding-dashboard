@@ -1,4 +1,4 @@
-import Banner from "../ui/Banner"
+import Banner from "@/ui/Banner"
 
 /** Props for FeedbackBanner. */
 interface FeedbackBannerProps {

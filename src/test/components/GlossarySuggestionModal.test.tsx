@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import GlossarySuggestionModal from "../../components/GlossarySuggestionModal"
-import type { TermSuggestion } from "../../shared_types"
+import GlossarySuggestionModal from "@/components/GlossarySuggestionModal"
+import type { TermSuggestion } from "@/shared_types"
 
 const mockFetch = vi.fn()
 globalThis.fetch = mockFetch

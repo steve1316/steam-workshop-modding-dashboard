@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import Field from "../../ui/Field"
+import Field from "@/ui/Field"
 
 describe("Field", () => {
     it("links its label to the control so getByLabelText finds it", () => {

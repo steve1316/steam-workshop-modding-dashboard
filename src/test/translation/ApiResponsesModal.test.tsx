@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { ApiResponsesModal, type ApiResponseEntry } from "../../translation/ApiResponsesModal"
+import { ApiResponsesModal, type ApiResponseEntry } from "@/translation/ApiResponsesModal"
 
 const ENTRIES: ApiResponseEntry[] = [
     { id: "a", kind: "translate-batch", timestamp: "2026-05-25T00:00:00Z", model: "claude", inputTokens: 10, outputTokens: 20, costUsd: 0.01, keysOrInputs: ["k1", "k2"], rawText: "RAW A" },

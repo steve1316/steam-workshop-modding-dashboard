@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
-import type { HistoryEntry } from "../shared_types"
-import type { HistoryModalEntry } from "./HistoryModal"
+import type { HistoryEntry } from "@/shared_types"
+import type { HistoryModalEntry } from "@/translation/HistoryModal"
 
 /**
  * Build the counts subtitle (translated/total strings and glossary terms).

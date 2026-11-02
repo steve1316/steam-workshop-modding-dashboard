@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import GlossaryPage from "../../../../games/total_war_warhammer_3/pages/Glossary"
+import GlossaryPage from "@/games/total_war_warhammer_3/pages/Glossary"
 
 const GLOSSARY = {
     terms: {

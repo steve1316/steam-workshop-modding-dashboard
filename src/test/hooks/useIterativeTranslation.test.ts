@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from "@testing-library/react"
-import { useIterativeTranslation } from "../../hooks/useIterativeTranslation"
-import type { BatchDescriptor } from "../../hooks/useIterativeTranslation"
+import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
+import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"
 
 const mockFetch = vi.fn()
 globalThis.fetch = mockFetch

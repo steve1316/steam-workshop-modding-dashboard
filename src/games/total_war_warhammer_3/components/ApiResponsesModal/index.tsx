@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react"
 
-import { listApiResponses } from "../../translationApi"
-import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "../../../../translation/ApiResponsesModal"
-import { toApiResponseEntry } from "../../../../translation/apiResponseEntry"
+import { listApiResponses } from "@/games/total_war_warhammer_3/translationApi"
+import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "@/translation/ApiResponsesModal"
+import { toApiResponseEntry } from "@/translation/apiResponseEntry"
 
 /** Props for `ApiResponsesModal`. */
 interface ApiResponsesModalProps {

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import HistoryModal, { type HistoryModalEntry } from "../../translation/HistoryModal"
+import HistoryModal, { type HistoryModalEntry } from "@/translation/HistoryModal"
 
 const ENTRIES: HistoryModalEntry[] = [
     { id: "a", title: "Before reset", kind: "auto", createdAt: "2026-05-25T01:00:00Z", subtitle: <span>10 / 20 strings translated</span> },

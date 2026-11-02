@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import WorkshopCard from "../../components/WorkshopCard"
+import WorkshopCard from "@/components/WorkshopCard"
 
 describe("WorkshopCard", () => {
     it("renders the title as an h3", () => {

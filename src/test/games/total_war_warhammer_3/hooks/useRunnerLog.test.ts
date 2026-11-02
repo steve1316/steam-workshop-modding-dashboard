@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
-import { _resetUseRunnerLogForTests, appendLine, clearLog, useRunnerLog, MAX_LINES } from "../../../../games/total_war_warhammer_3/hooks/useRunnerLog"
+import { _resetUseRunnerLogForTests, appendLine, clearLog, useRunnerLog, MAX_LINES } from "@/games/total_war_warhammer_3/hooks/useRunnerLog"
 
 afterEach(() => _resetUseRunnerLogForTests())
 

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import type { RowStatus } from "../utils/stringFilters"
+import type { RowStatus } from "@/utils/stringFilters"
 
 /**
  * Background tint for a translation table row.

@@ -1,10 +1,10 @@
 import type { CSSProperties, ReactNode } from "react"
-import { StringsTable } from "./StringsTable"
-import { FeedbackBanner } from "./FeedbackBanner"
-import { TranslatingBanner } from "./TranslatingBanner"
-import type { ColumnDef } from "./types"
-import PageHeader from "../ui/PageHeader"
-import SearchInput from "../ui/SearchInput"
+import { StringsTable } from "@/translation/StringsTable"
+import { FeedbackBanner } from "@/translation/FeedbackBanner"
+import { TranslatingBanner } from "@/translation/TranslatingBanner"
+import type { ColumnDef } from "@/translation/types"
+import PageHeader from "@/ui/PageHeader"
+import SearchInput from "@/ui/SearchInput"
 
 /** One status filter pill. */
 interface StatusFilter {

@@ -1,5 +1,5 @@
 import { FaExclamationTriangle } from "react-icons/fa"
-import type { ValidationIssue } from "../../api"
+import type { ValidationIssue } from "@/games/total_war_warhammer_3/api"
 
 /** Props for `ValidationBadge`. */
 interface Props {
