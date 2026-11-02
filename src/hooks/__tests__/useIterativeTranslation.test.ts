@@ -61,9 +61,7 @@ describe("useIterativeTranslation", () => {
     })
 
     it("successful batch with suggestions transitions to reviewing", async () => {
-        mockFetch.mockReturnValue(
-            successResponse({ key_0: "Hello" }, [{ english: "Term", source: "텀", source_lang: "Korean", category: "custom", reason: "test" }]),
-        )
+        mockFetch.mockReturnValue(successResponse({ key_0: "Hello" }, [{ english: "Term", source: "텀", source_lang: "Korean", category: "custom", reason: "test" }]))
         const { result } = renderHook(() => useIterativeTranslation(GAME_ID, MOD_ID, vi.fn()))
         await act(async () => {
             result.current.startTranslation("claude", makePlan(2))
@@ -73,9 +71,7 @@ describe("useIterativeTranslation", () => {
 
     it("continueAfterReview advances to next batch", async () => {
         mockFetch
-            .mockReturnValueOnce(
-                successResponse({ key_0: "A" }, [{ english: "T", source: "t", source_lang: "Korean", category: "c", reason: "r" }]),
-            )
+            .mockReturnValueOnce(successResponse({ key_0: "A" }, [{ english: "T", source: "t", source_lang: "Korean", category: "c", reason: "r" }]))
             .mockReturnValueOnce(successResponse({ key_1: "B" }))
         const { result } = renderHook(() => useIterativeTranslation(GAME_ID, MOD_ID, vi.fn()))
         await act(async () => {
@@ -89,9 +85,7 @@ describe("useIterativeTranslation", () => {
     })
 
     it("last batch with suggestions transitions to reviewing then complete", async () => {
-        mockFetch.mockReturnValue(
-            successResponse({ key_0: "Hello" }, [{ english: "T", source: "t", source_lang: "Korean", category: "c", reason: "r" }]),
-        )
+        mockFetch.mockReturnValue(successResponse({ key_0: "Hello" }, [{ english: "T", source: "t", source_lang: "Korean", category: "c", reason: "r" }]))
         const { result } = renderHook(() => useIterativeTranslation(GAME_ID, MOD_ID, vi.fn()))
         await act(async () => {
             result.current.startTranslation("claude", makePlan(1))
@@ -139,9 +133,7 @@ describe("useIterativeTranslation", () => {
         act(() => {
             result.current.cancel()
         })
-        const cancelCall = mockFetch.mock.calls.find(
-            (call) => typeof call[0] === "string" && call[0].includes("/translate/cancel"),
-        )
+        const cancelCall = mockFetch.mock.calls.find((call) => typeof call[0] === "string" && call[0].includes("/translate/cancel"))
         expect(cancelCall).toBeTruthy()
     })
 
@@ -152,9 +144,7 @@ describe("useIterativeTranslation", () => {
             result.current.startTranslation("claude", makePlan(1))
         })
         await waitFor(() => expect(result.current.state.phase).toBe("complete"))
-        const batchCall = mockFetch.mock.calls.find(
-            (call) => typeof call[0] === "string" && call[0].includes("/translate/batch"),
-        )
+        const batchCall = mockFetch.mock.calls.find((call) => typeof call[0] === "string" && call[0].includes("/translate/batch"))
         expect(batchCall).toBeTruthy()
         expect(String(batchCall![0])).toContain("/games/total_war_warhammer_3/translate/batch")
     })
