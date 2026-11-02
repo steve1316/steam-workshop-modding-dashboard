@@ -100,6 +100,9 @@ Dashboards, cards, modals, banners, split buttons and confirm dialogs used by ev
 
 Built with **React 19 + TypeScript + Vite** on the frontend and **Python FastAPI** on the backend. All data is stored as JSON files on disk, so no database is needed.
 
+> [!NOTE]
+> The backend has its own guide in [`backend/README.md`](backend/README.md): the package map, the request flow of a translation batch, storage and migrations, settings, testing and conventions.
+
 ```mermaid
 flowchart LR
     subgraph FE["Frontend (React + Vite)"]
@@ -114,7 +117,7 @@ flowchart LR
         direction TB
         Shared["Shared routes<br/>settings · games · models · stats<br/>ollama · llamacpp · steamcmd"]
         Adapters["Game adapters<br/>games/registry.py<br/>/api/games/{game_id}/..."]
-        Core["Translation core<br/>run_batch · RowStatus · GameStorage"]
+        Core["Translation core<br/>run_translation_batch · RowStatus · GameStorage"]
         Providers["Providers<br/>Claude · OpenAI · DeepL<br/>Ollama · llama.cpp · Manual"]
         Data["Data layer<br/>glossary · suggestions · translations<br/>settings · context · history · memory"]
         Disk[("backend/storage/<br/>games/{game_id}/")]
@@ -139,7 +142,8 @@ The frontend talks to the backend only through REST calls and Server-Sent Events
 | `backend/games/capabilities/translation.py` | `TranslationCapability` is a mixin for games that translate strings: mod scanning, string extraction, source-language detection, base-game glossary prompt, format-preservation rules, style examples, game context and export. |
 | `backend/games/registry.py` | Maps game ids to adapter classes. `list_games_metadata()` feeds the frontend game switcher through `GET /api/games`. |
 | `backend/app.py` | Includes the shared routers, then mounts every registered adapter's router under `/api/games/<game_id>`. |
-| `backend/translation/` | The game-agnostic core. `run_batch()` calls a provider and fills duplicate-source translations. `classify_status()` / `StatusRow` define the shared row status. `GameStorage` resolves per-game and per-mod storage paths. |
+| `backend/translation/` | The game-agnostic core. `plan_batches()` builds the preview and cost estimate. `run_translation_batch()` calls a provider, fills duplicate-source translations, logs the call and hands the result to the game's persist hook. `classify_status()` / `StatusRow` define the shared row status. |
+| `backend/core/paths.py` | `GameStorage` resolves per-game and per-mod storage paths. |
 
 > [!NOTE]
 > Per-game routes are selected by URL, not by the "active game" setting. The active game only decides which game the app opens to.
@@ -157,7 +161,7 @@ The frontend talks to the backend only through REST calls and Server-Sent Events
 | `src/App.tsx` | Routes `/:gameSlug/*` to the matching manifest's routes, `/settings` to the cross-game Settings page, and everything else to the last active game's dashboard. Also applies per-game branding: accent color, gradient and page title. |
 | `src/components/TranslationPage/` | The shared translation page kit: `StringsTable`, `TranslationToolbar`, `SyncButton`, `BatchReviewBanner`, `TranslatingBanner`, `ContextPanel`, `LanguageControls` and status badges. `HistoryModal`, `ApiResponsesModal` and `GlossaryEditor` sit beside it in `src/components/`. Game pages own their data and state and pass it into these components. |
 | `src/components/ui/`, `src/components/Dashboard/`, `src/components/GlossaryBrowser/` | Generic primitives, dashboard layout, and the shared base-glossary browser. |
-| `src/hooks/`, `src/lib/` | Shared hooks, and the API client, types and search/format helpers. Each `src/games/<id>/` repeats this layout for its own code. |
+| `src/hooks/`, `src/lib/` | Shared hooks (`useTranslationRun` drives a run on both games' Details pages, `useTableView` the table's filters and sort), and the API client, TanStack Query client, SSE stream reader, types and search/format helpers. Each `src/games/<id>/` repeats this layout for its own code. |
 
 </details>
 
@@ -178,6 +182,29 @@ backend/storage/
 ```
 
 Each game's [Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki) shows its exact layout. Storage migrations in `backend/migrations/` run automatically at startup. They move the original flat, Chrono Ark-only layout into `games/chrono_ark/`.
+
+</details>
+
+<details>
+<summary><b>🤔 Why this stack</b></summary>
+
+<br>
+
+Performance was never the deciding factor. A batch spends seconds in the LLM call and milliseconds in our code. The stack is chosen for library fit and maintainability.
+
+- **Python backend**: the work depends on Python libraries. `dotnetfile` reads Chrono Ark's .NET DLLs without a .NET runtime, `libcst` makes format-preserving edits to the Python `totalwar-modding` registry, and `pypinyin` handles Chinese names. Anthropic, OpenAI and DeepL ship first-party Python SDKs. The Warhammer III helper toolkit is itself Python, so any other backend would still shell out to it.
+- **FastAPI**: typed request validation through pydantic, async and SSE streaming built in (batch streams, runner logs, publish logs, model downloads), and very little ceremony.
+- **React + TypeScript + Vite**: the UI is a dense editing tool with large editable tables, modals and live streams. React has the deepest ecosystem for that, TypeScript catches API shape drift between the games, and Vite gives instant dev startup with a proxy to the backend.
+- **JSON files instead of a database**: this is a single-user local tool. Files are readable, diffable and easy to back up (history snapshots copy them), with no database server to install. Every write goes through an atomic temp-file-and-replace.
+
+| Alternative | Why not |
+| --- | --- |
+| Next.js / Remix / SvelteKit | Server rendering buys nothing for a localhost tool with a separate Python backend, and would add a second server runtime. |
+| Vue / Svelte / Solid | Technically fine, but no win big enough to justify a rewrite. |
+| Node or TS backend | Loses `dotnetfile`, `libcst`, `pypinyin` and direct use of the Python helper toolkit, and would still need Python. |
+| Go / Rust backend | Speed is not the bottleneck, and the LLM SDK, .NET metadata and `libcst` equivalents are weak. |
+| SQLite | The realistic upgrade if concurrency or data size grows. Not needed yet. |
+| Tauri / Electron | Worth it only if non-developers should install it as one app instead of setting up Node and Python. |
 
 </details>
 
@@ -274,14 +301,14 @@ Each mod has its own glossary layered over the base one. Per-mod terms are sent 
 | **DeepL** | Cloud API | ❌ | ❌ | Per-character |
 | **Ollama** | Local LLM | ✅ SSE | ✅ | Free |
 | **llama.cpp** | Local LLM | ✅ SSE | ✅ | Free |
-| **Manual** | JSON export | N/A | N/A | Free |
+| **Manual** | By hand | N/A | N/A | Free |
 
 > [!IMPORTANT]
-> Not every game supports every provider yet. Chrono Ark can use any of them. Warhammer III translation currently always uses Claude.
+> Not every game supports every provider the same way yet. Chrono Ark can use any of them. Warhammer III uses the provider picked in Settings, but it does not stream batches and has no Manual mode.
 
 - **Cloud providers**: API keys are set on the Settings page and saved to `backend/.env`. Only the last 4 characters are shown in the UI. Claude and OpenAI models are chosen from a catalog that includes per-model pricing.
 - **Local providers**: Settings can install Ollama or llama-server and start or stop them. It can pull or download models (GGUF from Hugging Face) with a progress display, and offers VRAM tier presets (4-6GB to 24GB+). For llama.cpp you can also set GPU layers and context size. After a run, llama.cpp is stopped to free VRAM.
-- **Manual**: exports untranslated strings as JSON for offline translation.
+- **Manual**: in Chrono Ark, a dialog steps through the untranslated rows one at a time, showing glossary matches and the paired name or description. The CLI writes the strings to a JSON file to fill in instead.
 
 ![Settings page](docs/screenshots/settings.png)
 
@@ -289,14 +316,15 @@ Each mod has its own glossary layered over the base one. Per-mod terms are sent 
 
 1. **Backend adapter**
    - Create `backend/games/<game_id>/adapter.py` with a class that subclasses `GameAdapter` and `TranslationCapability`.
-   - Build its `router` with the prefix `/api/games/<game_id>`. Implement the endpoints the shared UI expects (`/translate/preview`, `/translate/batch`, glossary suggestions, strings and sync), reusing `run_batch()`, `classify_status()` and `GameStorage`.
+   - Build its `router` with the prefix `/api/games/<game_id>`. Implement the endpoints the shared UI expects (`/translate/preview`, `/translate/batch`, glossary suggestions, strings and sync), reusing `plan_batches()`, `run_translation_batch()`, `classify_status()` and `GameStorage`.
+   - See [Adding a game](backend/README.md#adding-a-game) in the backend guide for the full checklist.
    - Register the class in `_ADAPTERS` in `backend/games/registry.py`.
 2. **Frontend manifest**
-   - Create `src/games/<game_id>/index.tsx`, which calls `registerGame({ id, slug, displayName, icon, nav, routes })`, and import it in `src/App.tsx`.
+   - Create `src/games/<game_id>/index.tsx`, which calls `registerGame({ id, slug, displayName, icon, branding, nav, routes })`, and import it in `src/App.tsx`. Add `settingsPanel` if the game has its own Settings fields.
    - Build the pages from the shared `TranslationPage`, dashboard and glossary components.
 3. **Branding**
    - Add a logo to `src/assets/games/`.
-   - Add an entry to `GAME_BRANDING` in `src/components/GameSwitcher/branding.ts`.
+   - Fill the manifest's `branding` with the logo, accent color, gradient and sidebar subtitle.
 4. **Docs**
    - Add the game to the [Supported Games](#-supported-games) table and give it its own page in the [Wiki](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki).
 
@@ -319,6 +347,7 @@ Settings are environment variables with a `SWMT_` prefix, stored in `backend/.en
 | `SWMT_ACTIVE_GAME` | `chrono_ark` | Game the app opens to |
 | `SWMT_TRANSLATION_PROVIDER` | `claude` | `claude`, `openai`, `deepl`, `ollama`, `llamacpp` or `manual` |
 | `SWMT_BATCH_SIZE` | `100` | Strings per translation batch |
+| `SWMT_BATCH_MAX_CHARS` | `6000` | Most source characters per batch, so batches of long strings hold fewer keys |
 | `SWMT_ANTHROPIC_API_KEY` | | Claude API key |
 | `SWMT_OPENAI_API_KEY` | | OpenAI API key |
 | `SWMT_DEEPL_API_KEY` | | DeepL API key |
