@@ -386,7 +386,7 @@ Game-specific settings, such as game install paths and toolkit locations, are li
 
 ### CLI
 
-The backend also has a CLI (`python -m backend.main`) for headless Chrono Ark work. Its commands are listed on the [Chrono Ark Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki/Chrono-Ark#-cli).
+The backend also has a CLI (`python -m backend.cli`) for headless Chrono Ark work. Its commands are listed on the [Chrono Ark Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki/Chrono-Ark#-cli).
 
 ## 🛠 Development
 

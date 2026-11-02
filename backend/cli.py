@@ -2,14 +2,14 @@
 Steam Workshop Modding Dashboard - CLI entry point for extracting, translating, and managing mod localization strings.
 
 Usage:
-    python main.py extract --base-game
-    python main.py extract --mod <id>
-    python main.py extract --all-mods
-    python main.py translate --mod <id> [--provider claude|openai|deepl]
-    python main.py translate --mod <id> --dry-run
-    python main.py status [--mod <id>]
-    python main.py glossary --show|--build|--add <source> <english>
-    python main.py export --mod <id>
+    python -m backend.cli extract --base-game
+    python -m backend.cli extract --mod <id>
+    python -m backend.cli extract --all-mods
+    python -m backend.cli translate --mod <id> [--provider claude|openai|deepl]
+    python -m backend.cli translate --mod <id> --dry-run
+    python -m backend.cli status [--mod <id>]
+    python -m backend.cli glossary --show|--build|--add <source> <english>
+    python -m backend.cli export --mod <id>
 """
 
 import argparse
