@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 
-import type { HistoryEntry } from "@/lib/types"
 import SharedHistoryModal from "@/components/HistoryModal"
 import { toHistoryModalEntry } from "@/components/HistoryModal/helpers"
 import { createSnapshot, deleteSnapshot, listSnapshots, restoreSnapshot } from "@/games/total_war_warhammer_3/lib/translationApi"
@@ -25,22 +25,15 @@ interface HistoryModalProps {
  * @returns The modal.
  */
 const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaultRestoreMode, onRestored }) => {
-    const [snaps, setSnaps] = useState<HistoryEntry[]>([])
-    const [error, setError] = useState<string | null>(null)
+    const { data: snaps = [], error: loadError, refetch } = useQuery({ queryKey: ["total_war_warhammer_3", "snapshots", workshopId], queryFn: () => listSnapshots(workshopId) })
+    // A failed save, restore or delete. Cleared on the next reload.
+    const [actionError, setActionError] = useState<string | null>(null)
     const { confirm, confirmDialog } = useConfirm()
 
     const refresh = useCallback(async () => {
-        setError(null)
-        try {
-            setSnaps(await listSnapshots(workshopId))
-        } catch (e) {
-            setError((e as Error).message)
-        }
-    }, [workshopId])
-
-    useEffect(() => {
-        refresh()
-    }, [refresh])
+        setActionError(null)
+        await refetch()
+    }, [refetch])
 
     const onSave = useCallback(
         async (label: string) => {
@@ -64,7 +57,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaul
                 onRestored()
                 await refresh()
             } catch (e) {
-                setError((e as Error).message)
+                setActionError((e as Error).message)
             }
         },
         [workshopId, refresh, onRestored, confirm]
@@ -78,7 +71,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaul
                 await deleteSnapshot(workshopId, entry.id)
                 await refresh()
             } catch (e) {
-                setError((e as Error).message)
+                setActionError((e as Error).message)
             }
         },
         [workshopId, refresh, confirm]
@@ -94,7 +87,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ workshopId, onClose, defaul
                 onDelete={onDelete}
                 onClose={onClose}
                 emptyMessage="No snapshots yet."
-                error={error}
+                error={actionError ?? loadError?.message ?? null}
             />
             {confirmDialog}
         </>

@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react"
+import React from "react"
+import { useQuery } from "@tanstack/react-query"
 
 import { listApiResponses } from "@/games/total_war_warhammer_3/lib/translationApi"
-import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "@/components/ApiResponsesModal"
+import { ApiResponsesModal as SharedApiResponsesModal } from "@/components/ApiResponsesModal"
 import { toApiResponseEntry } from "@/components/ApiResponsesModal/helpers"
 
 /** Props for `ApiResponsesModal`. */
@@ -18,30 +19,9 @@ interface ApiResponsesModalProps {
  * @returns The modal.
  */
 const ApiResponsesModal: React.FC<ApiResponsesModalProps> = ({ workshopId, onClose }) => {
-    const [entries, setEntries] = useState<ApiResponseEntry[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const { data, isPending, error } = useQuery({ queryKey: ["total_war_warhammer_3", "api-responses", workshopId], queryFn: () => listApiResponses(workshopId) })
 
-    useEffect(() => {
-        let cancelled = false
-        ;(async () => {
-            try {
-                const data = await listApiResponses(workshopId)
-                if (!cancelled) {
-                    setEntries(data.map(toApiResponseEntry))
-                }
-            } catch (e) {
-                if (!cancelled) setError((e as Error).message)
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
-        })()
-        return () => {
-            cancelled = true
-        }
-    }, [workshopId])
-
-    return <SharedApiResponsesModal entries={entries} loading={loading} error={error} onClose={onClose} />
+    return <SharedApiResponsesModal entries={(data ?? []).map(toApiResponseEntry)} loading={isPending} error={error?.message ?? null} onClose={onClose} />
 }
 
 export default ApiResponsesModal

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react"
-import { gameApi } from "@/lib/api"
+import { useCallback } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { fetchJson, gameApi } from "@/lib/api"
 import type { HistoryEntry } from "@/lib/types"
 import SharedHistoryModal from "@/components/HistoryModal"
 import { toHistoryModalEntry } from "@/components/HistoryModal/helpers"
@@ -26,27 +27,18 @@ interface BackupHistoryModalProps {
  * @returns The modal.
  */
 export default function BackupHistoryModal({ modId, onClose, onRestore, onDelete, refreshKey }: BackupHistoryModalProps) {
-    const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
-
-    const fetchHistory = useCallback(async () => {
-        try {
-            const res = await gameApi("chrono_ark").get(`/mods/${modId}/history`)
-            if (res.ok) setHistoryEntries(await res.json())
-        } catch (err) {
-            console.error("Failed to fetch history:", err)
-        }
-    }, [modId])
-
-    useEffect(() => {
-        fetchHistory()
-    }, [fetchHistory, refreshKey])
+    // A failed load shows the empty list rather than an error.
+    const { data: historyEntries = [], refetch } = useQuery({
+        queryKey: ["chrono_ark", "history", modId, refreshKey],
+        queryFn: () => fetchJson<HistoryEntry[]>(gameApi("chrono_ark").url(`/mods/${modId}/history`)),
+    })
 
     const onSave = useCallback(
         async (label: string) => {
             await gameApi("chrono_ark").post(`/mods/${modId}/history`, { label })
-            await fetchHistory()
+            await refetch()
         },
-        [modId, fetchHistory]
+        [modId, refetch]
     )
 
     const byId = new Map(historyEntries.map((e) => [e.id, e]))

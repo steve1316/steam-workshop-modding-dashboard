@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react"
-import { gameApi } from "@/lib/api"
+import { useQuery } from "@tanstack/react-query"
+import { fetchJson, gameApi } from "@/lib/api"
 import type { ApiLogEntry } from "@/lib/types"
-import { ApiResponsesModal as SharedApiResponsesModal, type ApiResponseEntry } from "@/components/ApiResponsesModal"
+import { ApiResponsesModal as SharedApiResponsesModal } from "@/components/ApiResponsesModal"
 import { toApiResponseEntry } from "@/components/ApiResponsesModal/helpers"
 
 /** Props for ApiResponsesModal. */
@@ -17,28 +17,10 @@ interface ApiResponsesModalProps {
  * @returns The modal.
  */
 export default function ApiResponsesModal({ modId, onClose }: ApiResponsesModalProps) {
-    const [entries, setEntries] = useState<ApiResponseEntry[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const { data, isPending, error } = useQuery({
+        queryKey: ["chrono_ark", "api-responses", modId],
+        queryFn: () => fetchJson<ApiLogEntry[]>(gameApi("chrono_ark").url(`/mods/${modId}/api-responses`)),
+    })
 
-    useEffect(() => {
-        let cancelled = false
-        ;(async () => {
-            try {
-                const res = await gameApi("chrono_ark").get(`/mods/${modId}/api-responses`)
-                if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                const data: ApiLogEntry[] = await res.json()
-                if (!cancelled) setEntries(data.map(toApiResponseEntry))
-            } catch (err) {
-                if (!cancelled) setError((err as Error).message)
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
-        })()
-        return () => {
-            cancelled = true
-        }
-    }, [modId])
-
-    return <SharedApiResponsesModal entries={entries} loading={loading} error={error} onClose={onClose} />
+    return <SharedApiResponsesModal entries={(data ?? []).map(toApiResponseEntry)} loading={isPending} error={error?.message ?? null} onClose={onClose} />
 }

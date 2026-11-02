@@ -14,6 +14,6 @@ const COLUMNS: GlossaryColumn[] = [
  *
  * @returns The glossary page.
  */
-const GlossaryPage: React.FC = () => <GlossaryBrowser load={fetchBaseGlossary} englishWidth={260} categoryWidth={140} columns={COLUMNS} />
+const GlossaryPage: React.FC = () => <GlossaryBrowser gameId="total_war_warhammer_3" load={fetchBaseGlossary} englishWidth={260} categoryWidth={140} columns={COLUMNS} />
 
 export default GlossaryPage

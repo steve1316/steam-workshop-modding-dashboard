@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen } from "@/testUtils"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -16,7 +16,7 @@ const COLUMNS: GlossaryColumn[] = [{ header: "Chinese", className: "cell-dim", r
 
 describe("GlossaryBrowser", () => {
     it("shows the loading state, then the term count, a pill per category and the table", async () => {
-        render(<GlossaryBrowser load={() => Promise.resolve(GLOSSARY)} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
+        render(<GlossaryBrowser gameId="test_game" load={() => Promise.resolve(GLOSSARY)} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
         expect(screen.getByText("Loading glossary...")).toBeInTheDocument()
         expect(await screen.findByText("2 base game terms across 2 categories")).toBeInTheDocument()
         expect(screen.getByRole("heading", { level: 1, name: "Terminology Glossary" })).toBeInTheDocument()
@@ -26,7 +26,7 @@ describe("GlossaryBrowser", () => {
     })
 
     it("marks the active category as a game-accent filter pill", async () => {
-        render(<GlossaryBrowser load={() => Promise.resolve(GLOSSARY)} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
+        render(<GlossaryBrowser gameId="test_game" load={() => Promise.resolve(GLOSSARY)} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
         await userEvent.click(await screen.findByRole("button", { name: "regions" }))
         expect(screen.getByRole("button", { name: "regions" })).toHaveClass("filter-pill", "btn-primary")
         expect(screen.getByRole("button", { name: "All" })).toHaveClass("filter-pill", "btn-outline")
@@ -34,7 +34,7 @@ describe("GlossaryBrowser", () => {
     })
 
     it("says no terms match when search and category leave nothing, and clearing the search brings rows back", async () => {
-        render(<GlossaryBrowser load={() => Promise.resolve(GLOSSARY)} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
+        render(<GlossaryBrowser gameId="test_game" load={() => Promise.resolve(GLOSSARY)} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
         await userEvent.click(await screen.findByRole("button", { name: "regions" }))
         await userEvent.type(screen.getByPlaceholderText("Search terms..."), "armour")
         expect(screen.getByText("No matching terms found.")).toBeInTheDocument()
@@ -44,7 +44,7 @@ describe("GlossaryBrowser", () => {
 
     it("shows an error with Retry when the glossary fails to load, and Retry loads it", async () => {
         const load = vi.fn<() => Promise<Glossary>>().mockRejectedValueOnce(new Error("HTTP 500")).mockResolvedValue(GLOSSARY)
-        render(<GlossaryBrowser load={load} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
+        render(<GlossaryBrowser gameId="test_game" load={load} englishWidth={200} categoryWidth={120} columns={COLUMNS} />)
         expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the glossary")
         expect(screen.queryByText(/base game terms/)).not.toBeInTheDocument()
         await userEvent.click(screen.getByRole("button", { name: "Retry" }))

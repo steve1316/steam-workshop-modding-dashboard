@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor } from "@/testUtils"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -101,8 +101,7 @@ describe("SupportedMods page", () => {
             new Response(JSON.stringify({ mods: [{ name: "Mod A", package_name: "mod_a", path: "/fake/a.pack", modified_attributes: [] }] }), { status: 200 })
         )
         render(withRouter(<SupportedModsPage />))
-        await waitFor(() => expect(screen.getByText("Mod A")).toBeInTheDocument())
-        expect(screen.getByLabelText(/1 validation issue/)).toBeInTheDocument()
+        expect(await screen.findByLabelText(/1 validation issue/)).toBeInTheDocument()
     })
 
     it("renders the validation panel above the grid when useValidation reports issues", async () => {

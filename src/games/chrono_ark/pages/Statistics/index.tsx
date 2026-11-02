@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react"
+import React from "react"
+import { useQuery } from "@tanstack/react-query"
 
-import { API_BASE } from "@/lib/api"
+import { API_BASE, fetchJson } from "@/lib/api"
 import type { Stats } from "@/games/chrono_ark/lib/types"
 import ErrorState from "@/components/ui/ErrorState"
 import LoadingState from "@/components/ui/LoadingState"
@@ -12,35 +13,11 @@ import PageHeader from "@/components/ui/PageHeader"
  * @returns The statistics page, its loading state, or an error with Retry.
  */
 const StatisticsPage: React.FC = () => {
-    const [stats, setStats] = useState<Stats | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [attempt, setAttempt] = useState(0)
+    const { data: stats, error, isFetching, refetch } = useQuery({ queryKey: ["stats"], queryFn: () => fetchJson<Stats>(`${API_BASE}/stats`) })
 
-    useEffect(() => {
-        let cancelled = false
-        fetch(`${API_BASE}/stats`)
-            .then((res) => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                return res.json()
-            })
-            .then((data: Stats) => {
-                if (!cancelled) setStats(data)
-            })
-            .catch((err: unknown) => {
-                if (!cancelled) setError(err instanceof Error ? err.message : String(err))
-            })
-        return () => {
-            cancelled = true
-        }
-    }, [attempt])
-
-    /** Clear the error, which brings the loading state back, and load again. */
-    const retry = () => {
-        setError(null)
-        setAttempt((n) => n + 1)
-    }
-
-    if (error) return <ErrorState title="Could not load statistics" message={`${error}. Check that the backend is running, then retry.`} action={{ label: "Retry", onClick: retry }} />
+    // While Retry is in flight the loading state shows instead of the old error.
+    if (error && !isFetching)
+        return <ErrorState title="Could not load statistics" message={`${error.message}. Check that the backend is running, then retry.`} action={{ label: "Retry", onClick: () => refetch() }} />
     if (!stats) return <LoadingState message="Loading statistics..." />
 
     return (

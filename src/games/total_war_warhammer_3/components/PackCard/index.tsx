@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { FaSteam, FaFolderOpen } from "react-icons/fa"
 import WorkshopCard from "@/components/Dashboard/WorkshopCard"
-import { API_BASE } from "@/lib/api"
+import { API_BASE, fetchJson } from "@/lib/api"
 import HighlightText from "@/components/ui/HighlightText"
 import PublishWorkshopDialog from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 import ScriptRunButton from "@/games/total_war_warhammer_3/components/ScriptRunButton"
@@ -50,26 +51,16 @@ interface PackCardProps {
  */
 const PackCardComponent = ({ pack, searchQuery = "" }: PackCardProps) => {
     const [publishOpen, setPublishOpen] = useState(false)
-    const [lastModifiedUnix, setLastModifiedUnix] = useState<number | null>(null)
-    const [publishedUnix, setPublishedUnix] = useState<number | null>(null)
     const previewImageUrl = `${API_BASE}/games/total_war_warhammer_3/packs/${pack.workshopId}/preview`
     const workshopUrl = `https://steamcommunity.com/sharedfiles/filedetails/?id=${pack.workshopId}`
 
-    useEffect(() => {
-        let cancelled = false
-        fetch(`${API_BASE}/games/total_war_warhammer_3/packs/${pack.workshopId}/last_modified`)
-            .then((res) => (res.ok ? res.json() : null))
-            .then((body) => {
-                if (cancelled || body == null) return
-                const ts = body.last_modified_unix
-                if (typeof ts === "number") setLastModifiedUnix(ts)
-                if (typeof body.published_unix === "number") setPublishedUnix(body.published_unix)
-            })
-            .catch(() => {})
-        return () => {
-            cancelled = true
-        }
-    }, [pack.workshopId])
+    // A failed lookup just leaves the subtitle off.
+    const { data: times } = useQuery({
+        queryKey: ["total_war_warhammer_3", "pack-times", pack.workshopId],
+        queryFn: () => fetchJson<{ last_modified_unix?: number | null; published_unix?: number | null }>(`${API_BASE}/games/total_war_warhammer_3/packs/${pack.workshopId}/last_modified`),
+    })
+    const lastModifiedUnix = typeof times?.last_modified_unix === "number" ? times.last_modified_unix : null
+    const publishedUnix = typeof times?.published_unix === "number" ? times.published_unix : null
 
     const subtitle =
         lastModifiedUnix !== null || publishedUnix !== null ? (

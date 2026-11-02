@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useMemo, useState, type ReactNode } from "react"
+import { useQuery } from "@tanstack/react-query"
 
 import type { Glossary, GlossaryTerm } from "@/lib/types"
 import ErrorState from "@/components/ui/ErrorState"
@@ -21,7 +22,9 @@ export interface GlossaryColumn {
 
 /** Props for GlossaryBrowser. */
 interface GlossaryBrowserProps {
-    /** Called on open and on Retry. Must be a stable (module-level) function, since it is an effect dependency. */
+    /** Keys the cached glossary, so each game's stays separate. */
+    gameId: string
+    /** Called on open and on Retry. */
     load: () => Promise<Glossary>
     /** Pixels. */
     englishWidth: number
@@ -33,44 +36,25 @@ interface GlossaryBrowserProps {
 /**
  * Base-game glossary page shared by both games: counts, search with category pills, and a table of English Term, Category and game-specific columns.
  *
+ * @param gameId Game the glossary belongs to.
  * @param load Glossary loader.
  * @param englishWidth English Term column width.
  * @param categoryWidth Category column width.
  * @param columns Game-specific columns.
  * @returns The glossary page.
  */
-export default function GlossaryBrowser({ load, englishWidth, categoryWidth, columns }: GlossaryBrowserProps) {
-    const [glossary, setGlossary] = useState<Glossary | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [attempt, setAttempt] = useState(0)
+export default function GlossaryBrowser({ gameId, load, englishWidth, categoryWidth, columns }: GlossaryBrowserProps) {
+    const { data: glossary, error, isFetching, refetch } = useQuery({ queryKey: [gameId, "base-glossary"], queryFn: load })
     const [search, setSearch] = useState("")
     const [categoryFilter, setCategoryFilter] = useState("all")
-
-    useEffect(() => {
-        let cancelled = false
-        load()
-            .then((data) => {
-                if (!cancelled) setGlossary(data)
-            })
-            .catch((err: unknown) => {
-                if (!cancelled) setError(err instanceof Error ? err.message : String(err))
-            })
-        return () => {
-            cancelled = true
-        }
-    }, [load, attempt])
 
     const terms = useMemo(() => glossary?.terms ?? {}, [glossary])
     const categories = useMemo(() => extractCategories(terms), [terms])
     const filteredTerms = useMemo(() => filterGlossaryTerms(terms, search, categoryFilter), [terms, search, categoryFilter])
 
-    /** Clear the error, which brings back the loading state, and load again. */
-    const retry = () => {
-        setError(null)
-        setAttempt((n) => n + 1)
-    }
-
-    if (error) return <ErrorState title="Could not load the glossary" message={`${error}. Check that the backend is running, then retry.`} action={{ label: "Retry", onClick: retry }} />
+    // While Retry is in flight the loading state shows instead of the old error.
+    if (error && !isFetching)
+        return <ErrorState title="Could not load the glossary" message={`${error.message}. Check that the backend is running, then retry.`} action={{ label: "Retry", onClick: () => refetch() }} />
     if (!glossary) return <LoadingState message="Loading glossary..." />
 
     return (

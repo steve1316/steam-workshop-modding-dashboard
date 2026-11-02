@@ -56,6 +56,6 @@ const COLUMNS: GlossaryColumn[] = [
  *
  * @returns The glossary page.
  */
-const GlossaryPage: React.FC = () => <GlossaryBrowser load={loadChronoArkGlossary} englishWidth={200} categoryWidth={120} columns={COLUMNS} />
+const GlossaryPage: React.FC = () => <GlossaryBrowser gameId="chrono_ark" load={loadChronoArkGlossary} englishWidth={200} categoryWidth={120} columns={COLUMNS} />
 
 export default GlossaryPage
