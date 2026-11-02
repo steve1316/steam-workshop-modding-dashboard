@@ -1,9 +1,8 @@
 import React, { useEffect, useId, useState } from "react"
-import { FaEye, FaEyeSlash, FaCheck, FaExclamationTriangle, FaChevronDown, FaChevronRight, FaDownload, FaPlay, FaStop, FaTimes } from "react-icons/fa"
-import { API_BASE, gameApi } from "@/lib/api"
+import { FaCheck, FaExclamationTriangle, FaChevronDown, FaChevronRight, FaDownload, FaPlay, FaStop } from "react-icons/fa"
+import { API_BASE } from "@/lib/api"
 import { readEventStream } from "@/lib/stream"
 import { listGames } from "@/games/registry"
-import { useActiveGame } from "@/context/ActiveGameContext"
 import ErrorState from "@/components/ui/ErrorState"
 import Banner from "@/components/ui/Banner"
 import DownloadProgress from "@/components/ui/DownloadProgress"
@@ -11,17 +10,10 @@ import Field from "@/components/ui/Field"
 import LoadingState from "@/components/ui/LoadingState"
 import PageHeader from "@/components/ui/PageHeader"
 import Panel from "@/components/ui/Panel"
-
-/** One progress event from the Ollama pull and llama.cpp download and install streams. */
-interface StreamProgress {
-    status: string
-    completed?: number
-    total?: number
-    file?: string
-    path?: string
-    binary_path?: string
-    message?: string
-}
+import ApiKeysPanel from "@/pages/Settings/ApiKeysPanel"
+import IgnoredModsPanel from "@/pages/Settings/IgnoredModsPanel"
+import SystemPromptPreview from "@/pages/Settings/SystemPromptPreview"
+import { GGUF_TIERS, PROVIDERS, VRAM_TIERS, type StreamProgress } from "@/pages/Settings/constants"
 
 /** Tracks user-entered API key values (empty string = no pending change). */
 interface KeyState {
@@ -29,74 +21,6 @@ interface KeyState {
     openai: string
     deepl: string
 }
-
-/** Available translation providers, mapping a backend provider id to its label, description, and API key field (`null` when no credentials are needed). */
-const PROVIDERS = [
-    { id: "claude", label: "Claude", description: "Anthropic", keyField: "anthropic" as const },
-    { id: "openai", label: "OpenAI", description: "OpenAI", keyField: "openai" as const },
-    { id: "deepl", label: "DeepL", description: "Neural Machine Translation", keyField: "deepl" as const },
-    { id: "ollama", label: "Ollama (Local)", description: "Free local AI — no API key needed", keyField: null },
-    { id: "llamacpp", label: "llama.cpp (Local)", description: "Direct llama-server connection", keyField: null },
-    { id: "manual", label: "Manual", description: "Translate by hand in the app", keyField: null },
-]
-
-/** VRAM tier to recommended Ollama model mapping. */
-const VRAM_TIERS = [
-    { tier: "4-6gb", label: "4-6 GB", model: "gemma3:4b", description: "Google multilingual small", size: "3.3 GB" },
-    { tier: "8gb", label: "8 GB", model: "qwen2.5:7b", description: "Alibaba, excellent CJK", size: "4.7 GB" },
-    { tier: "12gb", label: "12 GB", model: "qwen2.5:14b", description: "Larger Qwen, better quality", size: "9.0 GB" },
-    { tier: "16gb", label: "16 GB", model: "mistral-small:22b", description: "Strong reasoning", size: "13 GB" },
-    { tier: "24gb+", label: "24 GB+", model: "qwen2.5:32b", description: "Near-API quality", size: "20 GB" },
-]
-
-/** VRAM tier to recommended GGUF model mapping for llama.cpp. Single-file quantizations from bartowski. */
-const GGUF_TIERS = [
-    {
-        tier: "4-6gb",
-        label: "4-6 GB",
-        model: "Qwen2.5-3B-Instruct",
-        description: "Alibaba, fast CJK",
-        size: "1.8 GB",
-        filename: "Qwen2.5-3B-Instruct-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF/resolve/main/Qwen2.5-3B-Instruct-Q4_K_M.gguf",
-    },
-    {
-        tier: "8gb",
-        label: "8 GB",
-        model: "Qwen2.5-7B-Instruct",
-        description: "Alibaba, excellent CJK",
-        size: "4.4 GB",
-        filename: "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
-    },
-    {
-        tier: "12gb",
-        label: "12 GB",
-        model: "Qwen2.5-14B-Instruct",
-        description: "Larger Qwen, better quality",
-        size: "8.4 GB",
-        filename: "Qwen2.5-14B-Instruct-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen2.5-14B-Instruct-GGUF/resolve/main/Qwen2.5-14B-Instruct-Q4_K_M.gguf",
-    },
-    {
-        tier: "16gb",
-        label: "16 GB",
-        model: "Qwen2.5-14B-Instruct",
-        description: "Higher quality quantization",
-        size: "14.6 GB",
-        filename: "Qwen2.5-14B-Instruct-Q8_0.gguf",
-        url: "https://huggingface.co/bartowski/Qwen2.5-14B-Instruct-GGUF/resolve/main/Qwen2.5-14B-Instruct-Q8_0.gguf",
-    },
-    {
-        tier: "24gb+",
-        label: "24 GB+",
-        model: "Qwen2.5-32B-Instruct",
-        description: "Near-API quality",
-        size: "18.5 GB",
-        filename: "Qwen2.5-32B-Instruct-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/resolve/main/Qwen2.5-32B-Instruct-Q4_K_M.gguf",
-    },
-]
 
 /**
  * Read every registered game's settings fields out of a `/api/settings` response.
@@ -115,8 +39,6 @@ function pickGameValues(data: Record<string, unknown>): Record<string, string> {
  * @returns The settings page, its loading state, or an error with Retry.
  */
 const SettingsPage: React.FC = () => {
-    // The system prompt preview loads from the game shown in the sidebar.
-    const game = useActiveGame()
     // Prefixes every field id so each label can point at its control.
     const fieldId = useId()
     const [provider, setProvider] = useState("claude")
@@ -125,11 +47,6 @@ const SettingsPage: React.FC = () => {
     const [originalBatchSize, setOriginalBatchSize] = useState(100)
     const [apiKeys, setApiKeys] = useState<KeyState>({ anthropic: "", openai: "", deepl: "" })
     const [keyStatus, setKeyStatus] = useState<KeyState>({ anthropic: "", openai: "", deepl: "" })
-    const [keyVisible, setKeyVisible] = useState<{ anthropic: boolean; openai: boolean; deepl: boolean }>({
-        anthropic: false,
-        openai: false,
-        deepl: false,
-    })
     const [claudeModel, setClaudeModel] = useState("claude-sonnet-5")
     const [originalClaudeModel, setOriginalClaudeModel] = useState("claude-sonnet-5")
     const [openaiModel, setOpenaiModel] = useState("gpt-4.1")
@@ -149,7 +66,6 @@ const SettingsPage: React.FC = () => {
 
     const [ignoredMods, setIgnoredMods] = useState<string[]>([])
     const [originalIgnoredMods, setOriginalIgnoredMods] = useState<string[]>([])
-    const [newIgnoredMod, setNewIgnoredMod] = useState("")
 
     // Values for every game's `settingsPanel.keys`, edited by the panels the manifests supply.
     const [gameValues, setGameValues] = useState<Record<string, string>>({})
@@ -199,10 +115,6 @@ const SettingsPage: React.FC = () => {
     const [llamacppInstalled, setLlamacppInstalled] = useState(false)
     const [llamacppInstalling, setLlamacppInstalling] = useState(false)
     const [llamacppInstallProgress, setLlamacppInstallProgress] = useState<StreamProgress | null>(null)
-
-    const [systemPrompt, setSystemPrompt] = useState("")
-    const [promptSourceLang, setPromptSourceLang] = useState("Chinese")
-    const [promptLoading, setPromptLoading] = useState(false)
 
     const isChanged =
         provider !== originalProvider ||
@@ -666,47 +578,7 @@ const SettingsPage: React.FC = () => {
         <div className="settings-view">
             <PageHeader title="Settings" meta={<p>API Keys and Provider Configuration</p>} />
 
-            <Panel
-                className="settings-panel"
-                title="System Prompt Preview"
-                help={`View the system prompt sent for ${game.displayName} translations. Uses that game's base glossary and translation settings.`}
-            >
-                <div className="settings-inline-row">
-                    <label className="field-label" htmlFor={`${fieldId}-prompt-lang`}>
-                        Source Language
-                    </label>
-                    <select id={`${fieldId}-prompt-lang`} value={promptSourceLang} onChange={(e) => setPromptSourceLang(e.target.value)} className="select select-auto">
-                        <option value="Chinese">Chinese</option>
-                        <option value="Korean">Korean</option>
-                        <option value="Japanese">Japanese</option>
-                    </select>
-                    <button
-                        className="btn btn-outline"
-                        onClick={async () => {
-                            // A loaded prompt turns the button into Unload, which closes it.
-                            if (systemPrompt) {
-                                setSystemPrompt("")
-                                return
-                            }
-                            setPromptLoading(true)
-                            try {
-                                const res = await gameApi(game.id).get(`/translate/system-prompt?source_lang=${encodeURIComponent(promptSourceLang)}`)
-                                const data = await res.json()
-                                setSystemPrompt(data.system_prompt || "")
-                            } catch (err) {
-                                console.error("Failed to fetch system prompt:", err)
-                                setSystemPrompt("Error fetching system prompt.")
-                            } finally {
-                                setPromptLoading(false)
-                            }
-                        }}
-                        disabled={promptLoading}
-                    >
-                        {promptLoading ? "Loading..." : systemPrompt ? "Unload Prompt" : "Load Prompt"}
-                    </button>
-                </div>
-                {systemPrompt && <pre className="code-block">{systemPrompt}</pre>}
-            </Panel>
+            <SystemPromptPreview fieldId={fieldId} />
 
             <Panel className="settings-panel" title="Translation Provider">
                 <div className="provider-cards">
@@ -1089,52 +961,7 @@ const SettingsPage: React.FC = () => {
             )}
 
             {provider !== "manual" && provider !== "ollama" && provider !== "llamacpp" && (
-                <Panel className="settings-panel" title="API Keys">
-                    {PROVIDERS.filter((p) => p.keyField !== null).map((p) => {
-                        const field = p.keyField!
-                        const isSelected = provider === p.id
-                        const status = keyStatus[field]
-                        const isConfigured = status !== ""
-
-                        return (
-                            <div key={field} className={`key-row${isSelected ? " selected" : ""}`}>
-                                <div className="key-row-header">
-                                    <label className="field-label" htmlFor={`${fieldId}-key-${field}`}>
-                                        {p.label} API Key
-                                    </label>
-                                    <span className={`key-status ${isConfigured ? "configured" : "missing"}`}>
-                                        {isConfigured ? (
-                                            <>
-                                                <FaCheck /> {status}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FaExclamationTriangle /> Not configured
-                                            </>
-                                        )}
-                                    </span>
-                                </div>
-                                <div className="key-input-wrapper">
-                                    <input
-                                        id={`${fieldId}-key-${field}`}
-                                        type={keyVisible[field] ? "text" : "password"}
-                                        value={apiKeys[field]}
-                                        onChange={(e) => setApiKeys((prev) => ({ ...prev, [field]: e.target.value }))}
-                                        placeholder={isConfigured ? "Enter new key to update..." : "Enter API key..."}
-                                    />
-                                    <button
-                                        className="key-toggle-btn"
-                                        onClick={() => setKeyVisible((prev) => ({ ...prev, [field]: !prev[field] }))}
-                                        title={keyVisible[field] ? "Hide" : "Show"}
-                                        type="button"
-                                    >
-                                        {keyVisible[field] ? <FaEyeSlash /> : <FaEye />}
-                                    </button>
-                                </div>
-                            </div>
-                        )
-                    })}
-                </Panel>
+                <ApiKeysPanel provider={provider} values={apiKeys} status={keyStatus} onChange={(field, value) => setApiKeys((prev) => ({ ...prev, [field]: value }))} fieldId={fieldId} />
             )}
 
             <Panel className="settings-panel" title="Batch Size" help="Number of strings sent per API request. Larger batches are more cost-efficient but may hit token limits.">
@@ -1152,52 +979,7 @@ const SettingsPage: React.FC = () => {
                 />
             </Panel>
 
-            <Panel
-                className="settings-panel"
-                title="Ignored Mods"
-                help="Workshop mod IDs listed here will be hidden from the dashboard. Useful for system mods, English-only mods, or mods you don't need to translate."
-            >
-                <div className="settings-inline-row">
-                    <input
-                        type="text"
-                        aria-label="Workshop mod ID"
-                        className="input"
-                        placeholder="Workshop mod ID"
-                        value={newIgnoredMod}
-                        onChange={(e) => setNewIgnoredMod(e.target.value.trim())}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && newIgnoredMod && !ignoredMods.includes(newIgnoredMod)) {
-                                setIgnoredMods([...ignoredMods, newIgnoredMod])
-                                setNewIgnoredMod("")
-                            }
-                        }}
-                    />
-                    <button
-                        className="btn btn-primary"
-                        disabled={!newIgnoredMod || ignoredMods.includes(newIgnoredMod)}
-                        onClick={() => {
-                            if (newIgnoredMod && !ignoredMods.includes(newIgnoredMod)) {
-                                setIgnoredMods([...ignoredMods, newIgnoredMod])
-                                setNewIgnoredMod("")
-                            }
-                        }}
-                    >
-                        Add
-                    </button>
-                </div>
-                {ignoredMods.length > 0 && (
-                    <div className="chip-list">
-                        {ignoredMods.map((id) => (
-                            <span key={id} className="chip">
-                                {id}
-                                <button type="button" className="chip-remove" aria-label={`Remove ${id}`} title="Remove" onClick={() => setIgnoredMods(ignoredMods.filter((m) => m !== id))}>
-                                    <FaTimes />
-                                </button>
-                            </span>
-                        ))}
-                    </div>
-                )}
-            </Panel>
+            <IgnoredModsPanel mods={ignoredMods} onChange={setIgnoredMods} />
 
             {listGames().map((game) => {
                 const slot = game.settingsPanel
