@@ -76,6 +76,21 @@ class ProgressTracker:
         write_json(path, snapshot)
 
     @staticmethod
+    def _counted(snapshot: dict, keys: set[str]) -> set[str]:
+        """Keep only the keys that count toward the snapshot's `total_keys`.
+
+        Args:
+            snapshot: Snapshot dict.
+            keys: Keys to filter.
+
+        Returns:
+            The keys that are tracked and not excluded, or `keys` unchanged if no scan has run yet.
+        """
+        if "hashes" not in snapshot:
+            return keys
+        return (keys & snapshot["hashes"].keys()) - set(snapshot.get("excluded", []))
+
+    @staticmethod
     def _hash_source_text(loc_string: LocString, source_languages: list[str]) -> str:
         """Hash the source language text of a localization string.
 
@@ -164,6 +179,7 @@ class ProgressTracker:
         new_snapshot = {
             "hashes": new_hashes,
             "translated": sorted((old_translated & current_keys) - excluded_keys),
+            "excluded": sorted(excluded_keys),
             "last_updated": datetime.now(UTC).isoformat(),
             "total_keys": len(current_keys) - len(excluded_keys),
         }
@@ -179,7 +195,8 @@ class ProgressTracker:
             keys: Every currently translated key.
         """
         snapshot = self._load_snapshot(mod_id)
-        snapshot["translated"] = sorted(keys)
+        # Excluded keys (e.g. hardcoded DLL text) can still hold saved translations, but counting them pushes progress past 100%.
+        snapshot["translated"] = sorted(self._counted(snapshot, set(keys)))
         self._save_snapshot(mod_id, snapshot)
 
     def mark_translated(self, mod_id: str, keys: list[str]) -> None:
@@ -191,7 +208,7 @@ class ProgressTracker:
         """
         snapshot = self._load_snapshot(mod_id)
         translated = set(snapshot.get("translated", []))
-        translated.update(keys)
+        translated.update(self._counted(snapshot, set(keys)))
         snapshot["translated"] = sorted(translated)
         self._save_snapshot(mod_id, snapshot)
 
