@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen } from "@/testUtils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import ErrorBoundary from "@/components/ui/ErrorBoundary"

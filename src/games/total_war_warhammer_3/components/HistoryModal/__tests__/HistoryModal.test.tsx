@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@/testUtils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import HistoryModal from "@/games/total_war_warhammer_3/components/HistoryModal"

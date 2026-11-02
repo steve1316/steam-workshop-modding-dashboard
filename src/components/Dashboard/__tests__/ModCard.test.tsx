@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen } from "@/testUtils"
 import { MemoryRouter } from "react-router-dom"
 import userEvent from "@testing-library/user-event"
 import ModCard, { NeedsSyncBadge } from "@/components/Dashboard/ModCard"

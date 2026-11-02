@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@/testUtils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import ApiResponsesModal from "@/games/total_war_warhammer_3/components/ApiResponsesModal"

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@/testUtils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import PublishWorkshopDialog from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"

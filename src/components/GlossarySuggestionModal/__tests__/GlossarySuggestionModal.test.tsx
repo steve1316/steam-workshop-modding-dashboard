@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@/testUtils"
 import GlossarySuggestionModal from "@/components/GlossarySuggestionModal"
 import type { TermSuggestion } from "@/lib/types"
 

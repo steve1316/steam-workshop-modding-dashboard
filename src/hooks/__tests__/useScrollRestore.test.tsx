@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react"
+import { render, waitFor } from "@/testUtils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { rememberScrollTarget, useScrollRestore } from "@/hooks/useScrollRestore"

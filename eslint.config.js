@@ -20,4 +20,9 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Fast refresh never reloads test code.
+    files: ['**/__tests__/**', 'src/testUtils.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])

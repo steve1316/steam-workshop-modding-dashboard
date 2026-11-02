@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react"
+import { act, renderHook, waitFor } from "@/testUtils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { usePendingSuggestions } from "@/hooks/usePendingSuggestions"

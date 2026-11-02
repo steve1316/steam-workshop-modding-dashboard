@@ -34,6 +34,19 @@ export function gameApi(gameId: string) {
     }
 }
 
+/**
+ * Fetch a URL and parse its JSON body.
+ *
+ * @param url Absolute URL.
+ * @param init Fetch options.
+ * @returns The parsed body. A non-2xx status throws `HTTP <status>`.
+ */
+export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+    const res = await fetch(url, init)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+}
+
 export async function fetchGames(): Promise<GameMetadata[]> {
     const res = await fetch(`${API_BASE}/games`)
     if (!res.ok) throw new Error(`Failed to load games: ${res.status}`)

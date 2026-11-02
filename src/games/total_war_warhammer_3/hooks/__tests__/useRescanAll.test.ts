@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react"
+import { act, renderHook } from "@/testUtils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { useRescanAll } from "@/games/total_war_warhammer_3/hooks/useRescanAll"

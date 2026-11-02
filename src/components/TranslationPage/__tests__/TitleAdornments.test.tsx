@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen } from "@/testUtils"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 

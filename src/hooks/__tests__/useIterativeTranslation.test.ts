@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from "@testing-library/react"
+import { renderHook, act, waitFor } from "@/testUtils"
 import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"
 

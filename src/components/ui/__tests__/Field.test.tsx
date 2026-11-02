@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen } from "@/testUtils"
 import { describe, expect, it } from "vitest"
 
 import Field from "@/components/ui/Field"

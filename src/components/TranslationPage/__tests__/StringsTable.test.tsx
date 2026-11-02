@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent } from "@/testUtils"
 import { StringsTable } from "@/components/TranslationPage/StringsTable"
 import type { ColumnDef } from "@/components/TranslationPage/types"
 

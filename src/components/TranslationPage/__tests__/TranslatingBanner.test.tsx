@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent } from "@/testUtils"
 import { TranslatingBanner } from "@/components/TranslationPage/TranslatingBanner"
 
 describe("TranslatingBanner", () => {

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@/testUtils"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import ChronoArkGlossaryModal from "@/games/chrono_ark/components/ChronoArkGlossaryModal"
