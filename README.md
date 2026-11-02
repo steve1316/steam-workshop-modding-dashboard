@@ -377,7 +377,7 @@ Game-specific settings, such as game install paths and toolkit locations, are li
 
 - **Node.js** (v18+) and **Yarn**
 - **Python 3.12+**
-- At least one supported game installed through Steam, plus that game's own prerequisites from its [Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki)
+- At least one supported game installed through Steam. Its [Wiki page](https://github.com/steve1316/steam-workshop-modding-dashboard/wiki) lists the paths and tools it needs under Settings.
 
 ### Installation
 
