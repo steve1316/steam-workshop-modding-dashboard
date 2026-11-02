@@ -1,7 +1,7 @@
 import React from "react"
 import ModCard, { NeedsSyncBadge, type ModCardProgressSegment } from "@/components/Dashboard/ModCard"
 import { API_BASE } from "@/lib/config"
-import { highlightMatch } from "@/lib/text"
+import HighlightText from "@/components/ui/HighlightText"
 import type { ModStatus } from "@/lib/types"
 
 /** Props for {@link ModGrid}. */
@@ -46,9 +46,13 @@ const ModGrid: React.FC<ModGridProps> = ({ mods, onModSelect, onModSync, searchQ
                     <ModCard
                         key={mod.id}
                         id={mod.id}
-                        title={highlightMatch(mod.name, searchQuery)}
+                        title={<HighlightText text={mod.name} query={searchQuery} />}
                         idBadge={mod.id}
-                        subtitle={<>by {highlightMatch(mod.author || "Unknown", searchQuery)}</>}
+                        subtitle={
+                            <>
+                                by <HighlightText text={mod.author || "Unknown"} query={searchQuery} />
+                            </>
+                        }
                         previewImageUrl={mod.preview_image ? `${API_BASE}${mod.preview_image}` : null}
                         progress={{
                             leftLabel: `${mod.percentage}% Translated`,

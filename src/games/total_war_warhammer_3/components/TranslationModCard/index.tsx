@@ -5,7 +5,7 @@ import { useGameSlug } from "@/hooks/useGameSlug"
 import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat } from "@/components/Dashboard/ModCard"
 import { API_BASE } from "@/lib/config"
 import { rememberScrollTarget } from "@/hooks/useScrollRestore"
-import { highlightMatch } from "@/lib/text"
+import HighlightText from "@/components/ui/HighlightText"
 import type { WH3RescanSummary, WH3TranslationModSummary } from "@/lib/types"
 import { syncChanges } from "@/games/total_war_warhammer_3/lib/translationApi"
 import PublishWorkshopDialog, { type PublishPrepareStep } from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
@@ -90,7 +90,7 @@ const TranslationModCard: React.FC<TranslationModCardProps> = ({ mod, progress, 
         <>
             <ModCard
                 id={mod.workshop_id}
-                title={highlightMatch(mod.display_name, searchQuery)}
+                title={<HighlightText text={mod.display_name} query={searchQuery} />}
                 idBadge={mod.workshop_id}
                 subtitle={
                     singleParent ? (

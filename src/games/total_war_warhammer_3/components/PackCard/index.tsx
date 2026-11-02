@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { FaSteam, FaFolderOpen } from "react-icons/fa"
 import WorkshopCard from "@/components/Dashboard/WorkshopCard"
 import { API_BASE } from "@/lib/config"
-import { highlightMatch } from "@/lib/text"
+import HighlightText from "@/components/ui/HighlightText"
 import PublishWorkshopDialog from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 import ScriptRunButton from "@/games/total_war_warhammer_3/components/ScriptRunButton"
 
@@ -82,7 +82,7 @@ const PackCardComponent = ({ pack, searchQuery = "" }: PackCardProps) => {
 
     return (
         <>
-            <WorkshopCard previewImageUrl={previewImageUrl} previewAlt={pack.title} title={highlightMatch(pack.title, searchQuery)} idBadge={pack.workshopId} subtitle={subtitle}>
+            <WorkshopCard previewImageUrl={previewImageUrl} previewAlt={pack.title} title={<HighlightText text={pack.title} query={searchQuery} />} idBadge={pack.workshopId} subtitle={subtitle}>
                 <div className="mod-card-footer">
                     {pack.sharedNote && <p style={{ fontSize: "0.85em", color: "var(--text-dim)", margin: 0 }}>{pack.sharedNote}</p>}
                     <div className="mod-actions" style={{ flexWrap: "nowrap", gap: "0.5rem" }}>
