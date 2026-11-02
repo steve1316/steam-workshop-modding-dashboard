@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import { getCurrentRun } from "@/games/total_war_warhammer_3/lib/registryApi"
 import { type RunState } from "@/games/total_war_warhammer_3/lib/types"
 
 const INTERVAL_MS = 2000
 
 let currentState: RunState = { status: "idle" }
-const subscribers = new Set<(s: RunState) => void>()
+const listeners = new Set<() => void>()
 let intervalId: number | null = null
 
 const tick = async () => {
@@ -14,7 +14,7 @@ const tick = async () => {
     } catch {
         currentState = { status: "idle" }
     }
-    subscribers.forEach((cb) => cb(currentState))
+    listeners.forEach((listener) => listener())
     if (currentState.status === "idle") stopPolling()
 }
 
@@ -30,6 +30,21 @@ const stopPolling = () => {
     intervalId = null
 }
 
+/**
+ * Register a listener for run-state changes. The first listener starts the poll and the last one to leave stops it.
+ *
+ * @param listener Called after every poll.
+ * @returns The unsubscribe function.
+ */
+function subscribe(listener: () => void): () => void {
+    listeners.add(listener)
+    if (listeners.size === 1) startPolling()
+    return () => {
+        listeners.delete(listener)
+        if (listeners.size === 0) stopPolling()
+    }
+}
+
 /** Resume polling immediately. Call after a run is launched so the next state change is observed. */
 export function kickPoll() {
     startPolling()
@@ -41,25 +56,12 @@ export function kickPoll() {
  * @returns The run state, idle until the first poll completes.
  */
 export function useCurrentRun(): RunState {
-    const [state, setState] = useState<RunState>(currentState)
-
-    useEffect(() => {
-        subscribers.add(setState)
-        if (subscribers.size === 1) startPolling()
-        // Avoid waiting up to INTERVAL_MS for the first update.
-        setState(currentState)
-        return () => {
-            subscribers.delete(setState)
-            if (subscribers.size === 0) stopPolling()
-        }
-    }, [])
-
-    return state
+    return useSyncExternalStore(subscribe, () => currentState)
 }
 
 /** Test-only: reset the module singleton between tests. */
 export function _resetUseCurrentRunForTests() {
     stopPolling()
-    subscribers.clear()
+    listeners.clear()
     currentState = { status: "idle" }
 }

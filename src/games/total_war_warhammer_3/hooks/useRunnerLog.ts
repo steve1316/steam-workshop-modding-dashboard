@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 /** An entry shown in the Runner terminal. */
 export type LogEntry =
@@ -16,10 +16,21 @@ export type LogEntry =
 export const MAX_LINES = 5000
 
 let _lines: LogEntry[] = []
-const subscribers = new Set<(lines: LogEntry[]) => void>()
+const listeners = new Set<() => void>()
 
 function notify() {
-    for (const sub of subscribers) sub(_lines)
+    for (const listener of listeners) listener()
+}
+
+/**
+ * Register a listener for log changes.
+ *
+ * @param listener Called after every change.
+ * @returns The unsubscribe function.
+ */
+function subscribe(listener: () => void): () => void {
+    listeners.add(listener)
+    return () => listeners.delete(listener)
 }
 
 /**
@@ -44,19 +55,11 @@ export function clearLog() {
  * @returns The current entries.
  */
 export function useRunnerLog(): LogEntry[] {
-    const [state, setState] = useState<LogEntry[]>(_lines)
-    useEffect(() => {
-        subscribers.add(setState)
-        setState(_lines)
-        return () => {
-            subscribers.delete(setState)
-        }
-    }, [])
-    return state
+    return useSyncExternalStore(subscribe, () => _lines)
 }
 
 /** Test-only: reset the module singleton between tests. */
 export function _resetUseRunnerLogForTests() {
     _lines = []
-    subscribers.clear()
+    listeners.clear()
 }

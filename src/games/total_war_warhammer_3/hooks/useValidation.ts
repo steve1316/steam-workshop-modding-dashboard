@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import { fetchValidation, RegistryError } from "@/games/total_war_warhammer_3/lib/registryApi"
 import { type ValidationIssue } from "@/games/total_war_warhammer_3/lib/types"
 
 const INTERVAL_MS = 5000
 
-let latestIssues: ValidationIssue[] | null = null
-let latestError: RegistryError | null = null
-let intervalId: number | null = null
-
-/** Broadcast to every subscriber on each tick. */
+/** The shared poll result, replaced on each tick. */
 interface Snapshot {
     /** Null before the first successful fetch. */
     issues: ValidationIssue[] | null
@@ -16,28 +12,21 @@ interface Snapshot {
     error: RegistryError | null
 }
 
-const subscribers = new Set<(snap: Snapshot) => void>()
-
-const broadcast = () => {
-    const snap: Snapshot = { issues: latestIssues, error: latestError }
-    subscribers.forEach((cb) => cb(snap))
-}
+const EMPTY: Snapshot = { issues: null, error: null }
+let snapshot: Snapshot = EMPTY
+let intervalId: number | null = null
+const listeners = new Set<() => void>()
 
 const tick = async (): Promise<void> => {
     try {
-        latestIssues = await fetchValidation()
-        latestError = null
+        snapshot = { issues: await fetchValidation(), error: null }
     } catch (err) {
-        if (err instanceof RegistryError) {
-            latestError = err
-        } else {
-            // Wrap non-registry errors so the UI leaves loading state and can show a banner.
-            const detail = err instanceof Error ? err.message : "Unknown error during validation fetch"
-            latestError = new RegistryError(0, detail, null)
-        }
-        // Keep latestIssues on failure so the UI shows its last good data.
+        // Wrap non-registry errors so the UI leaves loading state and can show a banner.
+        const error = err instanceof RegistryError ? err : new RegistryError(0, err instanceof Error ? err.message : "Unknown error during validation fetch", null)
+        // Keep the issues on failure so the UI shows its last good data.
+        snapshot = { issues: snapshot.issues, error }
     }
-    broadcast()
+    listeners.forEach((listener) => listener())
 }
 
 const startPolling = () => {
@@ -50,6 +39,21 @@ const stopPolling = () => {
     if (intervalId === null) return
     window.clearInterval(intervalId)
     intervalId = null
+}
+
+/**
+ * Register a listener for poll results. The first listener starts the poll and the last one to leave stops it.
+ *
+ * @param listener Called after every poll.
+ * @returns The unsubscribe function.
+ */
+function subscribe(listener: () => void): () => void {
+    listeners.add(listener)
+    if (listeners.size === 1) startPolling()
+    return () => {
+        listeners.delete(listener)
+        if (listeners.size === 0) stopPolling()
+    }
 }
 
 /** Return shape of `useValidation`. */
@@ -70,18 +74,7 @@ interface UseValidationResult {
  * @returns The issues, loading flag, error, and a `refresh` callback.
  */
 export function useValidation(): UseValidationResult {
-    const [snap, setSnap] = useState<Snapshot>({ issues: latestIssues, error: latestError })
-
-    useEffect(() => {
-        subscribers.add(setSnap)
-        if (subscribers.size === 1) startPolling()
-        // Avoid waiting up to INTERVAL_MS for the first update.
-        setSnap({ issues: latestIssues, error: latestError })
-        return () => {
-            subscribers.delete(setSnap)
-            if (subscribers.size === 0) stopPolling()
-        }
-    }, [])
+    const snap = useSyncExternalStore(subscribe, () => snapshot)
 
     return {
         issues: snap.issues,
@@ -94,7 +87,6 @@ export function useValidation(): UseValidationResult {
 /** Test-only: reset the module singleton between tests. */
 export function _resetUseValidationForTests() {
     stopPolling()
-    subscribers.clear()
-    latestIssues = null
-    latestError = null
+    listeners.clear()
+    snapshot = EMPTY
 }
