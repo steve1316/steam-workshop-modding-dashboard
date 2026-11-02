@@ -55,17 +55,6 @@ export type LocString = {
     untranslatable_reason: string
 }
 
-/** Aggregated translation statistics across all mods, shown on the Statistics page. */
-export type Stats = {
-    tm_entries: number
-    /** Cumulative translation memory matches applied. */
-    tm_hits: number
-    total_mods: number
-    /** 0-100. */
-    global_progress: number
-    total_strings: number
-}
-
 /** Full detail payload for a single mod, returned when the user opens it for editing. */
 export type ModDetail = {
     id: string

@@ -5,11 +5,8 @@ from fastapi.responses import JSONResponse
 
 from backend.core.env_file import update_env_file
 from backend.core.settings import settings
-from backend.games.chrono_ark import GAME_ID
 from backend.games.registry import list_games as registry_list_games
 from backend.models.api import IgnoredModInfo, SettingsResponse, SettingsUpdate
-from backend.persistence.progress_tracker import ProgressTracker
-from backend.persistence.translation_memory import TranslationMemory
 from backend.process_manager import is_managed
 from backend.routes.helpers import _find_mod_preview_image, _mask_key, chrono_ark_adapter, current_adapter, set_active_game
 
@@ -245,33 +242,3 @@ def get_provider_models(provider_id: str):
 
         return JSONResponse({"models": [{"id": k, **v} for k, v in OPENAI_MODELS.items()]})
     raise HTTPException(404, f"No model catalog for provider: {provider_id}")
-
-
-@router.get("/stats")
-def get_stats():
-    """Get global statistics for translation memory and progress.
-
-    Returns:
-        `tm_entries`, `tm_hits` (session cache hits), `total_mods`, `global_progress` (percent), and `total_strings`.
-    """
-    tm = TranslationMemory(game_id=GAME_ID)
-    stats = tm.get_stats()
-
-    tracker = ProgressTracker(game_id=GAME_ID)
-    mods = chrono_ark_adapter().scan_mods()
-
-    total_strings = 0
-    total_translated = 0
-
-    for mod in mods:
-        status = tracker.get_status(mod.mod_id)
-        total_strings += status["total"]
-        total_translated += status["translated"]
-
-    return {
-        "tm_entries": stats["total_entries"],
-        "tm_hits": stats["session_hits"],
-        "total_mods": len(mods),
-        "global_progress": round((total_translated / total_strings * 100), 2) if total_strings > 0 else 0,
-        "total_strings": total_strings,
-    }

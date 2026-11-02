@@ -1,29 +1,3 @@
-/* Stat tiles (src/games/chrono_ark/pages/Statistics) */
-.stat-tile {
-    padding: 2rem;
-    text-align: center;
-}
-
-.stat-tile-value {
-    font-size: 3rem;
-}
-
-.stat-tile-primary {
-    color: var(--accent-primary);
-}
-
-.stat-tile-secondary {
-    color: var(--accent-secondary);
-}
-
-.stat-tile-success {
-    color: var(--success);
-}
-
-.stat-tile-label {
-    color: var(--text-dim);
-}
-
 /* Manual translation dialog (src/games/chrono_ark/components/ManualTranslateModal) */
 .manual-progress {
     margin-bottom: 1.25rem;
