@@ -2,19 +2,16 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { API_BASE, fetchGames, type GameMetadata } from "@/lib/api"
 import { getBranding, slugForId } from "@/games/registry"
-
-interface GameSwitcherProps {
-    /** Marks the matching pill `aria-checked` and skips the POST when re-clicked. */
-    activeGameId: string
-}
+import { useActiveGame } from "@/context/ActiveGameContext"
 
 /**
  * Segmented toggle for switching between registered games. Navigates to the new game's dashboard at once, then saves `active_game` in the background.
  *
- * @param activeGameId Active game's id.
  * @returns The radiogroup of pills, or `null` while the games list loads.
  */
-const GameSwitcher = ({ activeGameId }: GameSwitcherProps) => {
+const GameSwitcher = () => {
+    // Marks the matching pill `aria-checked` and skips the POST when re-clicked.
+    const activeGameId = useActiveGame().id
     const [games, setGames] = useState<GameMetadata[]>([])
     const navigate = useNavigate()
     const pillRefs = useRef<Record<string, HTMLButtonElement | null>>({})

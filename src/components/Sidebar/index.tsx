@@ -2,43 +2,33 @@ import React from "react"
 import { NavLink } from "react-router-dom"
 import { FaCog } from "react-icons/fa"
 import GameSwitcher from "@/components/GameSwitcher"
-import { getBranding, getGame, slugForId } from "@/games/registry"
-
-interface SidebarProps {
-    activeGameId: string
-}
+import { useActiveGame } from "@/context/ActiveGameContext"
 
 /**
  * Persistent sidebar: the `GameSwitcher`, an active-game header, the active game's manifest nav entries, and the cross-game Settings link.
  *
- * @param activeGameId Active game's id, used to look up the manifest and branding.
  * @returns The sidebar.
  */
-const Sidebar: React.FC<SidebarProps> = ({ activeGameId }) => {
-    const game = getGame(activeGameId)
-    const slug = slugForId(activeGameId) ?? activeGameId
-    const branding = getBranding(activeGameId)
-    const hasBranding = branding.subtitle.length > 0
-    const titleStyle: React.CSSProperties = hasBranding
-        ? {
-              backgroundImage: branding.gradient,
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              color: "transparent",
-          }
-        : {}
-    const displayName = game?.displayName ?? activeGameId
+const Sidebar: React.FC = () => {
+    const game = useActiveGame()
+    const { branding } = game
+    const titleStyle: React.CSSProperties = {
+        backgroundImage: branding.gradient,
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+        color: "transparent",
+    }
 
     return (
         <div className="sidebar">
-            <GameSwitcher activeGameId={activeGameId} />
+            <GameSwitcher />
 
             <div className="sidebar__game-header">
                 <div data-testid="sidebar-game-title" className="sidebar__game-title" style={titleStyle}>
-                    {displayName}
+                    {game.displayName}
                 </div>
-                {hasBranding && (
+                {branding.subtitle && (
                     <div data-testid="sidebar-game-subtitle" className="sidebar__game-subtitle">
                         {branding.subtitle}
                     </div>
@@ -47,10 +37,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeGameId }) => {
             </div>
 
             <nav style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.5rem" }}>
-                {game?.nav.map((entry) => (
+                {game.nav.map((entry) => (
                     <NavLink
                         key={entry.to}
-                        to={`/${slug}${entry.to}`}
+                        to={`/${game.slug}${entry.to}`}
                         className={({ isActive }) => `nav-link btn-outline ${isActive ? "active" : ""}`}
                         style={{ border: "none", textAlign: "left", width: "100%", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.75rem" }}
                     >

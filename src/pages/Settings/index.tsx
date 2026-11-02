@@ -2,7 +2,8 @@ import React, { useEffect, useId, useState } from "react"
 import { FaEye, FaEyeSlash, FaCheck, FaExclamationTriangle, FaChevronDown, FaChevronRight, FaDownload, FaPlay, FaStop, FaTimes } from "react-icons/fa"
 import { API_BASE, gameApi } from "@/lib/api"
 import { readEventStream } from "@/lib/stream"
-import { getGame, listGames } from "@/games/registry"
+import { listGames } from "@/games/registry"
+import { useActiveGame } from "@/context/ActiveGameContext"
 import ErrorState from "@/components/ui/ErrorState"
 import Banner from "@/components/ui/Banner"
 import DownloadProgress from "@/components/ui/DownloadProgress"
@@ -97,12 +98,6 @@ const GGUF_TIERS = [
     },
 ]
 
-/** Props for SettingsPage. */
-interface SettingsPageProps {
-    /** Game shown in the sidebar. The system prompt preview loads from its backend. */
-    gameId: string
-}
-
 /**
  * Read every registered game's settings fields out of a `/api/settings` response.
  *
@@ -117,10 +112,11 @@ function pickGameValues(data: Record<string, unknown>): Record<string, string> {
 /**
  * Settings page for the translation provider, API keys, and batch size. Changes persist to the backend `.env` and apply without a restart.
  *
- * @param gameId Game whose system prompt the preview loads.
  * @returns The settings page, its loading state, or an error with Retry.
  */
-const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
+const SettingsPage: React.FC = () => {
+    // The system prompt preview loads from the game shown in the sidebar.
+    const game = useActiveGame()
     // Prefixes every field id so each label can point at its control.
     const fieldId = useId()
     const [provider, setProvider] = useState("claude")
@@ -673,7 +669,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
             <Panel
                 className="settings-panel"
                 title="System Prompt Preview"
-                help={`View the system prompt sent for ${getGame(gameId)?.displayName ?? gameId} translations. Uses that game's base glossary and translation settings.`}
+                help={`View the system prompt sent for ${game.displayName} translations. Uses that game's base glossary and translation settings.`}
             >
                 <div className="settings-inline-row">
                     <label className="field-label" htmlFor={`${fieldId}-prompt-lang`}>
@@ -694,7 +690,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                             }
                             setPromptLoading(true)
                             try {
-                                const res = await gameApi(gameId).get(`/translate/system-prompt?source_lang=${encodeURIComponent(promptSourceLang)}`)
+                                const res = await gameApi(game.id).get(`/translate/system-prompt?source_lang=${encodeURIComponent(promptSourceLang)}`)
                                 const data = await res.json()
                                 setSystemPrompt(data.system_prompt || "")
                             } catch (err) {

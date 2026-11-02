@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar"
 import ErrorBoundary from "@/components/ui/ErrorBoundary"
 import LoadingState from "@/components/ui/LoadingState"
 import SettingsPage from "@/pages/Settings"
+import { ActiveGameContext } from "@/context/ActiveGameContext"
 import { API_BASE } from "@/lib/api"
 import { getGame, getGameBySlug, listGames, type GameManifest } from "@/games/registry"
 import "@/games/chrono_ark" // side-effect: registers manifest
@@ -51,7 +52,6 @@ function App() {
     // Derived-state pattern, so the first /settings render already uses the route's game.
     if (routeGame && routeGame.id !== lastGameId) setLastGameId(routeGame.id)
     const activeGame = routeGame ?? (lastGameId ? getGame(lastGameId) : undefined) ?? defaultGame
-    const activeGameId = activeGame.id
     const isDetailPage = !!useMatch("/:gameSlug/translation/*")
 
     // Set on <html> so portaled dialogs inherit the game's theme variables.
@@ -68,8 +68,8 @@ function App() {
     }, [gameName])
 
     return (
-        <>
-            <Sidebar activeGameId={activeGameId} />
+        <ActiveGameContext value={activeGame}>
+            <Sidebar />
 
             <main className={isDetailPage ? "container-fluid" : "container"}>
                 {loading ? (
@@ -77,7 +77,7 @@ function App() {
                 ) : (
                     <ErrorBoundary key={location.pathname}>
                         <Routes>
-                            <Route path="/settings" element={<SettingsPage gameId={activeGameId} />} />
+                            <Route path="/settings" element={<SettingsPage />} />
 
                             <Route path="/:gameSlug/*" element={<GameSubtree />} />
 
@@ -86,7 +86,7 @@ function App() {
                     </ErrorBoundary>
                 )}
             </main>
-        </>
+        </ActiveGameContext>
     )
 }
 

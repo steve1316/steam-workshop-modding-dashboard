@@ -1,4 +1,4 @@
-import { render, screen } from "@/testUtils"
+import { render, screen, withActiveGame } from "@/testUtils"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -18,7 +18,7 @@ vi.mock("react-router-dom", async () => {
     return { ...actual, useNavigate: () => navigateMock }
 })
 
-const wrap = (ui: React.ReactNode) => <MemoryRouter>{ui}</MemoryRouter>
+const wrap = (gameId: string) => <MemoryRouter>{withActiveGame(gameId, <GameSwitcher />)}</MemoryRouter>
 
 beforeEach(() => {
     navigateMock.mockReset()
@@ -39,12 +39,12 @@ afterEach(() => vi.restoreAllMocks())
 describe("GameSwitcher (segmented)", () => {
     it("renders nothing while the games list is empty", () => {
         vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
-        const { container } = render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        const { container } = render(wrap("chrono_ark"))
         expect(container).toBeEmptyDOMElement()
     })
 
     it("renders one radio pill per game with the active pill marked aria-checked", async () => {
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         const group = await screen.findByRole("radiogroup", { name: /active game/i })
         const pills = await screen.findAllByRole("radio")
         expect(group).toBeInTheDocument()
@@ -54,14 +54,14 @@ describe("GameSwitcher (segmented)", () => {
     })
 
     it("renders each pill's logo image with the display name as alt text", async () => {
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         await screen.findByRole("radiogroup", { name: /active game/i })
         expect(screen.getByAltText("Chrono Ark")).toBeInTheDocument()
         expect(screen.getByAltText("Warhammer III")).toBeInTheDocument()
     })
 
     it("clicking an inactive pill POSTs the settings and navigates to the new game's slug dashboard", async () => {
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         const user = userEvent.setup()
         const inactive = await screen.findByRole("radio", { name: /Warhammer III/i })
         await user.click(inactive)
@@ -79,14 +79,14 @@ describe("GameSwitcher (segmented)", () => {
             // The settings POST never settles, so navigation must not depend on it.
             return new Promise<Response>(() => {})
         })
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         const user = userEvent.setup()
         await user.click(await screen.findByRole("radio", { name: /Warhammer III/i }))
         expect(navigateMock).toHaveBeenCalledWith("/warhammer_3/dashboard")
     })
 
     it("clicking the already-active pill does nothing", async () => {
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         const user = userEvent.setup()
         const active = await screen.findByRole("radio", { name: /Chrono Ark/i })
         await user.click(active)
@@ -97,7 +97,7 @@ describe("GameSwitcher (segmented)", () => {
     })
 
     it("ArrowRight from the active pill moves focus to the other pill, and Enter selects it", async () => {
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         const user = userEvent.setup()
         const active = await screen.findByRole("radio", { name: /Chrono Ark/i })
         active.focus()
@@ -111,7 +111,7 @@ describe("GameSwitcher (segmented)", () => {
         vi.spyOn(globalThis, "fetch").mockImplementationOnce(() =>
             Promise.resolve(new Response(JSON.stringify([...GAMES, { game_id: "future_game", display_name: "Future Game", icon: "", capabilities: [] }]), { status: 200 }))
         )
-        render(wrap(<GameSwitcher activeGameId="chrono_ark" />))
+        render(wrap("chrono_ark"))
         const futurePill = await screen.findByRole("radio", { name: /Future Game/i })
         expect(futurePill).toBeInTheDocument()
         expect(futurePill).toHaveTextContent("F")
