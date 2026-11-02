@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { useGameSlug } from "@/hooks/useGameSlug"
 import type { GlossaryTerm } from "@/lib/types"
 import type { LocString } from "@/games/chrono_ark/lib/types"
-import { getRowStatus, filterStrings, sortStrings } from "@/games/chrono_ark/lib/search"
-import type { SortField, SortDirection } from "@/games/chrono_ark/lib/search"
+import { getRowStatus, filterStrings, sortStrings, type FilterTab, type SortField } from "@/games/chrono_ark/lib/search"
 import { API_BASE, gameApi } from "@/lib/api"
 import GlossarySuggestionModal from "@/components/GlossarySuggestionModal"
 import TranslationConfirmModal, { type TranslationPreview } from "@/components/TranslationConfirmModal"
@@ -26,10 +25,30 @@ import { LanguageControls } from "@/components/TranslationPage/LanguageControls"
 import { OpenFolderButton, PendingSyncPill, SteamLink } from "@/components/TranslationPage/TitleAdornments"
 import { StatusBadge } from "@/components/TranslationPage/StatusBadge"
 import { TranslationCell } from "@/components/TranslationPage/TranslationCell"
-import { canonicalRowStyle, translationColumns } from "@/components/TranslationPage/helpers"
+import { canonicalRowStyle, TRANSLATION_COLUMN_WIDTHS, translationColumns } from "@/components/TranslationPage/helpers"
 import HighlightText from "@/components/ui/HighlightText"
 import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"
+import { useTableView } from "@/hooks/useTableView"
+
+const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
+    is_translated: TRANSLATION_COLUMN_WIDTHS.status,
+    translated_by: TRANSLATION_COLUMN_WIDTHS.mode,
+    key: TRANSLATION_COLUMN_WIDTHS.key,
+    source_file: TRANSLATION_COLUMN_WIDTHS.source,
+    source: TRANSLATION_COLUMN_WIDTHS.original,
+    english: TRANSLATION_COLUMN_WIDTHS.translation,
+}
+
+/**
+ * `sortStrings` in the shape `useTableView` calls.
+ *
+ * @param rows Rows to sort.
+ * @param key Column to sort by.
+ * @param direction Sort direction.
+ * @returns The sorted copy.
+ */
+const sortByField = (rows: LocString[], key: SortField, direction: "asc" | "desc") => sortStrings(rows, { key, direction })
 
 /**
  * Detail view for a specific mod, showing all translatable strings.
@@ -51,21 +70,13 @@ const ModDetail: React.FC = () => {
     // Only the first load may replace the page with an error. A failed refresh keeps the page the user is looking at.
     const hasLoadedRef = useRef(false)
 
-    const [filter, setFilter] = useState<"all" | "missing" | "untouched" | "pending" | "synced">("all")
-    const [search, setSearch] = useState("")
-
-    const [sortConfig, setSortConfig] = useState<{ key: SortField; direction: SortDirection }>({
-        key: "key",
-        direction: "asc",
-    })
-
-    const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>({
-        is_translated: 120,
-        translated_by: 100,
-        key: 200,
-        source_file: 100,
-        source: 400,
-        english: 500,
+    const { search, viewProps: tableView } = useTableView<LocString, SortField, FilterTab>({
+        rows: strings,
+        storageKey: "ca-translation-column-widths",
+        defaultWidths: DEFAULT_COLUMN_WIDTHS,
+        initialSort: { key: "key", direction: "asc" },
+        select: filterStrings,
+        sortRows: sortByField,
     })
 
     const [hasExportChanges, setHasExportChanges] = useState(false)
@@ -292,21 +303,6 @@ const ModDetail: React.FC = () => {
     }, [modId])
 
     /**
-     * Cycle a column's sort asc -> desc -> none.
-     *
-     * @param field - Column to sort by.
-     */
-    const handleSort = (field: SortField) => {
-        let direction: SortDirection = "asc"
-        if (sortConfig.key === field && sortConfig.direction === "asc") {
-            direction = "desc"
-        } else if (sortConfig.key === field && sortConfig.direction === "desc") {
-            direction = null
-        }
-        setSortConfig({ key: field, direction })
-    }
-
-    /**
      * Save a manual translation and update the table locally.
      *
      * @param key - Localization key.
@@ -334,11 +330,6 @@ const ModDetail: React.FC = () => {
         }
         return false
     }
-
-    /** Visible rows after the status filter, search and sort. */
-    const processedStrings = React.useMemo(() => {
-        return sortStrings(filterStrings(strings, filter, search), sortConfig)
-    }, [strings, filter, search, sortConfig])
 
     /**
      * Write saved translations back to the mod's files on disk.
@@ -582,19 +573,10 @@ const ModDetail: React.FC = () => {
                 { value: "pending", label: "Pending" },
                 { value: "synced", label: "Synced" },
             ]}
-            activeFilter={filter}
-            onFilterChange={(v) => setFilter(v as typeof filter)}
-            search={search}
-            onSearchChange={setSearch}
+            {...tableView}
             columns={columns}
-            rows={processedStrings}
             getRowKey={(s) => s.key}
             getRowStyle={(s) => canonicalRowStyle(getRowStatus(s), { override: !s.is_synced && s.english !== s.original_english })}
-            sortField={sortConfig.direction ? sortConfig.key : null}
-            sortDirection={sortConfig.direction}
-            onSort={(f) => handleSort(f as SortField)}
-            columnWidths={columnWidths}
-            onResizeColumn={(field, width) => setColumnWidths((prev) => ({ ...prev, [field]: width }))}
             translating={batchState.phase === "translating" ? { batchIndex: batchState.batchIndex, totalBatches: batchState.totalBatches, streaming: batchState.streamingProgress } : null}
             onCancelTranslate={() => {
                 cancelTranslation()

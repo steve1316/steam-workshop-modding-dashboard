@@ -6,6 +6,7 @@ import TranslationConfirmModal from "@/components/TranslationConfirmModal"
 import { API_BASE } from "@/lib/api"
 import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import { useGameSlug } from "@/hooks/useGameSlug"
+import { useTableView } from "@/hooks/useTableView"
 import { StatusBadge } from "@/components/TranslationPage/StatusBadge"
 import { TranslationPage } from "@/components/TranslationPage"
 import { usePendingSuggestions } from "@/hooks/usePendingSuggestions"
@@ -120,6 +121,36 @@ const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
 }
 
 /**
+ * Keep the rows the status filter and search allow.
+ *
+ * @param rows All rows.
+ * @param filter Status pill, or `all`.
+ * @param search Text matched against the key, original and translation.
+ * @returns The matching rows.
+ */
+function selectRows(rows: WH3DriftRow[], filter: RowStatus | "all", search: string): WH3DriftRow[] {
+    let picked = rows
+    if (filter !== "all") picked = picked.filter((r) => (r.canonical_status ?? "missing") === filter)
+    const needle = search.trim().toLowerCase()
+    if (!needle) return picked
+    return picked.filter((r) => r.key.toLowerCase().includes(needle) || (r.parent_text ?? "").toLowerCase().includes(needle) || (r.translation_text ?? "").toLowerCase().includes(needle))
+}
+
+/**
+ * Sort rows by a column. Status sorts by the canonical status.
+ *
+ * @param rows Rows to sort.
+ * @param key Column to sort by.
+ * @param direction Sort direction.
+ * @returns The sorted copy.
+ */
+function sortRows(rows: WH3DriftRow[], key: SortField, direction: "asc" | "desc"): WH3DriftRow[] {
+    const dir = direction === "asc" ? 1 : -1
+    const val = (r: WH3DriftRow) => (key === "status" ? (r.canonical_status ?? "") : String(r[key] ?? ""))
+    return [...rows].sort((a, b) => val(a).localeCompare(val(b)) * dir)
+}
+
+/**
  * Per-mod WH3 translation review page. Renders the shared `<TranslationPage>` shell so it mirrors Chrono Ark 1-to-1.
  *
  * @returns The page.
@@ -132,8 +163,6 @@ const TranslationDetailsPage: React.FC = () => {
     const [mod, setMod] = useState<WH3TranslationModSummary | null>(null)
     const [progress, setProgress] = useState<WH3RescanSummary | null>(null)
     const [strings, setStrings] = useState<WH3DriftRow[]>([])
-    const [filter, setFilter] = useState<RowStatus | "all">("all")
-    const [search, setSearch] = useState("")
     const [loading, setLoading] = useState(true)
     const [banner, setBanner] = useState<{ type: "success" | "error"; message: string } | null>(null)
     const [openModal, setOpenModal] = useState<ModalKey>(null)
@@ -167,33 +196,14 @@ const TranslationDetailsPage: React.FC = () => {
     const [activeProvider, setActiveProvider] = useState<string>("")
     const [preview, setPreview] = useState<WH3TranslationPreview | null>(null)
     const [pendingProvider, setPendingProvider] = useState<string>("")
-    const [sortConfig, setSortConfig] = useState<{ key: SortField; direction: "asc" | "desc" | null }>({ key: "key", direction: null })
-    const [columnWidths, setColumnWidths] = useState<Record<SortField, number>>(() => {
-        try {
-            const raw = window.localStorage.getItem(COLUMN_WIDTH_KEY)
-            if (raw) {
-                const parsed = JSON.parse(raw) as Partial<Record<SortField, number>>
-                return { ...DEFAULT_COLUMN_WIDTHS, ...parsed }
-            }
-        } catch {
-            /* fall through */
-        }
-        return DEFAULT_COLUMN_WIDTHS
+    const { search, viewProps: tableView } = useTableView<WH3DriftRow, SortField, RowStatus>({
+        rows: strings,
+        storageKey: COLUMN_WIDTH_KEY,
+        defaultWidths: DEFAULT_COLUMN_WIDTHS,
+        initialSort: { key: "key", direction: null },
+        select: selectRows,
+        sortRows,
     })
-
-    // Persist column widths whenever they change.
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(COLUMN_WIDTH_KEY, JSON.stringify(columnWidths))
-        } catch {
-            /* ignore quota errors */
-        }
-    }, [columnWidths])
-
-    const onResizeColumn = useCallback((field: string, width: number) => {
-        setColumnWidths((prev) => ({ ...prev, [field]: width }))
-    }, [])
-
     const loadStrings = useCallback(async () => {
         if (!workshopId) return
         const rows = await fetchStrings(workshopId)
@@ -563,32 +573,6 @@ const TranslationDetailsPage: React.FC = () => {
         }
     }, [workshopId])
 
-    const handleSort = useCallback((field: string) => {
-        const f = field as SortField
-        setSortConfig((prev) => {
-            if (prev.key !== f) return { key: f, direction: "asc" }
-            if (prev.direction === "asc") return { key: f, direction: "desc" }
-            if (prev.direction === "desc") return { key: f, direction: null }
-            return { key: f, direction: "asc" }
-        })
-    }, [])
-
-    const filteredRows = useMemo(() => {
-        let rows = strings
-        if (filter !== "all") rows = rows.filter((r) => (r.canonical_status ?? "missing") === filter)
-        const needle = search.trim().toLowerCase()
-        if (needle) rows = rows.filter((r) => r.key.toLowerCase().includes(needle) || (r.parent_text ?? "").toLowerCase().includes(needle) || (r.translation_text ?? "").toLowerCase().includes(needle))
-        return rows
-    }, [strings, filter, search])
-
-    const sortedRows = useMemo(() => {
-        if (sortConfig.direction === null) return filteredRows
-        const dir = sortConfig.direction === "asc" ? 1 : -1
-        const key = sortConfig.key
-        const val = (r: WH3DriftRow) => (key === "status" ? (r.canonical_status ?? "") : String(r[key] ?? ""))
-        return [...filteredRows].sort((a, b) => val(a).localeCompare(val(b)) * dir)
-    }, [filteredRows, sortConfig])
-
     const translateCount = useMemo(() => progress?.counts.untranslated ?? 0, [progress])
     const changedCount = useMemo(() => progress?.canonical_counts.changed ?? 0, [progress])
     // Counted from the table rows so each translated batch shows up right away. Done = synced + pending + untouched, total adds missing.
@@ -810,19 +794,10 @@ const TranslationDetailsPage: React.FC = () => {
             languageControls={languageControls}
             toolbar={toolbar}
             statusFilters={STATUS_FILTERS}
-            activeFilter={filter}
-            onFilterChange={(v) => setFilter(v as RowStatus | "all")}
-            search={search}
-            onSearchChange={setSearch}
+            {...tableView}
             columns={columns}
-            rows={sortedRows}
             getRowKey={(r) => `${r.source_filename}::${r.key}`}
             getRowStyle={(r) => canonicalRowStyle(r.canonical_status ?? "missing", { override: r.canonical_status === "pending" })}
-            sortField={sortConfig.direction ? sortConfig.key : null}
-            sortDirection={sortConfig.direction}
-            onSort={handleSort}
-            columnWidths={columnWidths}
-            onResizeColumn={onResizeColumn}
             translating={batchState.phase === "translating" ? { batchIndex: batchState.batchIndex, totalBatches: batchState.totalBatches, streaming: batchState.streamingProgress } : null}
             onCancelTranslate={onCancelTranslate}
             extraBanners={
