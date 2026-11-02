@@ -11,14 +11,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.core.errors import register_error_handler
-from backend.data import suggestion_manager, translation_store
-from backend.data.api_response_log import list_entries
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.routes import glossary_suggestions as gs_module
 from backend.games.total_war_warhammer_3.routes import translation as translation_routes
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
+from backend.persistence import suggestion_manager, translation_store
+from backend.persistence.api_response_log import list_entries
 
 MOD_ID = "3315737452"
 

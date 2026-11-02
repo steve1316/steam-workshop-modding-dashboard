@@ -3,7 +3,8 @@
 from fastapi import APIRouter
 
 from backend.core.paths import glossary_path
-from backend.data.glossary_manager import (
+from backend.games.chrono_ark import GAME_ID
+from backend.persistence.glossary_manager import (
     add_glossary_term,
     extract_name_key_suggestions,
     load_glossary,
@@ -13,16 +14,15 @@ from backend.data.glossary_manager import (
     save_mod_glossary,
     suggest_glossary_edits,
 )
-from backend.data.history_manager import create_backup
-from backend.data.mod_settings import load_source_language_override, load_target_language_override
-from backend.data.suggestion_manager import (
+from backend.persistence.history_manager import create_backup
+from backend.persistence.mod_settings import load_source_language_override, load_target_language_override
+from backend.persistence.suggestion_manager import (
     add_suggestions,
     load_suggestions,
     remove_suggestions,
     save_suggestions,
 )
-from backend.data.translation_store import load_translations, save_translations_bulk
-from backend.games.chrono_ark import GAME_ID
+from backend.persistence.translation_store import load_translations, save_translations_bulk
 from backend.routes.helpers import _find_mod_path, _merge_gdata_originals, chrono_ark_adapter, resolve_source_language
 from backend.routes.models import (
     GlossaryTerm,

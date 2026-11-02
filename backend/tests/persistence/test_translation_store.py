@@ -1,7 +1,8 @@
 import json
 import time
 
-from backend.data.translation_store import (
+from backend.games.chrono_ark import GAME_ID
+from backend.persistence.translation_store import (
     clear_all_translations,
     load_providers,
     load_translations,
@@ -9,7 +10,6 @@ from backend.data.translation_store import (
     save_translations_bulk,
     update_single_translation,
 )
-from backend.games.chrono_ark import GAME_ID
 
 
 def test_load_returns_empty_when_no_file(tmp_storage):

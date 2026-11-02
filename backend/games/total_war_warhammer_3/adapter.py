@@ -10,7 +10,6 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
-from backend.data import glossary_manager as gm
 from backend.games.base import GameAdapter, ModInfo
 from backend.games.capabilities.translation import TranslationCapability
 from backend.games.total_war_warhammer_3.loc.extractor import (
@@ -24,6 +23,7 @@ from backend.games.total_war_warhammer_3.translation.mods import (
     get_translation_mod,
 )
 from backend.models import LocString
+from backend.persistence import glossary_manager as gm
 
 
 class TotalWarWarhammer3Adapter(GameAdapter, TranslationCapability):

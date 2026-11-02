@@ -193,8 +193,8 @@ def test_build_glossary_includes_curated_terms(tmp_path: Path):
 
 def test_curated_terms_reach_the_prompt_glossary():
     """Curated terms use a category the WH3 prompt includes, so Claude sees them."""
-    from backend.data.glossary_manager import get_glossary_prompt
     from backend.games.total_war_warhammer_3.translation.context import BASE_GLOSSARY_PROMPT_CATEGORIES
+    from backend.persistence.glossary_manager import get_glossary_prompt
 
     prompt = get_glossary_prompt(bbg.add_curated_terms({"terms": {}}), allowed_categories=BASE_GLOSSARY_PROMPT_CATEGORIES, source_lang="Chinese")
     assert "Unlocks recruitment for" in prompt

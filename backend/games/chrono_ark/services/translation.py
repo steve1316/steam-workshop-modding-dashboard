@@ -1,15 +1,15 @@
 """Chrono Ark translation services shared by the routes and the CLI: loading a mod's strings, its prompt context and saving a batch."""
 
 from backend.core.paths import glossary_path
-from backend.data.character_context import load_character_context
-from backend.data.glossary_manager import extract_name_key_suggestions, get_combined_glossary_prompt, load_glossary, load_mod_glossary
-from backend.data.mod_settings import load_target_language_override
-from backend.data.progress_tracker import ProgressTracker
-from backend.data.suggestion_manager import add_suggestions, load_suggestions
-from backend.data.translation_memory import TranslationMemory
-from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
 from backend.models import LocString
+from backend.persistence.character_context import load_character_context
+from backend.persistence.glossary_manager import extract_name_key_suggestions, get_combined_glossary_prompt, load_glossary, load_mod_glossary
+from backend.persistence.mod_settings import load_target_language_override
+from backend.persistence.progress_tracker import ProgressTracker
+from backend.persistence.suggestion_manager import add_suggestions, load_suggestions
+from backend.persistence.translation_memory import TranslationMemory
+from backend.persistence.translation_store import load_translations, save_translations_bulk
 from backend.routes.helpers import _filter_suggestions, _find_mod_path, _merge_gdata_originals, chrono_ark_adapter
 from backend.translation.pipeline import BatchOutcome, PersistHook
 from backend.translation.prompt import PromptContext

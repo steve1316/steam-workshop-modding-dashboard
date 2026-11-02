@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 
 from backend.core.paths import mods_path
-from backend.data import history_manager
-from backend.data.history_manager import create_backup, delete_backup, list_backups, restore_backup
 from backend.games.chrono_ark import GAME_ID
+from backend.persistence import history_manager
+from backend.persistence.history_manager import create_backup, delete_backup, list_backups, restore_backup
 
 WH3 = "total_war_warhammer_3"
 

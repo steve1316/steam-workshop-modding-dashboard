@@ -13,7 +13,7 @@ from pathlib import Path
 
 from backend.core.json_store import write_json, write_text_atomic
 from backend.core.settings import settings
-from backend.data.history_manager import new_backup_dir
+from backend.persistence.history_manager import new_backup_dir
 
 LOG = logging.getLogger(__name__)
 

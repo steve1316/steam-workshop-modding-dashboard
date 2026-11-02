@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from backend.data.api_response_log import MAX_ENTRIES, append, list_entries, log_batch_call
+from backend.persistence.api_response_log import MAX_ENTRIES, append, list_entries, log_batch_call
 
 GAME_ID = "total_war_warhammer_3"
 

@@ -15,8 +15,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.core.settings import settings
-from backend.data import mod_settings, suggestion_manager, translation_store
-from backend.data.glossary_manager import get_combined_glossary_prompt
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _t
@@ -27,6 +25,8 @@ from backend.games.total_war_warhammer_3.translation.drift import entry_text
 from backend.games.total_war_warhammer_3.translation.name_keys import NAME_STAGES, classify_name_key, is_name_key
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, save_parent_snapshot
+from backend.persistence import mod_settings, suggestion_manager, translation_store
+from backend.persistence.glossary_manager import get_combined_glossary_prompt
 from backend.providers.base import Revision
 from backend.routes.models import BatchTranslationRequest, TranslationRequest
 from backend.routes.web_provider import ready_web_provider, web_provider

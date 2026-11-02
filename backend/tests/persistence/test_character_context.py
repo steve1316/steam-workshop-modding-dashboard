@@ -1,8 +1,8 @@
 import json
 import time
 
-from backend.data.character_context import load_character_context, save_character_context
 from backend.games.chrono_ark import GAME_ID
+from backend.persistence.character_context import load_character_context, save_character_context
 
 
 def test_load_returns_empty_defaults_when_no_file(tmp_storage):

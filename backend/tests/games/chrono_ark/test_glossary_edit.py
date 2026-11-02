@@ -7,10 +7,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.core.errors import register_error_handler
-from backend.data.glossary_manager import add_glossary_term, load_mod_glossary, save_mod_glossary
-from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.routes import glossary as glossary_routes
+from backend.persistence.glossary_manager import add_glossary_term, load_mod_glossary, save_mod_glossary
+from backend.persistence.translation_store import load_translations, save_translations_bulk
 
 MOD_ID = "900000003"
 BASE = f"/api/games/chrono_ark/mods/{MOD_ID}/glossary"

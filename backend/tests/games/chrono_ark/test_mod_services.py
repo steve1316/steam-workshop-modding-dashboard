@@ -7,11 +7,11 @@ import pytest
 
 from backend.core.errors import DomainError
 from backend.core.paths import GameStorage
-from backend.data.translation_store import load_translations, save_translations_bulk
 from backend.games.base import ModInfo
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
 from backend.games.chrono_ark.services import mods as mod_services
+from backend.persistence.translation_store import load_translations, save_translations_bulk
 
 MOD_ID = "900000004"
 CSV_HEADER = "Key,Type,Desc,Korean,English,Japanese,Chinese,Chinese-TW [zh-tw]\n"

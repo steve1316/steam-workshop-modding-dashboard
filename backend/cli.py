@@ -19,21 +19,21 @@ from pathlib import Path
 from backend.core.errors import DomainError
 from backend.core.paths import GameStorage, glossary_path
 from backend.core.settings import settings
-from backend.data.glossary_manager import (
+from backend.games.chrono_ark import GAME_ID
+from backend.games.chrono_ark.adapter import ChronoArkAdapter
+from backend.games.chrono_ark.services.mods import export_mod, extract_mod, save_extracted_strings
+from backend.games.chrono_ark.services.translation import load_mod_strings, persist_batch, prompt_context
+from backend.games.registry import get_adapter, list_games
+from backend.persistence.glossary_manager import (
     add_glossary_term,
     build_glossary_from_base_game,
     load_glossary,
     print_glossary,
     save_glossary,
 )
-from backend.data.progress_tracker import ProgressTracker
-from backend.data.translation_memory import TranslationMemory
-from backend.data.translation_store import save_translations_bulk
-from backend.games.chrono_ark import GAME_ID
-from backend.games.chrono_ark.adapter import ChronoArkAdapter
-from backend.games.chrono_ark.services.mods import export_mod, extract_mod, save_extracted_strings
-from backend.games.chrono_ark.services.translation import load_mod_strings, persist_batch, prompt_context
-from backend.games.registry import get_adapter, list_games
+from backend.persistence.progress_tracker import ProgressTracker
+from backend.persistence.translation_memory import TranslationMemory
+from backend.persistence.translation_store import save_translations_bulk
 from backend.providers.factory import get_provider
 from backend.translation.orchestrator import chunk_entries
 from backend.translation.pipeline import BatchError, BatchJob, run_translation_batch

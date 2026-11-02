@@ -13,7 +13,6 @@ from anyio import from_thread
 from fastapi import APIRouter
 
 from backend.core.settings import settings
-from backend.data import api_response_log, suggestion_manager
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.adapter import TotalWarWarhammer3Adapter
 from backend.games.total_war_warhammer_3.routes import translation as _tr
@@ -21,6 +20,7 @@ from backend.games.total_war_warhammer_3.routes.translation import _backup, _req
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
 from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.name_spacing import glossary_words, space_pinyin_names
+from backend.persistence import api_response_log, suggestion_manager
 from backend.providers.base import TranslationProvider
 from backend.routes.models import SuggestionAction
 from backend.routes.web_provider import ready_web_provider

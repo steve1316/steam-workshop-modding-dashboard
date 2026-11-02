@@ -1,6 +1,6 @@
 """Per-mod glossary CRUD wrappers for the WH3 translation flow.
 
-Stores `<root>/mods/{id}/glossary.json` as a flat dict keyed by English term. The shared `backend.data.glossary_manager` handles disk IO
+Stores `<root>/mods/{id}/glossary.json` as a flat dict keyed by English term. The shared `backend.persistence.glossary_manager` handles disk IO
 with a `{"terms": {...}}` wrapper, which this module pins to the WH3 game id and flattens.
 """
 
@@ -9,8 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend.core.paths import game_storage_path, glossary_path
-from backend.data import glossary_manager as gm
 from backend.games.total_war_warhammer_3 import GAME_ID
+from backend.persistence import glossary_manager as gm
 
 
 def _root() -> Path:

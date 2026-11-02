@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from backend.core.errors import UpstreamError
-from backend.data import api_response_log
+from backend.persistence import api_response_log
 from backend.providers.base import TranslationProvider
 from backend.translation.orchestrator import fill_duplicate_translations
 from backend.translation.prompt import PromptContext

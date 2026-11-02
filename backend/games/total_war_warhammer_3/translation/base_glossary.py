@@ -12,8 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from backend.core.paths import glossary_path
-from backend.data.glossary_manager import save_glossary
 from backend.games.total_war_warhammer_3 import GAME_ID
+from backend.persistence.glossary_manager import save_glossary
 
 # Strips `[[...]]` markup tokens and `{{...}}` substitution tokens.
 _MARKUP = re.compile(r"\[\[[^\]]*\]\]|\{\{[^}]*\}\}")

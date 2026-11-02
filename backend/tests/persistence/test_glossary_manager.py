@@ -1,4 +1,5 @@
-from backend.data.glossary_manager import (
+from backend.games.chrono_ark import GAME_ID
+from backend.persistence.glossary_manager import (
     add_glossary_term,
     build_glossary_from_base_game,
     get_combined_glossary_prompt,
@@ -9,7 +10,6 @@ from backend.data.glossary_manager import (
     save_glossary,
     save_mod_glossary,
 )
-from backend.games.chrono_ark import GAME_ID
 
 
 def _find_by_english(terms: dict, english: str) -> dict:
@@ -236,7 +236,7 @@ def test_combined_glossary_prompt_empty_mod():
 
 def test_get_combined_glossary_prompt_respects_allowed_categories():
     """An explicit allowed_categories overrides settings.glossary_categories for the base glossary."""
-    from backend.data.glossary_manager import get_combined_glossary_prompt
+    from backend.persistence.glossary_manager import get_combined_glossary_prompt
 
     base = {
         "terms": {

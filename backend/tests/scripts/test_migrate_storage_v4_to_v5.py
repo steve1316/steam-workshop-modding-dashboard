@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from backend.core.settings import settings
-from backend.data.history_manager import list_backups, restore_backup
+from backend.persistence.history_manager import list_backups, restore_backup
 from backend.scripts.migrate_storage_v4_to_v5 import run_migration
 
 WH3 = "total_war_warhammer_3"

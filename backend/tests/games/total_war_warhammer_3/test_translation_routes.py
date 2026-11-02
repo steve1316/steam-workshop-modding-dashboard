@@ -13,12 +13,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.core.errors import register_error_handler
-from backend.data import translation_store
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow
 from backend.games.total_war_warhammer_3.routes import translation as routes_module
 from backend.games.total_war_warhammer_3.translation import workspace
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
+from backend.persistence import translation_store
 
 
 @pytest.fixture

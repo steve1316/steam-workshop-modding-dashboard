@@ -13,13 +13,6 @@ from pydantic import BaseModel
 
 from backend.core.errors import NotFoundError
 from backend.core.os_open import open_path
-from backend.data import api_response_log, character_context, history_manager, mod_settings, translation_store
-from backend.data.mod_settings import (
-    load_source_language_override,
-    load_target_language_override,
-    save_source_language_override,
-    save_target_language_override,
-)
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.packer import (
     PackBuildError,
@@ -38,6 +31,13 @@ from backend.games.total_war_warhammer_3.translation.mods import (
     get_translation_mod,
 )
 from backend.games.total_war_warhammer_3.translation.source_snapshot import accept_keys, load_parent_snapshot, refresh_unchanged, save_parent_snapshot
+from backend.persistence import api_response_log, character_context, history_manager, mod_settings, translation_store
+from backend.persistence.mod_settings import (
+    load_source_language_override,
+    load_target_language_override,
+    save_source_language_override,
+    save_target_language_override,
+)
 from backend.translation.rename import rename_term
 
 logger = logging.getLogger(__name__)

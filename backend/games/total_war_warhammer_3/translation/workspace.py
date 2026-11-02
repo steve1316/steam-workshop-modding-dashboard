@@ -10,13 +10,13 @@ from functools import cached_property
 
 from backend.core.errors import DomainError
 from backend.core.settings import settings
-from backend.data import translation_store
 from backend.games.total_war_warhammer_3 import GAME_ID
 from backend.games.total_war_warhammer_3.loc.extractor import LocRow, extract_parent_pack_strings, normalize_loc_filename, read_translation_loc_tsv
 from backend.games.total_war_warhammer_3.paths import parent_pack_cache_dir, resolve_rpfm_cli_path, rpfm_cli_candidate, tw3_workshop_content_dir
 from backend.games.total_war_warhammer_3.translation.drift import DriftRow, compute_drift
 from backend.games.total_war_warhammer_3.translation.mods import WH3TranslationMod
 from backend.games.total_war_warhammer_3.translation.source_snapshot import load_parent_snapshot
+from backend.persistence import translation_store
 
 Strings = dict[str, dict[str, LocRow]]
 

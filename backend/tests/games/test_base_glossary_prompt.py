@@ -7,10 +7,10 @@ from its own glossary file and its own prompt categories.
 """
 
 from backend.core.settings import settings
-from backend.data import glossary_manager as gm
 from backend.games.chrono_ark import adapter as ca_adapter
 from backend.games.total_war_warhammer_3 import adapter as wh3_adapter
 from backend.games.total_war_warhammer_3.stores import glossary as glossary_store
+from backend.persistence import glossary_manager as gm
 
 
 def _glossary(terms: dict) -> dict:

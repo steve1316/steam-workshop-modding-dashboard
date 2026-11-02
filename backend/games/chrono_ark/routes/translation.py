@@ -9,14 +9,14 @@ from fastapi.responses import StreamingResponse
 
 from backend.core.paths import glossary_path
 from backend.core.settings import settings
-from backend.data.glossary_manager import (
-    load_glossary,
-)
-from backend.data.history_manager import create_backup
-from backend.data.mod_settings import load_source_language_override, load_target_language_override
 from backend.games.base import ModInfo
 from backend.games.chrono_ark import GAME_ID
 from backend.games.chrono_ark.services.translation import batch_entries, load_mod_strings, persist_batch, prompt_context
+from backend.persistence.glossary_manager import (
+    load_glossary,
+)
+from backend.persistence.history_manager import create_backup
+from backend.persistence.mod_settings import load_source_language_override, load_target_language_override
 from backend.providers.base import TranslationProvider
 from backend.routes.helpers import (
     _active_translations,

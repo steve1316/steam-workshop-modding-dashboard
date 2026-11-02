@@ -5,10 +5,10 @@ from fastapi.responses import JSONResponse
 
 from backend.core.env_file import update_env_file
 from backend.core.settings import settings
-from backend.data.progress_tracker import ProgressTracker
-from backend.data.translation_memory import TranslationMemory
 from backend.games.chrono_ark import GAME_ID
 from backend.games.registry import list_games as registry_list_games
+from backend.persistence.progress_tracker import ProgressTracker
+from backend.persistence.translation_memory import TranslationMemory
 from backend.process_manager import is_managed
 from backend.routes.helpers import _mask_key, chrono_ark_adapter, current_adapter, set_active_game
 from backend.routes.models import SettingsResponse, SettingsUpdate

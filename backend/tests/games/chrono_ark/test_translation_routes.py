@@ -151,7 +151,7 @@ def test_system_prompt_uses_the_requested_languages(fake_ca):
 
 def test_batch_saves_the_translations(fake_ca):
     from backend.app import app
-    from backend.data.translation_store import load_translations
+    from backend.persistence.translation_store import load_translations
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/batch", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
 
@@ -173,7 +173,7 @@ def test_batch_rejects_keys_with_no_source_text(fake_ca):
 
 def test_batch_stream_saves_and_returns_the_complete_event(fake_ca):
     from backend.app import app
-    from backend.data.translation_store import load_translations
+    from backend.persistence.translation_store import load_translations
 
     res = TestClient(app).post("/api/games/chrono_ark/translate/batch/stream", json={"mod_id": FAKE_MOD.mod_id, "keys": ["Buff/B_Test_Name"], "source_lang": "Korean"})
 
