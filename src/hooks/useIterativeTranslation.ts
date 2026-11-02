@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { API_BASE, gameApi } from "@/lib/api"
 import { readEventStream } from "@/lib/stream"
 import type { TermSuggestion } from "@/lib/types"
@@ -199,7 +199,9 @@ export function useIterativeTranslation(gameId: string, modId: string, onBatchTr
     )
 
     // Lets handleBatchResult call translateBatch for auto-advance.
-    translateBatchRef.current = translateBatch
+    useEffect(() => {
+        translateBatchRef.current = translateBatch
+    }, [translateBatch])
 
     const startTranslation = useCallback(
         (provider: string, batchPlan: BatchDescriptor[], mode: "translate" | "update" = "translate") => {

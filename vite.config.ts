@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import fs from "fs"
 import { fileURLToPath } from "url"
 import { defineConfig } from "vitest/config"

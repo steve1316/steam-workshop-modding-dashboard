@@ -74,7 +74,7 @@ describe("Runner page", () => {
             if (urlStr.includes("/translation/mods")) return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }))
             return Promise.resolve(new Response(JSON.stringify({ status: "idle" }), { status: 200 }))
         })
-        fetchMock.mockImplementationOnce((_url: unknown) => Promise.resolve(new Response(JSON.stringify({ run_id: "x", script_id: "update", started_at: new Date().toISOString() }), { status: 200 })))
+        fetchMock.mockImplementationOnce(() => Promise.resolve(new Response(JSON.stringify({ run_id: "x", script_id: "update", started_at: new Date().toISOString() }), { status: 200 })))
         fetchMock.mockImplementation((url: unknown) => {
             const urlStr = String(url)
             if (urlStr.includes("/translation/mods")) return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }))

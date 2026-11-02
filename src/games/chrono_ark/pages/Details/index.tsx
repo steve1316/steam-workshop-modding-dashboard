@@ -7,7 +7,7 @@ import { getRowStatus, filterStrings, sortStrings } from "@/games/chrono_ark/lib
 import type { SortField, SortDirection } from "@/games/chrono_ark/lib/search"
 import { API_BASE, gameApi } from "@/lib/api"
 import GlossarySuggestionModal from "@/components/GlossarySuggestionModal"
-import TranslationConfirmModal from "@/components/TranslationConfirmModal"
+import TranslationConfirmModal, { type TranslationPreview } from "@/components/TranslationConfirmModal"
 import ApiResponsesModal from "@/games/chrono_ark/components/ApiResponsesModal"
 import BackupHistoryModal from "@/games/chrono_ark/components/BackupHistoryModal"
 import ChronoArkGlossaryModal from "@/games/chrono_ark/components/ChronoArkGlossaryModal"
@@ -75,7 +75,7 @@ const ModDetail: React.FC = () => {
     const [showReviewModal, setShowReviewModal] = useState(false)
     const [modGlossary, setModGlossary] = useState<Record<string, GlossaryTerm>>({})
 
-    const [translationPreview, setTranslationPreview] = useState<any>(null)
+    const [translationPreview, setTranslationPreview] = useState<(TranslationPreview & { batch_plan?: BatchDescriptor[] }) | null>(null)
     const [pendingRetranslate, setPendingRetranslate] = useState(false)
     const [pendingProvider, setPendingProvider] = useState<string>("")
     const [activeProvider, setActiveProvider] = useState<string>("")
@@ -203,7 +203,9 @@ const ModDetail: React.FC = () => {
                 setHasExportChanges(data.has_changes)
                 setHasPreviousSync(data.has_previous_sync ?? false)
             }
-        } catch {}
+        } catch {
+            /* keep the last known status */
+        }
     }
 
     /** Load the mod glossary terms. */
@@ -215,7 +217,9 @@ const ModDetail: React.FC = () => {
                 const data = await res.json()
                 setModGlossary(data.terms || {})
             }
-        } catch {}
+        } catch {
+            /* keep the last loaded glossary */
+        }
     }
 
     /**
