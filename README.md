@@ -397,12 +397,11 @@ Game-specific settings, such as game install paths and toolkit locations, are li
    pip install -r backend/requirements-dev.txt
    ```
 
-4. Create `backend/.env` with your provider key and the paths for the games you use:
-   ```env
-   SWMT_ANTHROPIC_API_KEY=your-key-here
-
-   # Plus each game's settings from its Wiki page
+4. Copy `backend/.env.example` to `backend/.env`, then fill in your provider key and the paths for the games you use:
+   ```bash
+   cp backend/.env.example backend/.env
    ```
+   Each game's Wiki page explains its paths.
 
 5. Start the frontend and backend together:
    ```bash
