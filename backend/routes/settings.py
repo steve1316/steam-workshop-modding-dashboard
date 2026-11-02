@@ -7,11 +7,11 @@ from backend.core.env_file import update_env_file
 from backend.core.settings import settings
 from backend.games.chrono_ark import GAME_ID
 from backend.games.registry import list_games as registry_list_games
-from backend.models.api import SettingsResponse, SettingsUpdate
+from backend.models.api import IgnoredModInfo, SettingsResponse, SettingsUpdate
 from backend.persistence.progress_tracker import ProgressTracker
 from backend.persistence.translation_memory import TranslationMemory
 from backend.process_manager import is_managed
-from backend.routes.helpers import _mask_key, chrono_ark_adapter, current_adapter, set_active_game
+from backend.routes.helpers import _find_mod_preview_image, _mask_key, chrono_ark_adapter, current_adapter, set_active_game
 
 router = APIRouter(prefix="/api")
 
@@ -79,6 +79,33 @@ def get_settings():
         steam_username=settings.steam_username,
         games={game_id: {} for game_id in registry_list_games()},
     )
+
+
+@router.get("/settings/ignored-mods")
+def get_ignored_mods(ids: str = "") -> list[IgnoredModInfo]:
+    """Describe ignored mods by name, author and cover image so the Settings page can show more than ids.
+
+    Only Chrono Ark uses the ignore list, so the mods are read from its Workshop folder.
+
+    Args:
+        ids: Comma-separated Workshop ids, so unsaved additions can be described too.
+
+    Returns:
+        One entry per id, in the order given.
+    """
+    adapter = chrono_ark_adapter()
+    result = []
+    for mod_id in (part.strip() for part in ids.split(",")):
+        if not mod_id:
+            continue
+        mod = adapter.describe_mod(mod_id)
+        if mod is None:
+            result.append(IgnoredModInfo(id=mod_id, name=mod_id, url=adapter.get_mod_url(mod_id)))
+            continue
+        img = _find_mod_preview_image(mod.path)
+        preview = f"/workshop/{mod_id}/{img.name}" if img else None
+        result.append(IgnoredModInfo(id=mod_id, name=mod.name, author=mod.author, preview_image=preview, url=adapter.get_mod_url(mod_id), installed=True))
+    return result
 
 
 @router.post("/settings")

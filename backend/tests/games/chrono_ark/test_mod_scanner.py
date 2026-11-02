@@ -8,7 +8,7 @@ import pytest
 from backend.core.errors import DomainError
 from backend.core.settings import settings
 from backend.games.chrono_ark.adapter import ChronoArkAdapter
-from backend.games.chrono_ark.mod_scanner import find_workshop_mod
+from backend.games.chrono_ark.mod_scanner import describe_workshop_mod, find_workshop_mod
 
 
 def _mod(workshop: Path, mod_id: str) -> None:
@@ -39,3 +39,13 @@ def test_unset_paths_find_nothing(monkeypatch):
     assert adapter.get_translation_overrides_dir() is None
     with pytest.raises(DomainError):
         adapter.extract_base_game_strings()
+    assert adapter.describe_mod("123") is None
+
+
+def test_describe_reads_ignored_mods_but_not_missing_or_unsafe_ids(tmp_path: Path):
+    _mod(tmp_path, "111")
+    mod = describe_workshop_mod(tmp_path, "111", "ChronoArkMod.json")
+    assert mod is not None
+    assert (mod.mod_id, mod.name, mod.path) == ("111", "Mod 111", tmp_path / "111")
+    assert describe_workshop_mod(tmp_path, "222", "ChronoArkMod.json") is None
+    assert describe_workshop_mod(tmp_path / "111", "..", "ChronoArkMod.json") is None

@@ -29,6 +29,26 @@ def _read_mod_metadata(mod_path: Path, metadata_filename: str) -> dict:
         return {}
 
 
+def _basic_info(mod_path: Path, metadata_filename: str) -> ModInfo:
+    """Build a mod's `ModInfo` from its folder name and metadata JSON alone.
+
+    Args:
+        mod_path: Mod root directory.
+        metadata_filename: Metadata JSON filename.
+
+    Returns:
+        `ModInfo` with the id, name, author and path filled in.
+    """
+    mod_id = mod_path.name
+    metadata = _read_mod_metadata(mod_path, metadata_filename)
+    return ModInfo(
+        mod_id=mod_id,
+        name=metadata.get("id", metadata.get("name", mod_id)),
+        author=metadata.get("Uploader", metadata.get("author", "")),
+        path=mod_path,
+    )
+
+
 def classify_mod(
     mod_path: Path,
     metadata_filename: str,
@@ -44,15 +64,7 @@ def classify_mod(
     Returns:
         Discovered `ModInfo`.
     """
-    mod_id = mod_path.name
-    metadata = _read_mod_metadata(mod_path, metadata_filename)
-
-    info = ModInfo(
-        mod_id=mod_id,
-        name=metadata.get("id", metadata.get("name", mod_id)),
-        author=metadata.get("Uploader", metadata.get("author", "")),
-        path=mod_path,
-    )
+    info = _basic_info(mod_path, metadata_filename)
 
     loc_dir = mod_path / "Localization"
     if loc_dir.exists():
@@ -140,3 +152,23 @@ def find_workshop_mod(
     if mod_id in (ignored_ids or set()) or not mod_dir.is_dir():
         return None
     return classify_mod(mod_dir, metadata_filename, skip_dlls)
+
+
+def describe_workshop_mod(workshop_path: Path, mod_id: str, metadata_filename: str) -> ModInfo | None:
+    """Read one mod's name and author without classifying its files, even when it is ignored.
+
+    Args:
+        workshop_path: Workshop content directory.
+        mod_id: Mod's Workshop id, which is its folder name.
+        metadata_filename: Metadata JSON filename.
+
+    Returns:
+        The mod's basic `ModInfo`, or `None` when it is not installed.
+    """
+    try:
+        mod_dir = safe_child(workshop_path, mod_id)
+    except ValueError:
+        return None
+    if not mod_dir.is_dir():
+        return None
+    return _basic_info(mod_dir, metadata_filename)

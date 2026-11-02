@@ -111,6 +111,23 @@ class HistorySnapshotRequest(BaseModel):
     label: str = ""
 
 
+class IgnoredModInfo(BaseModel):
+    """One ignored mod returned by GET /api/settings/ignored-mods.
+
+    Attributes:
+        name: Mod name from its metadata, or the id when it is not installed.
+        preview_image: Cover image path under `/workshop`, or `None` when there is none.
+        installed: Whether the mod's Workshop folder is on disk.
+    """
+
+    id: str
+    name: str
+    author: str = ""
+    preview_image: str | None = None
+    url: str | None = None
+    installed: bool = False
+
+
 class SettingsResponse(BaseModel):
     """Current application settings returned by GET /api/settings.
 
