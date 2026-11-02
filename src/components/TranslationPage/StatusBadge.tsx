@@ -1,5 +1,5 @@
 import type { RowStatus } from "@/lib/search"
-import { statusToChip } from "@/components/TranslationPage/statusChip"
+import { statusToChip } from "@/components/TranslationPage/helpers"
 
 /** Props for StatusBadge. */
 interface StatusBadgeProps {
