@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react"
 import { useRef } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { useCardWidth } from "@/dashboard/useCardWidth"
+import { useCardWidth } from "@/hooks/useCardWidth"
 
 /**
  * Renders a wrapper holding `count` cards and prints the width the hook reports.

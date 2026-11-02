@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import SupportedModsPage from "@/games/total_war_warhammer_3/pages/SupportedMods"
-import type { ValidationIssue } from "@/games/total_war_warhammer_3/api"
+import type { ValidationIssue } from "@/games/total_war_warhammer_3/lib/registryApi"
 
 vi.mock("@/games/total_war_warhammer_3/hooks/useValidation", () => ({
     useValidation: vi.fn(),

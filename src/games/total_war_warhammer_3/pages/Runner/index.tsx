@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react"
-import { cancelRun, runStreamUrl, startRun } from "@/games/total_war_warhammer_3/api"
+import { cancelRun, runStreamUrl, startRun } from "@/games/total_war_warhammer_3/lib/registryApi"
 import { kickPoll, useCurrentRun } from "@/games/total_war_warhammer_3/hooks/useCurrentRun"
 import { appendLine } from "@/games/total_war_warhammer_3/hooks/useRunnerLog"
 import ScriptCard, { type ScriptEntry } from "@/games/total_war_warhammer_3/components/ScriptCard"
 import RunnerLogTerminal from "@/games/total_war_warhammer_3/components/RunnerLogTerminal"
-import PageHeader from "@/ui/PageHeader"
+import PageHeader from "@/components/ui/PageHeader"
 
 /** Registered helper scripts shown on the Runner page. */
 const SCRIPTS: ScriptEntry[] = [

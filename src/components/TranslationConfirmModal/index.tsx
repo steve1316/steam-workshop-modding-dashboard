@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import Modal from "@/ui/Modal"
+import Modal from "@/components/ui/Modal"
 
 /** Preview data for one target language: the prompts that will be sent to the provider. */
 interface LanguagePreview {

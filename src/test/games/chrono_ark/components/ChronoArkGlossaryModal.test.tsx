@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import ChronoArkGlossaryModal from "@/games/chrono_ark/components/ChronoArkGlossaryModal"
-import type { GlossaryTerm } from "@/shared_types"
+import type { GlossaryTerm } from "@/lib/types"
 
 const GLOSSARY: Record<string, GlossaryTerm> = {
     罗兰: { english: "Roland", category: "characters", key: "", source_mappings: { Chinese: "罗兰" } },

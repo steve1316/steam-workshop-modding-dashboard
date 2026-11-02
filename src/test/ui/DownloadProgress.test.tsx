@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import DownloadProgress from "@/ui/DownloadProgress"
+import DownloadProgress from "@/components/ui/DownloadProgress"
 
 const MB = 1024 * 1024
 

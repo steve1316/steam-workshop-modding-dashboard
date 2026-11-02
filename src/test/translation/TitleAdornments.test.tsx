@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { OpenFolderButton, PendingSyncPill, SteamLink } from "@/translation/TitleAdornments"
+import { OpenFolderButton, PendingSyncPill, SteamLink } from "@/components/TranslationPage/TitleAdornments"
 
 describe("title adornments", () => {
     it("links to the Steam Workshop page in a new tab", () => {

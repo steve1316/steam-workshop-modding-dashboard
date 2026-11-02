@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import { MemoryRouter, Routes, Route } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 
-import { useGameSlug } from "@/games/useGameSlug"
+import { useGameSlug } from "@/hooks/useGameSlug"
 
 function Probe() {
     return <div data-testid="slug">{useGameSlug() || "none"}</div>

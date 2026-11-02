@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react"
 
-import type { HistoryEntry } from "@/shared_types"
-import SharedHistoryModal from "@/translation/HistoryModal"
-import { toHistoryModalEntry } from "@/translation/historyEntry"
-import { createSnapshot, deleteSnapshot, listSnapshots, restoreSnapshot } from "@/games/total_war_warhammer_3/translationApi"
-import { useConfirm } from "@/ui/useConfirm"
+import type { HistoryEntry } from "@/lib/types"
+import SharedHistoryModal from "@/components/HistoryModal"
+import { toHistoryModalEntry } from "@/components/HistoryModal/helpers"
+import { createSnapshot, deleteSnapshot, listSnapshots, restoreSnapshot } from "@/games/total_war_warhammer_3/lib/translationApi"
+import { useConfirm } from "@/hooks/useConfirm"
 
 /** Props for `HistoryModal`. */
 interface HistoryModalProps {

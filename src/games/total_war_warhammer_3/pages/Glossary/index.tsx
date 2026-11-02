@@ -1,7 +1,7 @@
 import React from "react"
 
-import GlossaryBrowser, { type GlossaryColumn } from "@/glossary/GlossaryBrowser"
-import { fetchBaseGlossary } from "@/games/total_war_warhammer_3/translationApi"
+import GlossaryBrowser, { type GlossaryColumn } from "@/components/GlossaryBrowser"
+import { fetchBaseGlossary } from "@/games/total_war_warhammer_3/lib/translationApi"
 
 /** WH3 columns after English Term and Category: the Chinese and Korean base-game text. */
 const COLUMNS: GlossaryColumn[] = [

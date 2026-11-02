@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { fetchChangeNotes, fetchSupportedMods, getCurrentRun, publishAllPacks, publishAllStreamUrl, runStreamUrl, startRun } from "@/games/total_war_warhammer_3/api"
+import { fetchChangeNotes, fetchSupportedMods, getCurrentRun, publishAllPacks, publishAllStreamUrl, runStreamUrl, startRun } from "@/games/total_war_warhammer_3/lib/registryApi"
 
 afterEach(() => {
     vi.restoreAllMocks()

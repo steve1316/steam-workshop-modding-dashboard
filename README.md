@@ -155,8 +155,9 @@ The frontend talks to the backend only through REST calls and Server-Sent Events
 | --- | --- |
 | `src/games/registry.ts` | Each game registers a `GameManifest` (`id`, `slug`, `displayName`, `icon`, `nav`, `routes`). |
 | `src/App.tsx` | Routes `/:gameSlug/*` to the matching manifest's routes, `/settings` to the cross-game Settings page, and everything else to the last active game's dashboard. Also applies per-game branding: accent color, gradient and page title. |
-| `src/translation/` | The shared translation page kit: `TranslationPage`, `StringsTable`, `TranslationToolbar`, `SyncButton`, `BatchReviewBanner`, `TranslatingBanner`, `ContextPanel`, `HistoryModal`, `ApiResponsesModal`, `GlossaryEditor`, `LanguageControls` and status badges. Game pages own their data and state and pass it into these components. |
-| `src/ui/`, `src/dashboard/`, `src/glossary/` | Generic primitives, dashboard layout, and the shared base-glossary browser. |
+| `src/components/TranslationPage/` | The shared translation page kit: `StringsTable`, `TranslationToolbar`, `SyncButton`, `BatchReviewBanner`, `TranslatingBanner`, `ContextPanel`, `LanguageControls` and status badges. `HistoryModal`, `ApiResponsesModal` and `GlossaryEditor` sit beside it in `src/components/`. Game pages own their data and state and pass it into these components. |
+| `src/components/ui/`, `src/components/Dashboard/`, `src/components/GlossaryBrowser/` | Generic primitives, dashboard layout, and the shared base-glossary browser. |
+| `src/hooks/`, `src/lib/` | Shared hooks, and the API client, types and search/format helpers. Each `src/games/<id>/` repeats this layout for its own code. |
 
 </details>
 

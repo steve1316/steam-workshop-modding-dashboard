@@ -1,4 +1,4 @@
-import { statusToChip } from "@/translation/statusChip"
+import { statusToChip } from "@/components/TranslationPage/statusChip"
 
 describe("statusToChip", () => {
     it("maps each canonical status to Chrono Ark's badge label and CSS class", () => {

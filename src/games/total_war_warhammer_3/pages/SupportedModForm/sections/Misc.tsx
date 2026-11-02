@@ -1,4 +1,4 @@
-import Panel from "@/ui/Panel"
+import Panel from "@/components/ui/Panel"
 
 /** Props for `MiscSection`. */
 interface Props {

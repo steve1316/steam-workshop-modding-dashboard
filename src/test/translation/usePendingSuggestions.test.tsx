@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { usePendingSuggestions } from "@/translation/usePendingSuggestions"
+import { usePendingSuggestions } from "@/hooks/usePendingSuggestions"
 
 const SUGGESTION = { english: "Roland", source: "罗兰", source_lang: "Chinese", category: "characters", reason: "Recurring name" }
 

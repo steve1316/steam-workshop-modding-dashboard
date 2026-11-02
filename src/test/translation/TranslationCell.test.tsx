@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { TranslationCell } from "@/translation/TranslationCell"
+import { TranslationCell } from "@/components/TranslationPage/TranslationCell"
 
 describe("TranslationCell", () => {
     it("shows the previous translation struck through when it differs from the current value", () => {

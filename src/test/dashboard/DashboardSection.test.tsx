@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import DashboardSection from "@/dashboard/DashboardSection"
+import DashboardSection from "@/components/Dashboard/DashboardSection"
 
 describe("DashboardSection", () => {
     it("shows the titled skeleton while loading", () => {

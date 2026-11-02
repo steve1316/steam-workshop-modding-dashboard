@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it } from "vitest"
 
-import SearchInput from "@/ui/SearchInput"
+import SearchInput from "@/components/ui/SearchInput"
 
 /**
  * Controlled harness around SearchInput.

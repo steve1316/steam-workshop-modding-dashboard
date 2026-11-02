@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
-import { gameApi } from "@/api/games"
-import type { HistoryEntry } from "@/shared_types"
-import SharedHistoryModal from "@/translation/HistoryModal"
-import { toHistoryModalEntry } from "@/translation/historyEntry"
+import { gameApi } from "@/lib/api"
+import type { HistoryEntry } from "@/lib/types"
+import SharedHistoryModal from "@/components/HistoryModal"
+import { toHistoryModalEntry } from "@/components/HistoryModal/helpers"
 
 /** Props for BackupHistoryModal. */
 interface BackupHistoryModalProps {

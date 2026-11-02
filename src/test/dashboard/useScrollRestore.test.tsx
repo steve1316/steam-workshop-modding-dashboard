@@ -1,7 +1,7 @@
 import { render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { rememberScrollTarget, useScrollRestore } from "@/dashboard/useScrollRestore"
+import { rememberScrollTarget, useScrollRestore } from "@/hooks/useScrollRestore"
 
 /**
  * Renders one card with id 42 and runs the hook.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { canonicalRowStyle } from "@/translation/rowStyle"
+import { canonicalRowStyle } from "@/components/TranslationPage/rowStyle"
 
 describe("canonicalRowStyle", () => {
     it("tints untranslatable grey, synced green, override yellow", () => {

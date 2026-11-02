@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { TranslationToolbar } from "@/translation/TranslationToolbar"
+import { TranslationToolbar } from "@/components/TranslationPage/TranslationToolbar"
 
 describe("TranslationToolbar", () => {
     it("renders the actions in CA's order, in three groups", () => {

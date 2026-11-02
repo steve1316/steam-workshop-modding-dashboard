@@ -1,5 +1,5 @@
-import { extractCategories, filterGlossaryTerms } from "@/utils/glossaryFilters"
-import type { GlossaryTerm } from "@/shared_types"
+import { extractCategories, filterGlossaryTerms } from "@/lib/glossaryFilters"
+import type { GlossaryTerm } from "@/lib/types"
 
 function makeTerm(overrides: Partial<GlossaryTerm> = {}): GlossaryTerm {
     return {

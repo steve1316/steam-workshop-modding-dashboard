@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
-import { useGameSlug } from "@/games/useGameSlug"
-import { startRun } from "@/games/total_war_warhammer_3/api"
+import { useGameSlug } from "@/hooks/useGameSlug"
+import { startRun } from "@/games/total_war_warhammer_3/lib/registryApi"
 import { kickPoll, useCurrentRun } from "@/games/total_war_warhammer_3/hooks/useCurrentRun"
 import StepIndicator from "@/games/total_war_warhammer_3/components/StepIndicator"
 

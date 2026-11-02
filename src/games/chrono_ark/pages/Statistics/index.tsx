@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react"
 
-import { API_BASE } from "@/config"
-import type { Stats } from "@/shared_types"
-import ErrorState from "@/ui/ErrorState"
-import LoadingState from "@/ui/LoadingState"
-import PageHeader from "@/ui/PageHeader"
+import { API_BASE } from "@/lib/config"
+import type { Stats } from "@/lib/types"
+import ErrorState from "@/components/ui/ErrorState"
+import LoadingState from "@/components/ui/LoadingState"
+import PageHeader from "@/components/ui/PageHeader"
 
 /**
  * Translation memory and global progress, from the cross-game `GET /api/stats`.

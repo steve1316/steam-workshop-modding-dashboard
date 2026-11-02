@@ -22,8 +22,8 @@ import {
     saveString,
     syncChanges,
     updateGlossaryTerm,
-} from "@/games/total_war_warhammer_3/translationApi"
-import { RegistryError } from "@/games/total_war_warhammer_3/api"
+} from "@/games/total_war_warhammer_3/lib/translationApi"
+import { RegistryError } from "@/games/total_war_warhammer_3/lib/registryApi"
 
 const PREFIX = "/api/games/total_war_warhammer_3/translation"
 

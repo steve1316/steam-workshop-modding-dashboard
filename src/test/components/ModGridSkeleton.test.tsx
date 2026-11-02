@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import ModGridSkeleton from "@/components/ModGridSkeleton"
+import ModGridSkeleton from "@/components/Dashboard/ModGridSkeleton"
 
 describe("ModGridSkeleton", () => {
     it("announces a busy loading status", () => {

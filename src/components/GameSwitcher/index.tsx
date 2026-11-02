@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { fetchGames, type GameMetadata } from "@/api/games"
-import { API_BASE } from "@/config"
+import { fetchGames, type GameMetadata } from "@/lib/api"
+import { API_BASE } from "@/lib/config"
 import { slugForId } from "@/games/registry"
 import { getBranding } from "@/components/GameSwitcher/branding"
 

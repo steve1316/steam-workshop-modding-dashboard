@@ -1,13 +1,13 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useGameSlug } from "@/games/useGameSlug"
+import { useGameSlug } from "@/hooks/useGameSlug"
 
-import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat } from "@/components/ModCard"
-import { API_BASE } from "@/config"
-import { rememberScrollTarget } from "@/dashboard/useScrollRestore"
-import { highlightMatch } from "@/utils/text"
-import type { WH3RescanSummary, WH3TranslationModSummary } from "@/shared_types"
-import { syncChanges } from "@/games/total_war_warhammer_3/translationApi"
+import ModCard, { NeedsSyncBadge, type ModCardProgressSegment, type ModCardStat } from "@/components/Dashboard/ModCard"
+import { API_BASE } from "@/lib/config"
+import { rememberScrollTarget } from "@/hooks/useScrollRestore"
+import { highlightMatch } from "@/lib/text"
+import type { WH3RescanSummary, WH3TranslationModSummary } from "@/lib/types"
+import { syncChanges } from "@/games/total_war_warhammer_3/lib/translationApi"
 import PublishWorkshopDialog, { type PublishPrepareStep } from "@/games/total_war_warhammer_3/components/PublishWorkshopDialog"
 
 /** Props for TranslationModCard. */

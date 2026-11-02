@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { StatusBadge } from "@/translation/StatusBadge"
+import { StatusBadge } from "@/components/TranslationPage/StatusBadge"
 
 describe("StatusBadge", () => {
     it("renders the canonical label and CSS classes", () => {

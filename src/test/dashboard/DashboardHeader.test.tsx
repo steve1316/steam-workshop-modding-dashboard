@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import DashboardHeader from "@/dashboard/DashboardHeader"
-import { progressLabel } from "@/dashboard/progressLabel"
+import DashboardHeader from "@/components/Dashboard/DashboardHeader"
+import { progressLabel } from "@/lib/progressLabel"
 
 describe("DashboardHeader", () => {
     it("renders the title, tagline, and one toolbar row holding the search field and the actions", () => {

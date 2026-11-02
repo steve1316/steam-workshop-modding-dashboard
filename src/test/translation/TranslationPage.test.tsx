@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react"
-import { TranslationPage } from "@/translation/TranslationPage"
-import type { ColumnDef } from "@/translation/types"
+import { TranslationPage } from "@/components/TranslationPage"
+import type { ColumnDef } from "@/components/TranslationPage/types"
 
 interface Row {
     id: string

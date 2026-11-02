@@ -1,6 +1,6 @@
-import WorkshopCard from "@/components/WorkshopCard"
-import { API_BASE } from "@/config"
-import type { SupportedMod, ValidationIssue } from "@/games/total_war_warhammer_3/api"
+import WorkshopCard from "@/components/Dashboard/WorkshopCard"
+import { API_BASE } from "@/lib/config"
+import type { SupportedMod, ValidationIssue } from "@/games/total_war_warhammer_3/lib/registryApi"
 import ValidationBadge from "@/games/total_war_warhammer_3/components/ValidationBadge"
 
 /** Props for `SupportedModCard`. */

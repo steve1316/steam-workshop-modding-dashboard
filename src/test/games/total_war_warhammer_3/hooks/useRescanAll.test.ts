@@ -2,10 +2,10 @@ import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { useRescanAll } from "@/games/total_war_warhammer_3/hooks/useRescanAll"
-import { rescanMod } from "@/games/total_war_warhammer_3/translationApi"
-import type { WH3RescanSummary } from "@/shared_types"
+import { rescanMod } from "@/games/total_war_warhammer_3/lib/translationApi"
+import type { WH3RescanSummary } from "@/lib/types"
 
-vi.mock("@/games/total_war_warhammer_3/translationApi", () => ({ rescanMod: vi.fn() }))
+vi.mock("@/games/total_war_warhammer_3/lib/translationApi", () => ({ rescanMod: vi.fn() }))
 
 const rescan = vi.mocked(rescanMod)
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { TRANSLATION_COLUMN_WIDTHS, translationColumns } from "@/translation/columns"
+import { TRANSLATION_COLUMN_WIDTHS, translationColumns } from "@/components/TranslationPage/columns"
 
 /**
  * A cell spec that renders the field name.

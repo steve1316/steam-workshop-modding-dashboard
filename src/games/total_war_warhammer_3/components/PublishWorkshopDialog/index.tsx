@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { fetchChangeNotes, publishPack, publishStreamUrl, RegistryError } from "@/games/total_war_warhammer_3/api"
-import Modal from "@/ui/Modal"
+import { fetchChangeNotes, publishPack, publishStreamUrl, RegistryError } from "@/games/total_war_warhammer_3/lib/registryApi"
+import Modal from "@/components/ui/Modal"
 
 /** A step the dialog runs before spawning SteamCMD, such as syncing a translation mod. */
 export interface PublishPrepareStep {

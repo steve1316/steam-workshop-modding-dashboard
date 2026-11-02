@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import Panel from "@/ui/Panel"
+import Panel from "@/components/ui/Panel"
 
 describe("Panel", () => {
     it("renders the title as an h3 directly followed by the help line, then the body", () => {

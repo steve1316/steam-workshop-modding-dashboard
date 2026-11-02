@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react"
-import { API_BASE } from "@/config"
-import { gameApi } from "@/api/games"
-import type { TermSuggestion } from "@/shared_types"
+import { API_BASE } from "@/lib/config"
+import { gameApi } from "@/lib/api"
+import type { TermSuggestion } from "@/lib/types"
 
 /** Descriptor for a single batch, provided by the preview endpoint's `batch_plan`. */
 export type BatchDescriptor = {
