@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -69,9 +68,6 @@ def set_active_game(game_id: str) -> None:
     settings.active_game = game_id
     _adapter = new_adapter
 
-
-_active_translations: dict[str, threading.Event] = {}
-"""Active translation cancel events, keyed by mod_id."""
 
 _gguf_download_cancels: dict[str, asyncio.Event] = {}
 """Active GGUF download cancel events, keyed by filename."""

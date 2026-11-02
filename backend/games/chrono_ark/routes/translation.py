@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import threading
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -20,15 +19,15 @@ from backend.persistence.history_manager import create_backup
 from backend.persistence.mod_settings import load_source_language_override, load_target_language_override
 from backend.providers.base import TranslationProvider
 from backend.routes.helpers import (
-    _active_translations,
     chrono_ark_adapter,
     resolve_source_language,
 )
 from backend.routes.web_provider import ready_web_provider, web_provider
 from backend.translation.orchestrator import chunk_entries
-from backend.translation.pipeline import BatchJob, record_batch, run_translation_batch
+from backend.translation.pipeline import BatchJob, run_translation_batch
 from backend.translation.planning import plan_batches
 from backend.translation.prompt import PromptContext
+from backend.translation.streaming import cancel_batch, stream_batch
 
 router = APIRouter(prefix="/translate")
 
@@ -218,65 +217,19 @@ def translate_cancel(mod_id: str = ""):
     """Signal an in-progress streaming translation to stop.
 
     Args:
-        mod_id: Mod whose cancel event in `_active_translations` to set.
+        mod_id: Mod whose streaming batch to stop.
     """
-    event = _active_translations.pop(mod_id, None)
-    if event:
-        event.set()
-    return {"cancelled": event is not None}
+    return {"cancelled": cancel_batch(GAME_ID, mod_id)}
 
 
 @router.post("/batch/stream")
 async def translate_batch_stream(req: BatchTranslationRequest, request: Request):
-    """Translate one batch like `/translate/batch`, streaming SSE progress for providers that support it (currently Ollama).
+    """Translate one batch like `/translate/batch`, streaming SSE progress for providers that support it (Ollama and llama.cpp).
 
     Non-streaming providers fall back to a single `complete` event.
 
     Args:
         req: Batch parameters (mod_id, provider, keys, etc.).
-        request: Starlette request, to detect disconnect and stop Ollama early.
+        request: Starlette request, to detect disconnect and stop the provider early.
     """
-    job = await _batch_job(req)
-
-    async def event_stream():
-        queue: asyncio.Queue[dict | None] = asyncio.Queue()
-        loop = asyncio.get_event_loop()
-        cancel_event = threading.Event()
-        _active_translations[req.mod_id] = cancel_event
-
-        def run_generator():
-            try:
-                for event in job.provider.translate_batch_stream(job.entries, cancel_event=cancel_event, **job.context.provider_kwargs()):
-                    if cancel_event.is_set():
-                        break
-                    loop.call_soon_threadsafe(queue.put_nowait, event)
-            except Exception as e:
-                if not cancel_event.is_set():
-                    loop.call_soon_threadsafe(queue.put_nowait, {"type": "error", "message": str(e)})
-            finally:
-                _active_translations.pop(req.mod_id, None)
-                loop.call_soon_threadsafe(queue.put_nowait, None)
-
-        loop.run_in_executor(None, run_generator)
-
-        while True:
-            try:
-                event = await asyncio.wait_for(queue.get(), timeout=1.0)
-            except TimeoutError:
-                if await request.is_disconnected():
-                    cancel_event.set()
-                    break
-                continue
-
-            if event is None:
-                break
-
-            if event.get("type") == "complete":
-                # The review modal gets the same saved suggestions as a non-streamed batch, not the provider's raw list.
-                outcome = await asyncio.to_thread(record_batch, job, event.get("translations", {}), event.get("suggestions", []))
-                event["translations"] = outcome.translations
-                event["suggestions"] = outcome.suggestions
-
-            yield f"data: {json.dumps(event)}\n\n"
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return stream_batch(await _batch_job(req), request)
