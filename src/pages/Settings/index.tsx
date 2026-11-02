@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useState } from "react"
 import { FaEye, FaEyeSlash, FaCheck, FaExclamationTriangle, FaChevronDown, FaChevronRight, FaDownload, FaPlay, FaStop, FaTimes } from "react-icons/fa"
 import { API_BASE, gameApi } from "@/lib/api"
+import { readEventStream } from "@/lib/stream"
 import { getGame, listGames } from "@/games/registry"
 import ErrorState from "@/components/ui/ErrorState"
 import Banner from "@/components/ui/Banner"
@@ -9,6 +10,17 @@ import Field from "@/components/ui/Field"
 import LoadingState from "@/components/ui/LoadingState"
 import PageHeader from "@/components/ui/PageHeader"
 import Panel from "@/components/ui/Panel"
+
+/** One progress event from the Ollama pull and llama.cpp download and install streams. */
+interface StreamProgress {
+    status: string
+    completed?: number
+    total?: number
+    file?: string
+    path?: string
+    binary_path?: string
+    message?: string
+}
 
 /** Tracks user-entered API key values (empty string = no pending change). */
 interface KeyState {
@@ -162,7 +174,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
     const [originalOllamaVramTier, setOriginalOllamaVramTier] = useState("")
     const [ollamaInstalling, setOllamaInstalling] = useState(false)
     const [ollamaPulling, setOllamaPulling] = useState(false)
-    const [ollamaPullProgress, setOllamaPullProgress] = useState<{ status: string; completed?: number; total?: number } | null>(null)
+    const [ollamaPullProgress, setOllamaPullProgress] = useState<StreamProgress | null>(null)
     const [showOllamaAdvanced, setShowOllamaAdvanced] = useState(false)
 
     const [ollamaManaged, setOllamaManaged] = useState(false)
@@ -187,10 +199,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
     const [originalLlamacppVramTier, setOriginalLlamacppVramTier] = useState("")
     const [llamacppLocalModels, setLlamacppLocalModels] = useState<{ name: string; path: string; size: number }[]>([])
     const [llamacppDownloading, setLlamacppDownloading] = useState(false)
-    const [llamacppDownloadProgress, setLlamacppDownloadProgress] = useState<{ status: string; completed?: number; total?: number } | null>(null)
+    const [llamacppDownloadProgress, setLlamacppDownloadProgress] = useState<StreamProgress | null>(null)
     const [llamacppInstalled, setLlamacppInstalled] = useState(false)
     const [llamacppInstalling, setLlamacppInstalling] = useState(false)
-    const [llamacppInstallProgress, setLlamacppInstallProgress] = useState<{ status: string; file?: string; completed?: number; total?: number } | null>(null)
+    const [llamacppInstallProgress, setLlamacppInstallProgress] = useState<StreamProgress | null>(null)
 
     const [systemPrompt, setSystemPrompt] = useState("")
     const [promptSourceLang, setPromptSourceLang] = useState("Chinese")
@@ -465,26 +477,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ model: modelName }),
             })
-            const reader = res.body?.getReader()
-            const decoder = new TextDecoder()
-            if (!reader) return
-
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-                const text = decoder.decode(value)
-                for (const line of text.split("\n")) {
-                    if (line.startsWith("data: ")) {
-                        try {
-                            const progress = JSON.parse(line.slice(6))
-                            setOllamaPullProgress(progress)
-                            if (progress.status === "done") break
-                        } catch {
-                            /* skip malformed lines */
-                        }
-                    }
-                }
-            }
+            await readEventStream<StreamProgress>(res, (progress) => {
+                setOllamaPullProgress(progress)
+                return progress.status === "done"
+            })
             fetch(`${API_BASE}/ollama/status`)
                 .then((r) => r.json())
                 .then((data) => {
@@ -580,49 +576,25 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 body: JSON.stringify({ url: tier.url, filename: tier.filename }),
             })
 
-            const reader = res.body?.getReader()
-            const decoder = new TextDecoder()
-            if (!reader) {
-                console.error("GGUF download: no reader available")
-                return
-            }
-
-            let buffer = ""
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-                buffer += decoder.decode(value, { stream: true })
-                const lines = buffer.split("\n")
-                buffer = lines.pop() || "" // keep incomplete last line in buffer
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        try {
-                            const progress = JSON.parse(line.slice(6))
-                            setLlamacppDownloadProgress(progress)
-                            if (progress.status === "done" && progress.path) {
-                                setLlamacppModelPath(progress.path)
-                                setOriginalLlamacppModelPath(progress.path)
-                                fetch(`${API_BASE}/settings`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                        llamacpp_model_path: progress.path,
-                                        llamacpp_model: tier.model,
-                                        llamacpp_vram_tier: tier.tier,
-                                    }),
-                                }).catch(() => {})
-                                setOriginalLlamacppModel(tier.model)
-                                setOriginalLlamacppVramTier(tier.tier)
-                            }
-                            if (progress.status === "error") {
-                                console.error("GGUF download error:", progress.message)
-                            }
-                        } catch {
-                            /* skip malformed lines */
-                        }
-                    }
+            await readEventStream<StreamProgress>(res, (progress) => {
+                setLlamacppDownloadProgress(progress)
+                if (progress.status === "done" && progress.path) {
+                    setLlamacppModelPath(progress.path)
+                    setOriginalLlamacppModelPath(progress.path)
+                    fetch(`${API_BASE}/settings`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            llamacpp_model_path: progress.path,
+                            llamacpp_model: tier.model,
+                            llamacpp_vram_tier: tier.tier,
+                        }),
+                    }).catch(() => {})
+                    setOriginalLlamacppModel(tier.model)
+                    setOriginalLlamacppVramTier(tier.tier)
                 }
-            }
+                if (progress.status === "error") console.error("GGUF download error:", progress.message)
+            })
             refreshLlamacppModels()
         } catch (err) {
             console.error("Failed to download GGUF:", err)
@@ -655,35 +627,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ gameId }) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ backend }),
             })
-            const reader = res.body?.getReader()
-            const decoder = new TextDecoder()
-            if (!reader) return
-
-            let buffer = ""
-            while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-                buffer += decoder.decode(value, { stream: true })
-                const lines = buffer.split("\n")
-                buffer = lines.pop() || ""
-                for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        try {
-                            const progress = JSON.parse(line.slice(6))
-                            setLlamacppInstallProgress(progress)
-                            if (progress.status === "done") {
-                                setLlamacppInstalled(true)
-                                if (progress.binary_path) {
-                                    setLlamacppBinaryPath(progress.binary_path)
-                                    setOriginalLlamacppBinaryPath(progress.binary_path)
-                                }
-                            }
-                        } catch {
-                            /* skip */
-                        }
-                    }
+            await readEventStream<StreamProgress>(res, (progress) => {
+                setLlamacppInstallProgress(progress)
+                if (progress.status !== "done") return
+                setLlamacppInstalled(true)
+                if (progress.binary_path) {
+                    setLlamacppBinaryPath(progress.binary_path)
+                    setOriginalLlamacppBinaryPath(progress.binary_path)
                 }
-            }
+            })
         } catch (err) {
             console.error("Failed to install llama-server:", err)
         } finally {

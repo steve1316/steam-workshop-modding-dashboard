@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react"
 import { API_BASE, gameApi } from "@/lib/api"
+import { readEventStream } from "@/lib/stream"
 import type { TermSuggestion } from "@/lib/types"
 
 /** Descriptor for a single batch, provided by the preview endpoint's `batch_plan`. */
@@ -117,47 +118,25 @@ export function useIterativeTranslation(gameId: string, modId: string, onBatchTr
                     return
                 }
 
-                const reader = res.body?.getReader()
-                if (!reader) return
-
-                const decoder = new TextDecoder()
-                let buffer = ""
-
-                while (true) {
-                    const { done, value } = await reader.read()
-                    if (done || cancelledRef.current) break
-
-                    buffer += decoder.decode(value, { stream: true })
-                    const lines = buffer.split("\n")
-                    buffer = lines.pop() ?? ""
-
-                    for (const line of lines) {
-                        if (!line.startsWith("data: ")) continue
-                        let event: Record<string, unknown>
-                        try {
-                            event = JSON.parse(line.slice(6))
-                        } catch {
-                            continue
-                        }
-
-                        if (event.type === "progress") {
-                            setState({
-                                phase: "translating",
-                                batchIndex,
-                                totalBatches,
-                                streamingProgress: {
-                                    tokensGenerated: event.tokens_generated as number,
-                                    elapsedSec: event.elapsed_sec as number,
-                                    tokensPerSec: event.tokens_per_sec as number,
-                                },
-                            })
-                        } else if (event.type === "complete") {
-                            handleBatchResult(batchIndex, totalBatches, (event.translations as Record<string, string>) || {}, (event.suggestions as TermSuggestion[]) || [])
-                        } else if (event.type === "error") {
-                            setState({ phase: "error", message: event.message as string, completedBatches: batchIndex })
-                        }
+                await readEventStream(res, (event) => {
+                    if (cancelledRef.current) return true
+                    if (event.type === "progress") {
+                        setState({
+                            phase: "translating",
+                            batchIndex,
+                            totalBatches,
+                            streamingProgress: {
+                                tokensGenerated: event.tokens_generated as number,
+                                elapsedSec: event.elapsed_sec as number,
+                                tokensPerSec: event.tokens_per_sec as number,
+                            },
+                        })
+                    } else if (event.type === "complete") {
+                        handleBatchResult(batchIndex, totalBatches, (event.translations as Record<string, string>) || {}, (event.suggestions as TermSuggestion[]) || [])
+                    } else if (event.type === "error") {
+                        setState({ phase: "error", message: event.message as string, completedBatches: batchIndex })
                     }
-                }
+                })
             } catch (err) {
                 if (cancelledRef.current) return
                 setState({
