@@ -29,6 +29,8 @@ import { canonicalRowStyle, TRANSLATION_COLUMN_WIDTHS, translationColumns } from
 import HighlightText from "@/components/ui/HighlightText"
 import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import type { BatchDescriptor } from "@/hooks/useIterativeTranslation"
+import { useLanguageOverrides, type LanguageOverrides } from "@/hooks/useLanguageOverrides"
+import { useModContext } from "@/hooks/useModContext"
 import { useTableView } from "@/hooks/useTableView"
 
 const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
@@ -38,6 +40,45 @@ const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
     source_file: TRANSLATION_COLUMN_WIDTHS.source,
     source: TRANSLATION_COLUMN_WIDTHS.original,
     english: TRANSLATION_COLUMN_WIDTHS.translation,
+}
+
+const EMPTY_CONTEXT: ContextFields = { source_game: "", character_name: "", background: "" }
+
+const LANGUAGE_DEFAULTS = { source: "Chinese", target: "Chinese" }
+
+/**
+ * Load a mod's character context. A mod without one gets the empty context.
+ *
+ * @param modId Workshop id.
+ * @returns The context fields.
+ */
+async function loadCharacterContext(modId: string): Promise<ContextFields> {
+    const res = await gameApi("chrono_ark").get(`/mods/${modId}/character-context`)
+    if (!res.ok) return EMPTY_CONTEXT
+    const data = await res.json()
+    return { source_game: data.source_game ?? "", character_name: data.character_name ?? "", background: data.background ?? "" }
+}
+
+/**
+ * Save a mod's character context.
+ *
+ * @param modId Workshop id.
+ * @param next The fields to save.
+ */
+async function saveCharacterContext(modId: string, next: ContextFields): Promise<void> {
+    const res = await gameApi("chrono_ark").post(`/mods/${modId}/character-context`, next)
+    if (!res.ok) throw new Error("Failed to save character context.")
+}
+
+/**
+ * POST to a Chrono Ark endpoint, failing on a non-2xx status.
+ *
+ * @param path Path under the game's API.
+ * @param body JSON body.
+ */
+async function postOrThrow(path: string, body: unknown): Promise<void> {
+    const res = await gameApi("chrono_ark").post(path, body)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
 }
 
 /**
@@ -96,34 +137,13 @@ const ModDetail: React.FC = () => {
     const { suggestions, refresh: fetchSuggestions, scan, scanning } = usePendingSuggestions("chrono_ark", modId ?? "", setTranslateBanner)
 
     const [showCharacterContext, setShowCharacterContext] = useState(false)
-    const [characterContext, setCharacterContext] = useState<ContextFields>({ source_game: "", character_name: "", background: "" })
-    const hasCharacterContext = !!(characterContext.source_game || characterContext.character_name || characterContext.background)
+    const characterContext = useModContext(
+        ["chrono_ark", "character-context", modId],
+        { load: () => loadCharacterContext(modId ?? ""), save: (next) => saveCharacterContext(modId ?? "", next) },
+        EMPTY_CONTEXT
+    )
 
-    // Load the character context once per mod so the toolbar dot shows before the panel opens.
-    useEffect(() => {
-        if (!modId) return
-        gameApi("chrono_ark")
-            .get(`/mods/${modId}/character-context`)
-            .then((res) => (res.ok ? res.json() : null))
-            .then((data) => {
-                if (data) setCharacterContext({ source_game: data.source_game ?? "", character_name: data.character_name ?? "", background: data.background ?? "" })
-            })
-            .catch(() => {})
-    }, [modId])
-
-    /**
-     * Persist the character context and adopt it as the saved value.
-     *
-     * @param next - Edited fields.
-     */
-    const saveCharacterContext = async (next: ContextFields) => {
-        const res = await gameApi("chrono_ark").post(`/mods/${modId}/character-context`, next)
-        if (!res.ok) throw new Error("Failed to save character context.")
-        setCharacterContext(next)
-    }
-
-    const [sourceLangOverride, setSourceLangOverride] = useState<string | null>(null)
-    const [targetLangOverride, setTargetLangOverride] = useState<string | null>(null)
+    const [languageOverrides, setLanguageOverrides] = useState<LanguageOverrides>({ source: null, target: null })
 
     const [showApiResponses, setShowApiResponses] = useState(false)
     const [showHistory, setShowHistory] = useState(false)
@@ -255,8 +275,7 @@ const ModDetail: React.FC = () => {
             setModAuthor(data.author ?? "")
             setModPreviewImage(data.preview_image ?? null)
             setModUrl(data.url ?? null)
-            setSourceLangOverride(data.source_language_override ?? null)
-            setTargetLangOverride(data.target_language_override ?? null)
+            setLanguageOverrides({ source: data.source_language_override ?? null, target: data.target_language_override ?? null })
         } catch (err) {
             console.error("Failed to fetch mod detail:", err)
             if (!silent && !hasLoadedRef.current) setLoadError("Could not reach the server.")
@@ -265,32 +284,17 @@ const ModDetail: React.FC = () => {
         }
     }
 
-    const saveSourceLanguage = async (lang: string | null) => {
-        setSourceLangOverride(lang)
-        // A non-English source can't have a target override, so clear it.
-        if (lang !== "English" && targetLangOverride) {
-            setTargetLangOverride(null)
-            gameApi("chrono_ark")
-                .post(`/mods/${modId}/target-language`, { target_language: null })
-                .catch(() => {})
-        }
-        try {
-            await gameApi("chrono_ark").post(`/mods/${modId}/source-language`, { source_language: lang })
-            fetchModDetail(true)
-        } catch (err) {
-            console.error("Failed to save source language:", err)
-        }
+    /**
+     * Save the changed language overrides, then reload the strings so their status reflects the new languages.
+     *
+     * @param next The overrides to save.
+     */
+    const saveLanguages = async (next: LanguageOverrides) => {
+        if (next.target !== languageOverrides.target) await postOrThrow(`/mods/${modId}/target-language`, { target_language: next.target })
+        if (next.source !== languageOverrides.source) await postOrThrow(`/mods/${modId}/source-language`, { source_language: next.source })
+        await fetchModDetail(true)
     }
-
-    const saveTargetLanguage = async (lang: string | null) => {
-        setTargetLangOverride(lang)
-        try {
-            await gameApi("chrono_ark").post(`/mods/${modId}/target-language`, { target_language: lang })
-            fetchModDetail(true)
-        } catch (err) {
-            console.error("Failed to save target language:", err)
-        }
-    }
+    const languages = useLanguageOverrides(languageOverrides, LANGUAGE_DEFAULTS, saveLanguages, (message) => setTranslateBanner({ type: "error", message }))
 
     useEffect(() => {
         fetchModDetail()
@@ -510,7 +514,7 @@ const ModDetail: React.FC = () => {
                 ),
             },
         },
-        { original: `Original (${sourceLangOverride || "Chinese"})`, translation: targetLangOverride || "English" }
+        { original: `Original (${languages.source})`, translation: languages.target }
     )
 
     return (
@@ -526,9 +530,7 @@ const ModDetail: React.FC = () => {
                 </>
             }
             subtitle={modAuthor ? `by ${modAuthor}` : undefined}
-            languageControls={
-                <LanguageControls source={sourceLangOverride || "Chinese"} target={targetLangOverride || "Chinese"} onSourceChange={saveSourceLanguage} onTargetChange={saveTargetLanguage} />
-            }
+            languageControls={<LanguageControls {...languages.controls} />}
             progressLabel={`${strings.filter((s) => s.source.trim() && !s.untranslatable_reason && s.is_translated).length} / ${strings.filter((s) => s.source.trim() && !s.untranslatable_reason).length} total strings translated`}
             toolbar={
                 <TranslationToolbar
@@ -542,7 +544,7 @@ const ModDetail: React.FC = () => {
                     suggestions={{ count: suggestions.length, onClick: () => setShowSuggestionModal(true) }}
                     scan={{ scanning, onClick: scan }}
                     apiResponses={{ onClick: () => setShowApiResponses(true) }}
-                    context={{ label: "Character Context", hasContext: hasCharacterContext, onClick: () => setShowCharacterContext(!showCharacterContext) }}
+                    context={{ label: "Character Context", hasContext: characterContext.hasContext, onClick: () => setShowCharacterContext(!showCharacterContext) }}
                     history={{ onClick: () => setShowHistory(true) }}
                     reset={{ onClick: handleResetConfirm }}
                     clearEnglish={{ onClick: handleClearTranslationsConfirm }}
@@ -599,7 +601,7 @@ const ModDetail: React.FC = () => {
             }
             banner={translateBanner}
             onDismissBanner={() => setTranslateBanner(null)}
-            panels={<>{showCharacterContext && <ContextPanel title="Character Context" value={characterContext} onSave={saveCharacterContext} />}</>}
+            panels={<>{showCharacterContext && <ContextPanel title="Character Context" value={characterContext.context} onSave={(next) => characterContext.save(next)} />}</>}
             modals={
                 <>
                     {showSuggestionModal && (
@@ -638,8 +640,8 @@ const ModDetail: React.FC = () => {
                             queue={manualQueue}
                             allStrings={strings}
                             glossary={modGlossary}
-                            sourceLanguage={sourceLangOverride || "Chinese"}
-                            targetLanguage={targetLangOverride || "English"}
+                            sourceLanguage={languages.source}
+                            targetLanguage={languages.target}
                             onSave={handleSaveString}
                             onClose={() => setManualQueue(null)}
                         />

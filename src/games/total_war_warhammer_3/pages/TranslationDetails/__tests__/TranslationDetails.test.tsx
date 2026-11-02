@@ -878,7 +878,7 @@ describe("TranslationDetails Translate Names", () => {
             fireEvent.click(checkbox)
         })
 
-        expect(checkbox).toBeChecked()
+        await waitFor(() => expect(checkbox).toBeChecked())
         const put = spy.mock.calls.find(([u, i]) => String(u).endsWith("/mod-context") && (i as RequestInit | undefined)?.method === "PUT")
         expect(JSON.parse(String((put![1] as RequestInit).body))).toMatchObject({ include_translated_names: true, background: "" })
     })

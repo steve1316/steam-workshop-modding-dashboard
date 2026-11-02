@@ -6,6 +6,8 @@ import TranslationConfirmModal from "@/components/TranslationConfirmModal"
 import { API_BASE } from "@/lib/api"
 import { useIterativeTranslation } from "@/hooks/useIterativeTranslation"
 import { useGameSlug } from "@/hooks/useGameSlug"
+import { useLanguageOverrides } from "@/hooks/useLanguageOverrides"
+import { useModContext } from "@/hooks/useModContext"
 import { useTableView } from "@/hooks/useTableView"
 import { StatusBadge } from "@/components/TranslationPage/StatusBadge"
 import { TranslationPage } from "@/components/TranslationPage"
@@ -13,7 +15,7 @@ import { usePendingSuggestions } from "@/hooks/usePendingSuggestions"
 import { TranslationToolbar } from "@/components/TranslationPage/TranslationToolbar"
 import { SyncButton } from "@/components/TranslationPage/SyncButton"
 import { BatchReviewBanner } from "@/components/TranslationPage/BatchReviewBanner"
-import { ContextPanel, type ContextFields } from "@/components/TranslationPage/ContextPanel"
+import { ContextPanel } from "@/components/TranslationPage/ContextPanel"
 import SplitButton from "@/components/ui/SplitButton"
 import { LanguageControls } from "@/components/TranslationPage/LanguageControls"
 import { OpenFolderButton, PendingSyncPill, SteamLink } from "@/components/TranslationPage/TitleAdornments"
@@ -109,6 +111,8 @@ type SortField = "status" | "provider" | "source_filename" | "key" | "parent_tex
 const wh3SyncMessage = (resync: boolean) =>
     `${resync ? "Nothing has changed since the last sync. Re-syncing writes every translation again.\n\n" : ""}This will overwrite the mod's .loc.tsv files with your translations and rebuild the translation pack. Continue?`
 
+const EMPTY_MOD_CONTEXT: WH3ModContext = { source_game: "", character_name: "", background: "", source_language_override: null, target_language_override: null }
+
 const COLUMN_WIDTH_KEY = "wh3-translation-column-widths"
 
 const DEFAULT_COLUMN_WIDTHS: Record<SortField, number> = {
@@ -185,13 +189,12 @@ const TranslationDetailsPage: React.FC = () => {
     const [stageReview, setStageReview] = useState<{ step: StageStep; suggestions: TermSuggestion[] } | null>(null)
     const [pausedStep, setPausedStep] = useState<StageStep | null>(null)
     const [nameReviewSuggestions, setNameReviewSuggestions] = useState<TermSuggestion[] | null>(null)
-    const [modContext, setModContext] = useState<WH3ModContext>({
-        source_game: "",
-        character_name: "",
-        background: "",
-        source_language_override: null,
-        target_language_override: null,
-    })
+    const {
+        context: modContext,
+        loading: contextLoading,
+        hasContext,
+        save: saveModContextFields,
+    } = useModContext(["total_war_warhammer_3", "mod-context", workshopId], { load: () => fetchModContext(workshopId), save: (next) => saveModContext(workshopId, next) }, EMPTY_MOD_CONTEXT)
     const [glossaryCount, setGlossaryCount] = useState<number>(0)
     const [activeProvider, setActiveProvider] = useState<string>("")
     const [preview, setPreview] = useState<WH3TranslationPreview | null>(null)
@@ -231,11 +234,10 @@ const TranslationDetailsPage: React.FC = () => {
         let cancelled = false
         ;(async () => {
             try {
-                const [allMods, summary, ctx] = await Promise.all([listTranslationMods(), rescanMod(workshopId), fetchModContext(workshopId)])
+                const [allMods, summary] = await Promise.all([listTranslationMods(), rescanMod(workshopId)])
                 if (cancelled) return
                 setMod(allMods.find((m) => m.workshop_id === workshopId) ?? null)
                 setProgress(summary)
-                setModContext(ctx)
                 await loadStrings()
             } catch (e) {
                 setBanner({ type: "error", message: `Failed to load: ${(e as Error).message}` })
@@ -513,56 +515,23 @@ const TranslationDetailsPage: React.FC = () => {
         setBanner({ type: "success", message: "Restored from snapshot" })
     }, [workshopId, loadStrings, refreshGlossaryCount])
 
-    const saveSourceLanguage = useCallback(
-        async (value: string) => {
-            const next: WH3ModContext = { ...modContext, source_language_override: value === "" ? null : value }
-            setModContext(next)
-            try {
-                await saveModContext(workshopId, next)
-            } catch (e) {
-                setBanner({ type: "error", message: `Language save failed: ${(e as Error).message}` })
-            }
-        },
-        [workshopId, modContext]
+    const languages = useLanguageOverrides(
+        { source: modContext.source_language_override, target: modContext.target_language_override },
+        { source: mod?.source_language ?? "Chinese", target: mod?.target_language ?? "Chinese" },
+        (next) => saveModContextFields({ source_language_override: next.source, target_language_override: next.target }),
+        (message) => setBanner({ type: "error", message })
     )
-
-    const saveTargetLanguage = useCallback(
-        async (value: string) => {
-            const next: WH3ModContext = { ...modContext, target_language_override: value === "" ? null : value }
-            setModContext(next)
-            try {
-                await saveModContext(workshopId, next)
-            } catch (e) {
-                setBanner({ type: "error", message: `Language save failed: ${(e as Error).message}` })
-            }
-        },
-        [workshopId, modContext]
-    )
-
-    // The page owns the mod context. Saving merges the three fields into it before the full PUT, so a later language change keeps them.
-    const saveContext = useCallback(
-        async (fields: ContextFields) => {
-            const next: WH3ModContext = { ...modContext, ...fields }
-            await saveModContext(workshopId, next)
-            setModContext(next)
-        },
-        [workshopId, modContext]
-    )
-    const hasContext = !!(modContext.source_game || modContext.character_name || modContext.background)
 
     // Save the translated-names prompt setting as soon as it is toggled, and put it back if the save fails.
     const onIncludeNamesChange = useCallback(
         async (checked: boolean) => {
-            const next: WH3ModContext = { ...modContext, include_translated_names: checked }
-            setModContext(next)
             try {
-                await saveModContext(workshopId, next)
+                await saveModContextFields({ include_translated_names: checked })
             } catch (e) {
-                setModContext(modContext)
                 setBanner({ type: "error", message: `Could not save the setting: ${(e as Error).message}` })
             }
         },
-        [workshopId, modContext]
+        [saveModContextFields]
     )
 
     const onOpenFolder = useCallback(async () => {
@@ -578,9 +547,6 @@ const TranslationDetailsPage: React.FC = () => {
     // Counted from the table rows so each translated batch shows up right away. Done = synced + pending + untouched, total adds missing.
     const done = useMemo(() => strings.filter((r) => r.canonical_status === "synced" || r.canonical_status === "pending" || r.canonical_status === "untouched").length, [strings])
     const total = useMemo(() => done + strings.filter((r) => r.canonical_status === "missing" || r.canonical_status === "changed").length, [strings, done])
-
-    const sourceLang = modContext.source_language_override ?? mod?.source_language ?? "Chinese"
-    const targetLang = sourceLang === "English" ? (modContext.target_language_override ?? mod?.target_language ?? "Chinese") : "English"
 
     const columns = translationColumns<WH3DriftRow>(
         {
@@ -618,10 +584,10 @@ const TranslationDetailsPage: React.FC = () => {
                 ),
             },
         },
-        { original: `Original (${sourceLang})`, translation: targetLang }
+        { original: `Original (${languages.source})`, translation: languages.target }
     )
 
-    if (loading) return <LoadingState message="Loading mod details..." />
+    if (loading || contextLoading) return <LoadingState message="Loading mod details..." />
 
     const titleBadges = (
         <>
@@ -631,14 +597,7 @@ const TranslationDetailsPage: React.FC = () => {
         </>
     )
 
-    const languageControls = (
-        <LanguageControls
-            source={modContext.source_language_override ?? mod?.source_language ?? "Chinese"}
-            target={modContext.target_language_override ?? mod?.target_language ?? "Chinese"}
-            onSourceChange={saveSourceLanguage}
-            onTargetChange={saveTargetLanguage}
-        />
-    )
+    const languageControls = <LanguageControls {...languages.controls} />
 
     const syncState = progress?.has_unsynced_changes ? "sync" : (progress?.canonical_counts.synced ?? 0) > 0 ? "resync" : "disabled"
 
@@ -851,7 +810,7 @@ const TranslationDetailsPage: React.FC = () => {
                         title="Mod Context"
                         description="This context is included in the translation prompt to help the AI understand the mod's setting and lore."
                         value={modContext}
-                        onSave={saveContext}
+                        onSave={(fields) => saveModContextFields(fields)}
                         extra={
                             <label
                                 className="checkbox-row"
